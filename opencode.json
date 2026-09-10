@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "argus": {
+      "type": "local",
+      "command": [
+        "argus-mcp"
+      ],
+      "enabled": true,
+      "timeout": 15000
+    }
+  },
+  "instructions": [
+    ".opencode/instructions/argus.md"
+  ],
+  "permission": {
+    "skill": {
+      "*review*": "allow",
+      "full-review": "allow"
+    }
+  }
+}

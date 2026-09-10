@@ -1,0 +1,104 @@
+import type { Finding, Severity } from "../types.js";
+import type { ReviewResult } from "./result.js";
+import { color } from "../logger.js";
+
+function severityTag(sev: Severity): string {
+  const label = sev.toUpperCase().padEnd(8);
+  switch (sev) {
+    case "critical":
+      return color.bold(color.red(label));
+    case "high":
+      return color.red(label);
+    case "medium":
+      return color.yellow(label);
+    case "low":
+      return color.blue(label);
+    default:
+      return color.gray(label);
+  }
+}
+
+function location(f: Finding): string {
+  if (!f.lines) return f.file;
+  const { start, end } = f.lines;
+  return end && end !== start ? `${f.file}:${start}-${end}` : `${f.file}:${start}`;
+}
+
+function block(title: string, body: string): string {
+  return `${color.bold(title)}\n\n${body}\n`;
+}
+
+export function renderTerminal(result: ReviewResult): string {
+  const out: string[] = [];
+  out.push(color.bold(color.cyan("\nArgus Review")));
+  out.push(color.dim(result.projectSummary.split("\n")[0]));
+  out.push("");
+  out.push(
+    `${result.reviewersRun.length} reviewers executed` +
+      color.dim(`  (${result.reviewersRun.join(", ") || "none"})`),
+  );
+  out.push(`${result.candidateCount} candidate findings`);
+  out.push(`${result.rejectedCount} rejected by Challenger`);
+  if (result.duplicatesRemoved > 0) {
+    out.push(`${result.duplicatesRemoved} duplicate removed`);
+  }
+  if (result.suppressedCount > 0) out.push(`${result.suppressedCount} suppressed`);
+  if (result.resolvedCount > 0) out.push(`${result.resolvedCount} resolved since previous review`);
+  out.push("");
+  out.push(color.bold(`${result.findings.length} findings`));
+
+  if (result.skippedReason) {
+    out.push("");
+    out.push(color.yellow(result.skippedReason));
+  }
+
+  for (const f of result.findings) {
+    out.push("");
+    out.push(color.gray("─".repeat(64)));
+    out.push("");
+    out.push(`${severityTag(f.severity)} ${color.dim("·")} ${f.category}`);
+    out.push(color.cyan(location(f)));
+    out.push("");
+    out.push(color.bold(f.title));
+    if (f.description) {
+      out.push("");
+      out.push(f.description);
+    }
+    if (f.evidence.length) {
+      out.push("");
+      out.push(block("Evidence", f.evidence.map((e) => `  ${e}`).join("\n")));
+    }
+    if (f.scenario) {
+      out.push(block("Scenario", f.scenario));
+    }
+    if (f.impact) {
+      out.push(block("Impact", f.impact));
+    }
+    out.push(block("Confidence", `  ${f.confidence.toUpperCase()}`));
+    if (f.baselineStatus) out.push(block("Baseline", `  ${f.baselineStatus.toUpperCase()}`));
+    if (f.recommendation) {
+      out.push(block("Recommendation", f.recommendation));
+    }
+    const detected =
+      f.detectedBy && f.detectedBy.length > 1
+        ? f.detectedBy.join(", ")
+        : f.reviewer;
+    out.push(
+      color.dim(
+        `detected by ${detected}` +
+          (f.challenge ? ` · challenger: ${f.challenge.result}` : ""),
+      ),
+    );
+  }
+
+  if (result.resolvedFindings.length > 0) {
+    out.push("");
+    out.push(color.bold("Resolved since previous review"));
+    for (const finding of result.resolvedFindings) {
+      out.push(`  ${finding.severity.toUpperCase()} · ${finding.file} — ${finding.title}`);
+    }
+  }
+
+  out.push("");
+  return out.join("\n");
+}

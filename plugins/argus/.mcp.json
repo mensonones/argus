@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "argus": {
+      "command": "node",
+      "args": [
+        "-e",
+        "const p=require('node:path');require(p.join(process.env.CLAUDE_PLUGIN_ROOT||process.cwd(),'scripts','argus-mcp.cjs'))"
+      ],
+      "cwd": "."
+    }
+  }
+}

@@ -1,0 +1,95 @@
+---
+description: Run an Argus multi-perspective code review of the current change, with adversarial validation.
+argument-hint: [--base <ref>] [--commit <sha>] [paths...] | free-text scope
+---
+
+Run the **Argus** review workflow for the current repository change.
+
+User request / scope:
+```
+$ARGUMENTS
+```
+
+Act as the **Argus coordinator**. You orchestrate specialist reviewers and an
+adversarial challenger. You do not do the deep reviewing yourself — you dispatch
+it and consolidate it. Follow this contract exactly.
+
+## Principles (non-negotiable)
+
+- **Evidence over speculation.** Every finding must cite the exact code, the
+  triggering scenario, the concrete impact, and a confidence level. "Looks
+  risky" is not a finding.
+- **Signal over noise.** Few high-value findings beat many shallow ones. Never
+  report style/formatting issues a linter or formatter would catch.
+- **Multiple perspectives.** Each specialist reviews only its own lens.
+- **Adversarial validation.** No candidate reaches the report until the
+  Challenger has tried to prove it wrong.
+
+## Runtime
+
+Prefer the **Argus MCP tools** (`argus_init`, `argus_record_finding`,
+`argus_record_reviewer_run`, `argus_record_challenge`, `argus_list_findings`, `argus_query_similar`,
+`argus_memory_search`, `argus_import_baseline`, `argus_suppress_finding`,
+`argus_list_suppressions`, `argus_report`). If the MCP server is unavailable, fall
+back to the `argus` CLI (`argus init`, `argus record-finding --json ...`,
+`argus challenge <id> <verdict> --reason ...`, `argus report`). State stays in
+`.argus/` (SQLite) so reviewers coordinate through shared memory.
+
+## Workflow
+
+Run this cycle: **Init → Select → Review → Challenge → Consolidate → Report.**
+
+1. **Init.** Call `argus_init` with the host's absolute workspace/repository
+   path as `repo_path`, plus any `--base`, `--commit`, or paths parsed
+   from the request. Read the returned `overview`, `reviewableFiles`,
+   `ignoredFiles`, `enabledReviewers`, `architectureRules`, and `reportDefaults`
+   (these reflect the project's `argus.yaml`, if present). If there are no
+   reviewable files, stop and say so — do not burn a review on docs/config/
+   ignored/asset-only changes.
+
+2. **Select reviewers.** Consider only the specialists in `enabledReviewers`
+   (the config may disable some). Among those, pick the ones relevant to the
+   change — do not always run all of them:
+   - `argus-correctness` — almost always, for logic/state/concurrency bugs.
+   - `argus-security` — auth, input handling, injection, secrets, crypto, IO.
+   - `argus-performance` — DB access, loops, network, hot paths, algorithms.
+   - `argus-architecture` — boundaries, coupling, responsibilities, layering.
+     Pass any `architectureRules` from init into its assignment.
+   Never review `ignoredFiles`. Briefly note which reviewers you picked and why.
+
+3. **Review (delegate).** Before each lens, record `started` with
+   `argus_record_reviewer_run`; after it finishes, record `completed` (or
+   `failed` with a concise reason). Dispatch each selected specialist as a **subagent**
+   (Task tool), one bounded assignment each. Give every subagent: the review
+   overview, the specific files to focus on, and the instruction to investigate
+   the real code (Read/Grep/git) and record each finding with
+   `argus_record_finding` (using its reviewer id). Never tell a subagent to
+   "review the repo" — assign concrete files and its single lens. Run
+   independent specialists in parallel when possible.
+   If the host has no subagent facility, run the selected lenses sequentially
+   in the coordinator by loading each matching review skill. Preserve the same
+   bounded scope and recording contract; do not skip the review.
+
+4. **Challenge.** Call `argus_list_findings` with `status: candidate`. For each
+   candidate, dispatch the **`argus-challenger`** subagent to try to refute it
+   and record the verdict via `argus_record_challenge` (CONFIRMED / PLAUSIBLE /
+   REJECTED). For high/critical candidates, require a reproduction or negative
+   control when practical. This step is what makes Argus trustworthy — do not
+   skip it. Never suppress a finding automatically; suppression requires an
+   explicit maintainer decision and an audit reason.
+
+5. **Consolidate + Report.** Call `argus_report` (default `format: markdown`,
+   or honor a format the user asked for). It deduplicates, ranks, applies the
+   severity floor, and writes the report to `.argus/exports/`. The runtime will
+   refuse to report while any candidate still lacks a Challenger verdict.
+
+6. **Present.** Show the final findings to the user. Lead with the highest-ranked
+   ones. For each: severity · category · `file:line`, what it is, the evidence,
+   the concrete impact, and the recommendation. Note how many candidates were
+   raised, how many the Challenger rejected, and how many duplicates were merged.
+   Include baseline state and resolved findings when the report provides them.
+   Keep it tight and readable — write for the developer, not about your process.
+
+If the user asked to restrict reviewers (e.g. "security only") or set a severity
+floor, honor it. If nothing meaningful survived challenge and ranking, say the
+change looks clean rather than inventing findings.

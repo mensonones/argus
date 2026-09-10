@@ -1,0 +1,540 @@
+# Argus
+
+**Agentic multi-perspective code review — entregue como plugin de assistente de código.**
+
+Argus é uma ferramenta de revisão de código orientada por agentes especializados.
+Em vez de depender de um único modelo tentando analisar simultaneamente
+segurança, bugs, arquitetura, performance e testes, o Argus distribui a análise
+entre reviewers especializados e consolida apenas findings relevantes e
+sustentados por evidências.
+
+A proposta central é simples:
+
+> O mesmo código deve ser observado por diferentes perspectivas.
+
+O nome vem de **Argus Panoptes**, personagem da mitologia grega conhecido por
+possuir muitos olhos e estar sempre observando.
+
+> **Many eyes. Fewer false positives.**
+
+---
+
+## 1. Problema
+
+Ferramentas tradicionais de análise de código tendem a cair em dois extremos.
+
+De um lado existem ferramentas determinísticas — linters, SAST, analisadores
+estáticos — que encontram classes específicas de problemas, mas têm dificuldade
+em entender intenção, regra de negócio, contexto arquitetural e comportamento
+emergente.
+
+Do outro lado existem code reviews baseados apenas em LLM, que compreendem
+contexto, mas frequentemente:
+
+* geram falsos positivos;
+* produzem comentários superficiais;
+* misturam problemas de importância muito diferente;
+* deixam passar bugs porque tentam observar tudo em um único prompt;
+* fazem sugestões estilísticas demais;
+* afirmam vulnerabilidades sem evidência suficiente.
+
+O Argus ocupa o espaço entre essas duas abordagens.
+
+---
+
+## 2. Modelo de entrega (o que mudou)
+
+Argus **não é um binário autônomo que consome uma API key** e chama um LLM por
+conta própria. Argus é um **plugin para assistentes de código com IA** —
+**Claude Code**, **Codex** e, em caráter experimental, **OpenCode Desktop**.
+
+Isso significa que o **assistente host é o motor**: é ele quem fornece o modelo, o
+agent loop, o gerenciamento de contexto e as ferramentas nativas de leitura de
+código (Read, Grep, git). O Argus fornece a *estrutura de revisão* por cima
+disso:
+
+* **subagents especializados** (um papel/lente cada);
+* **skills** com metodologia, heurísticas e gates de validação;
+* um **comando coordenador** (`/argus:review`);
+* um **runtime determinístico** exposto por um **servidor MCP** (com fallback
+  por CLI) que cuida de diff, memória compartilhada de findings, deduplicação,
+  ranking e geração do relatório.
+
+Esse modelo é inspirado no [Proteus](https://github.com/mensonones/Proteus).
+A vantagem: nenhuma configuração de API key, e o Argus aproveita todo o poder do
+assistente que o desenvolvedor já usa.
+
+---
+
+## 3. Princípios do projeto
+
+### Evidence over speculation
+Nenhum finding deve ser apresentado só porque algo "parece perigoso". O Argus
+mostra qual código originou o finding, qual cenário provoca o problema, por que é
+relevante, e qual a confiança da análise.
+
+### Signal over noise
+O objetivo não é gerar o maior número de comentários, e sim **poucos comentários
+úteis**. Problemas puramente estilísticos, tratáveis por formatter ou linter, são
+ignorados por padrão.
+
+### Multiple perspectives
+Um único modelo não assume simultaneamente todas as responsabilidades. Cada
+reviewer tem um objetivo específico.
+
+### Specialized knowledge
+Agents e Skills são conceitos diferentes. Um **Agent** executa um papel. Uma
+**Skill** fornece conhecimento, heurísticas ou procedimentos especializados para
+que esse agent execute melhor seu papel.
+
+### Adversarial validation
+Nenhum candidate vira finding no relatório antes que o **Challenger** tente
+provar que ele está errado.
+
+### Structured orchestration, deterministic runtime
+O coordinator segue um protocolo estruturado, mas continua sendo interpretado
+pelo assistente host. As partes que não exigem julgamento — diff, gates de
+estado, memória, deduplicação, ranking e render — são determinísticas e vivem no
+runtime MCP. Só o raciocínio fica a cargo dos agentes.
+
+---
+
+## 4. Arquitetura
+
+```text
+                 ┌───────────────────────────────────────┐
+                 │  Assistente host (Claude Code / Codex  │
+                 │  / OpenCode) = harness + modelo         │
+                 └───────────────────┬───────────────────┘
+                                     │ /argus:review  (comando coordenador)
+                                     ▼
+                 ┌───────────────────────────────────────┐
+                 │  Coordinator                            │
+                 │  Init → Select → Review → Challenge →   │
+                 │  Consolidate → Report                   │
+                 └───────┬───────────────────────┬────────┘
+        dispatch (Task)  │                       │  chamadas MCP
+      ┌──────────────────┴─────────┐             ▼
+      ▼        ▼        ▼        ▼      ┌───────────────────────────────┐
+ correctness security perf   arch      │  Runtime Argus (servidor MCP) │
+ (subagents, lente única cada)         │                               │
+      │        │        │        │      │  argus_init                   │
+      └────────┴────┬───┴────────┘      │  argus_record_finding         │
+                    │ registram          │  argus_record_challenge       │
+                    ▼ findings           │  argus_list_findings          │
+             ┌──────────────┐            │  argus_query_similar          │
+             │  challenger  │──verdict──▶│  argus_memory_search          │
+             │  (subagent)  │            │  argus_report                 │
+             └──────────────┘            │                               │
+                                         │  Context Builder · Dedup ·    │
+                                         │  Ranker · Report · Memória    │
+                                         │  SQLite (.argus/)             │
+                                         └───────────────────────────────┘
+```
+
+O ciclo é **estruturado onde depende do host e determinístico onde controla
+estado**: o coordenador segue um protocolo, os subagents fazem o raciocínio, e o
+runtime MCP aplica os invariantes e mantém a lógica não-cognitiva.
+
+---
+
+## 5. Componentes
+
+### 5.1 Coordinator (`commands/review.md`)
+Comando `/argus:review`. Recebe o escopo do usuário (`--base`, `--commit`,
+paths, ou texto livre) e conduz o ciclo `Init → Select → Review → Challenge →
+Consolidate → Report`. Ele **delega**; não faz a revisão profunda.
+
+### 5.2 Reviewer subagents (`agents/*.md`)
+Um subagent por lente: `argus-correctness`, `argus-security`,
+`argus-performance`, `argus-architecture`. Cada um investiga o código real com as
+ferramentas nativas do host (Read/Grep/git) e registra findings via
+`argus_record_finding`.
+
+### 5.3 Challenger subagent (`agents/argus-challenger.md`)
+Estágio adversarial. Recebe um candidate e tenta refutá-lo, registrando o veredito
+(`CONFIRMED` / `PLAUSIBLE` / `REJECTED`) via `argus_record_challenge`.
+
+### 5.4 Skills (`skills/*/SKILL.md`)
+Conhecimento carregável: `full-review` (meta-skill que orquestra tudo),
+`correctness-review`, `security-review`, `performance-review`,
+`architecture-review`, `challenger-validation` (os gates).
+
+### 5.5 Runtime MCP + CLI (`src/`)
+Servidor MCP (stdio) e CLI `argus`, ambos sobre a mesma camada de serviço.
+Responsável por: detecção de repositório, diff, Context Builder, memória
+persistente, deduplicação, ranking e render do relatório.
+
+### 5.6 Memória (`.argus/`)
+Por target: `<repo>/.argus/memory.sqlite` (rounds + findings). Findings
+confirmados são promovidos para a memória global cross-target em
+`~/.argus/global.sqlite`. Usa `node:sqlite` nativo (Node 22+).
+Exports em `.argus/exports/`.
+
+---
+
+## 6. Context Builder
+
+Transforma um repositório/diff em contexto útil. Descobre linguagem, framework,
+estrutura do projeto, arquivos modificados e um overview. Diferencia arquivos
+revisáveis (código) de não-revisáveis (docs, config, assets), para o Orchestrator
+não desperdiçar trabalho.
+
+---
+
+## 7. Orchestrator / seleção de reviewers
+
+Nem todo código precisa de todos os agentes. O coordenador seleciona reviewers
+conforme o que mudou:
+
+```text
+README.md               → nenhum reviewer (só docs)
+src/payment/refund.ts   → correctness, security, architecture, tests
+database/order.repo.ts  → correctness, performance, security
+```
+
+Objetivo: evitar gasto desnecessário de contexto/tokens do host.
+
+---
+
+## 8. Reviewers
+
+### Correctness
+Bugs: erros lógicos, estados impossíveis, edge cases, null handling, exception
+handling, regressões, concorrência, inconsistência de estado (ex.: atualizar
+saldo local antes de uma transferência que pode falhar), uso incorreto de API.
+
+### Security
+Vulnerabilidades reais: authn, authz/IDOR, injection, SSRF, path traversal,
+desserialização insegura, secrets, cripto, IO inseguro, dados sensíveis
+expostos. Especialmente conservador — só reporta com caminho de exploração
+concreto e realista.
+
+### Performance
+N+1 queries, loops excessivos, chamadas de rede repetidas, IO desnecessário,
+alocação excessiva, complexidade ruim, operações bloqueantes em hot path. Evita
+micro-otimizações irrelevantes.
+
+### Architecture
+Problemas estruturais concretos: responsabilidade excessiva, acoplamento,
+dependências circulares, quebra de boundaries (domínio dependendo de
+infraestrutura, service fazendo papel de repository), abstrações desnecessárias,
+duplicação estrutural. Distingue "eu faria diferente" de "isto cria um problema
+concreto".
+
+### Tests (roadmap)
+Ausência de teste para regressão, branch importante não coberto, mocks
+excessivos, teste que nunca falharia, assertion insuficiente.
+
+---
+
+## 9. Challenger
+
+Uma das partes mais importantes do Argus. Os reviewers geram **Candidate
+Findings**; um candidate não aparece no relatório sozinho. O Challenger tenta
+provar que está errado, aplicando gates de validação:
+
+```text
+G1  Reachability      — o caminho problemático é alcançável?
+G2  Realistic input   — input externo/atacante (sec) ou input concreto (correctness)?
+G3  No protection     — não há validação/guard/prepared statement/ORM que já previna?
+G4  Sound reasoning   — o raciocínio não repousa sobre uma suposição falsa?
+G5  Not expected      — não é comportamento esperado/documentado?
+G6  Not a duplicate   — não está coberto por outro finding?
+G7  Concrete impact   — há consequência real de segurança/correção?
+```
+
+Vereditos: `REJECTED` (proteção suficiente / erro), `CONFIRMED` (caminho exato
+verificado), `PLAUSIBLE` (pode ser real, não totalmente confirmado). Rejeitar um
+finding fraco é sucesso, não falha.
+
+---
+
+## 10. Estrutura de Finding
+
+```ts
+type Severity = "info" | "low" | "medium" | "high" | "critical"
+type Confidence = "low" | "medium" | "high"
+
+type Finding = {
+  id: string
+  title: string
+  category: "correctness" | "security" | "performance" | "architecture" | "tests"
+  severity: Severity
+  confidence: Confidence
+  file: string
+  lines?: { start: number; end: number }
+  description: string
+  evidence: string[]
+  impact: string
+  scenario?: string
+  recommendation?: string
+  reviewer: string
+  status: "candidate" | "confirmed" | "rejected"
+  challenge?: { result: "CONFIRMED" | "PLAUSIBLE" | "REJECTED"; reasoning: string }
+  detectedBy?: string[]   // reviewers que concordaram (aumenta confiança)
+  score?: number          // atribuído pelo ranker
+}
+```
+
+---
+
+## 11. Deduplicação e Ranking
+
+**Deduplicação.** Dois reviewers podem encontrar o mesmo problema (ex.: Security
+"race condition permite pagamento duplicado" e Correctness "pagamento pode
+executar duas vezes"). O runtime consolida por arquivo + sobreposição de linhas
+ou similaridade de título, unindo `detectedBy`. Múltiplos reviewers concordando
+aumenta a confiança.
+
+**Ranking.** Não é só severidade:
+
+```text
+score = severity × confidence × challenge × evidence × agreement
+```
+
+Um `Critical / Low confidence` pode aparecer abaixo de um `High / High
+confidence`.
+
+---
+
+## 12. Ferramentas MCP (o runtime)
+
+| Tool MCP | CLI equivalente | Função |
+|---|---|---|
+| `argus_init` | `argus init` | detectar repo, diff, contexto, abrir round |
+| `argus_record_finding` | `argus record-finding --json` | registrar candidate |
+| `argus_record_reviewer_run` | `argus reviewer-run <id> <status>` | registrar cobertura real dos reviewers |
+| `argus_record_challenge` | `argus challenge <id> <verdict>` | registrar veredito |
+| `argus_list_findings` | `argus list` | listar findings por status |
+| `argus_query_similar` | — | ajudar na deduplicação antes de registrar |
+| `argus_memory_search` | `argus memory <q>` | buscar findings passados |
+| `argus_import_baseline` | `argus baseline-import <file>` | importar baseline JSON |
+| `argus_suppress_finding` | `argus suppress <id> --reason ...` | suprimir fingerprint com auditoria |
+| `argus_list_suppressions` | `argus suppressions` | listar suppressions ativas/expiradas |
+| `argus_report` | `argus report` | dedup + rank + render + export |
+
+Os reviewers usam as ferramentas **nativas do host** (Read, Grep, git) para ler
+código. O Argus não reimplementa isso; foca no que é específico do pipeline.
+
+---
+
+## 13. Fluxo de execução
+
+```text
+/argus:review
+
+1. Init           argus_init → commits + working tree + contexto + round
+2. Select         escolher reviewers relevantes aos arquivos revisáveis
+3. Review         registrar execução + dispatch (ou lentes sequenciais no host)
+4. Challenge      para cada candidate → argus-challenger → argus_record_challenge
+5. Gate           argus_report recusa candidates sem verdict
+6. Baseline       classificar new/persistent/regression e detectar resolvidos
+7. Consolidate    argus_report: suppression + dedup + rank + severidade
+8. Report         apresentar findings; exportar em .argus/exports/
+```
+
+---
+
+## 14. Uso
+
+```text
+/argus:review
+/argus:review --base main
+/argus:review --commit abc123
+/argus:review src/payment/
+/argus:review security only            (restrição por linguagem natural)
+```
+
+Fallback via CLI (também é o launcher do MCP): `argus init`,
+`argus record-finding`, `argus challenge`, `argus baseline-import`,
+`argus suppress`, `argus report`, `argus mcp`.
+
+---
+
+## 15. Resultado esperado
+
+```text
+Argus Review
+
+4 reviewers executed
+7 candidate findings
+3 rejected by Challenger
+1 duplicate removed
+
+3 findings
+```
+
+Exemplo de finding:
+
+```text
+HIGH · correctness
+src/payment/refund.ts:84
+
+Refund can be executed twice after a timeout.
+
+Evidence
+  The refund request is sent before the transaction is persisted as PROCESSING.
+  If the request succeeds remotely but the process crashes before line 91,
+  retrying the operation creates another refund.
+
+Impact
+  The same transaction may be refunded multiple times.
+
+Confidence
+  HIGH
+
+Recommendation
+  Persist a unique refund intent before the external request and reuse the same
+  idempotency key during retries.
+```
+
+Muito melhor do que: `Consider adding idempotency here.`
+
+---
+
+## 16. Skills e conhecimento stack-specific
+
+Skills fornecem conhecimento especializado que os reviewers carregam:
+
+```text
+skills/
+  full-review/            (meta: orquestra o ciclo completo)
+  correctness-review/
+  security-review/
+  performance-review/
+  architecture-review/
+  challenger-validation/  (os gates)
+```
+
+No futuro, skills stack-specific enriquecem os reviewers gerais (não os
+substituem). Exemplo:
+
+```text
+argus-security + react-native-skill
+  → secrets no bundle, exported Android components, deep links inseguros,
+    WebView config, AsyncStorage sensível, bridge exposure.
+```
+
+---
+
+## 17. Empacotamento multi-host
+
+```text
+.claude-plugin/marketplace.json      # manifesto do marketplace
+plugins/argus/
+  .claude-plugin/plugin.json          # plugin Claude Code
+  .codex-plugin/plugin.json           # plugin Codex
+  .mcp.json                           # registro do servidor MCP
+  agents/  commands/  skills/  templates/
+  scripts/argus-mcp.cjs               # launcher do MCP
+  scripts/gen-hosts.mjs               # gera espelhos Codex/OpenCode
+  src/                                # runtime TS (MCP + CLI + SQLite)
+.codex/agents/*.toml                  # espelho Codex (gerado)
+.opencode/**                          # espelho OpenCode (gerado)
+opencode.json
+```
+
+Os artefatos Codex e OpenCode são **gerados** a partir do plugin canônico do
+Claude Code (`npm run gen-hosts`), evitando divergência entre hosts.
+
+---
+
+## 18. Configuração (`argus.yaml`)
+
+Configuração opcional por projeto, lida pelo runtime no `argus_init` e no
+`argus_report`. Gere um template com `argus config-init`.
+
+O `argus_init` devolve ao coordinator: `enabledReviewers` (reviewers ligados),
+`ignoredFiles` (bateram com `ignore`), `architectureRules` (repassadas ao
+`argus-architecture`) e `reportDefaults` (severidade mínima + `max_findings`).
+Além disso, o estado do próprio Argus (`.argus/`) nunca é revisado.
+
+```yaml
+reviewers:
+  correctness: true
+  security: true
+  performance: true
+  architecture: true
+  tests: false
+severity:
+  minimum: low
+review:
+  max_findings: 20
+ignore:
+  - "**/*.generated.*"
+  - "**/vendor/**"
+architecture:
+  rules:
+    - "domain must not depend on infrastructure"
+security:
+  strict: true
+```
+
+---
+
+## 19. Roadmap
+
+**v0.1 alpha (atual)** — plugin para Claude Code/Codex e empacotamento experimental
+para OpenCode Desktop; runtime MCP + CLI auxiliar;
+git diff; Context Builder; 4 reviewers; Challenger; deduplicação; ranking;
+memória SQLite resiliente e versionada; baseline e suppression auditável;
+`argus.yaml` (reviewers, severidade mínima, `max_findings`,
+ignore rules, regras de arquitetura); relatório Markdown/JSON/terminal.
+
+**v0.2** — validação end-to-end no OpenCode Desktop; melhor seleção de arquivos
+relacionados; budget de contexto; detecção de duplicatas entre rounds na memória.
+
+**v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
+conhecimento framework-specific.
+
+**v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
+compartilháveis por equipe.
+
+**v0.5** — memória de repositório mais rica: convenções internas, decisões
+técnicas anteriores, bugs recorrentes, componentes críticos, histórico de
+findings e padrões aceitos pela equipe.
+
+**v1.0** — plataforma completa de revisão agentic:
+
+```text
+PR → multi-perspective analysis → evidence gathering → challenge → ranking → actionable review
+```
+
+---
+
+## 20. Diferencial
+
+O diferencial não é "usamos vários agentes" — isso é fácil de copiar. É:
+
+> **Argus usa especialistas independentes e uma etapa adversarial para reduzir
+> falsos positivos e produzir findings sustentados por evidências**, entregue
+> dentro do assistente que o desenvolvedor já usa, sem API key própria.
+
+Ou, curto: **Many eyes. Fewer false positives.**
+
+---
+
+## 21. Filosofia
+
+Argus não compete com ESLint, Sonar, Semgrep, CodeQL. Pode usar os resultados
+dessas ferramentas como contexto. Ferramentas determinísticas encontram padrões;
+Argus interpreta o significado desses padrões dentro do código. A combinação é
+mais poderosa do que qualquer abordagem isolada.
+
+---
+
+## 22. Visão
+
+Argus pode evoluir de um plugin pessoal para uma plataforma de engineering
+intelligence. No futuro pode aprender a arquitetura do projeto, convenções
+internas, decisões técnicas anteriores, bugs recorrentes, componentes críticos e
+padrões aceitos pela equipe — via a memória persistente que já existe no runtime.
+
+Nesse ponto o Argus deixa de ser apenas:
+
+> "uma IA que revisa código"
+
+e começa a se tornar:
+
+> **um reviewer que entende aquele codebase.**

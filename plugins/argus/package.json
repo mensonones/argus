@@ -1,0 +1,44 @@
+{
+  "name": "@argus/runtime",
+  "version": "0.1.1",
+  "description": "Deterministic runtime (MCP server + CLI) for the Argus review plugin",
+  "type": "module",
+  "bin": {
+    "argus": "./dist/bin/argus.js",
+    "argus-mcp": "./dist/bin/argus-mcp.js"
+  },
+  "files": [
+    "dist",
+    "agents",
+    "commands",
+    "skills",
+    "templates",
+    "scripts",
+    ".mcp.json",
+    ".claude-plugin",
+    ".codex-plugin"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "install:opencode-desktop": "npm run build && node scripts/install-opencode-desktop.mjs",
+    "doctor:opencode-desktop": "node scripts/doctor-opencode-desktop.mjs",
+    "release:validate": "npm test && node scripts/release-validation.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "mcp": "node dist/bin/argus-mcp.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.9.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

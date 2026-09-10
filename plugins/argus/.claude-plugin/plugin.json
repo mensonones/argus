@@ -1,0 +1,11 @@
+{
+  "name": "argus",
+  "version": "0.1.1",
+  "description": "Agentic multi-perspective code review with an adversarial challenger. Many eyes, fewer false positives.",
+  "author": {
+    "name": "mensonones"
+  },
+  "homepage": "https://github.com/mensonones/argus",
+  "repository": "https://github.com/mensonones/argus",
+  "license": "MIT"
+}

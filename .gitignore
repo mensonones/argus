@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Logs & env
+*.log
+.env
+.env.local
+.env.*.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Argus per-target memory / exports (written into the repo being reviewed)
+.argus/
+
+# NOTE: the plugin ships its compiled dist/ (committed) so it runs without a
+# build step on install — do NOT ignore plugins/argus/dist.
