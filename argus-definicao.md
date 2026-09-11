@@ -46,7 +46,8 @@ O Argus ocupa o espaço entre essas duas abordagens.
 
 Argus **não é um binário autônomo que consome uma API key** e chama um LLM por
 conta própria. Argus é um **plugin para assistentes de código com IA** —
-**Claude Code**, **Codex** e, em caráter experimental, **OpenCode Desktop**.
+**Claude Code**, **Codex**, **DeepSeek Harness (DSH)** e, em caráter
+experimental, **OpenCode Desktop**.
 
 Isso significa que o **assistente host é o motor**: é ele quem fornece o modelo, o
 agent loop, o gerenciamento de contexto e as ferramentas nativas de leitura de
@@ -428,15 +429,43 @@ plugins/argus/
   .mcp.json                           # registro do servidor MCP
   agents/  commands/  skills/  templates/
   scripts/argus-mcp.cjs               # launcher do MCP
-  scripts/gen-hosts.mjs               # gera espelhos Codex/OpenCode
+  scripts/gen-hosts.mjs               # gera espelhos Codex/OpenCode/DSH
+  scripts/install-dsh.mjs             # instalador DSH
+  scripts/doctor-dsh.mjs              # diagnóstico DSH
   src/                                # runtime TS (MCP + CLI + SQLite)
+plugins/argus-dsh/                    # bundle de perfil DSH (@argus/dsh-plugin)
+  package.json                        # declara dsh.bundle.patch
+  cordis.patch.yml                    # ferramentas de subagente (gerado)
+  skills/                             # skills adaptadas ao DSH (gerado)
 .codex/agents/*.toml                  # espelho Codex (gerado)
 .opencode/**                          # espelho OpenCode (gerado)
 opencode.json
 ```
 
-Os artefatos Codex e OpenCode são **gerados** a partir do plugin canônico do
+Os artefatos Codex, OpenCode e DSH são **gerados** a partir do plugin canônico do
 Claude Code (`npm run gen-hosts`), evitando divergência entre hosts.
+
+O DSH não tem marketplace nem agentes/comandos em Markdown: um perfil é uma pilha
+ordenada de camadas de patch, e um **bundle** é um pacote npm cujo
+`dsh.bundle.patch` aponta para um patch do loader. Por isso o alvo DSH tem três
+peças: (1) o bundle em `plugins/argus-dsh`, que registra **uma ferramenta de
+delegação por especialista** (`argus_correctness`, `argus_security`,
+`argus_performance`, `argus_architecture`, `argus_challenger`), cada uma com a
+persona do reviewer correspondente; (2) as skills copiadas para `$DSH_HOME/skills`,
+raiz que o `dsh-skill-filesystem` varre em todas as superfícies; e (3) o servidor
+MCP registrado em `$DSH_HOME/cordis.patch.yml` (a camada de patch do usuário,
+porque um patch de perfil não resolve caminho relativo ao próprio pacote). As
+ferramentas MCP aparecem namespaced como `mcp__argus__<tool>`. No DSH o único
+artefato declarativo que vira uma entrada `/` é a **skill** (comando de verdade é
+código de plugin cordis e roda contra o agente sem criar mensagem de modelo), e
+nome de skill precisa ser kebab-case — então `/argus:review` não existe: a cópia
+DSH do skill `full-review` chama-se **`argus-review`**, e a entrada do coordenador
+é `/argus-review`. As cinco skills de lente também são invocáveis
+(`/correctness-review`, `/security-review`, `/performance-review`,
+`/architecture-review`, `/challenger-validation`). O instalador remove diretórios
+de skill que ele mesmo gravou e que saíram do bundle, para o menu `/` não guardar
+entrada órfã. Tudo isso é aplicado por `npm run install:dsh` e verificado por
+`npm run doctor:dsh`.
 
 ---
 
@@ -475,8 +504,8 @@ security:
 
 ## 19. Roadmap
 
-**v0.1 alpha (atual)** — plugin para Claude Code/Codex e empacotamento experimental
-para OpenCode Desktop; runtime MCP + CLI auxiliar;
+**v0.1 alpha (atual)** — plugin para Claude Code/Codex/DSH e empacotamento
+experimental para OpenCode Desktop; runtime MCP + CLI auxiliar;
 git diff; Context Builder; 4 reviewers; Challenger; deduplicação; ranking;
 memória SQLite resiliente e versionada; baseline e suppression auditável;
 `argus.yaml` (reviewers, severidade mínima, `max_findings`,

@@ -326,3 +326,73 @@ test("OpenCode Desktop installer preserves JSONC settings and is idempotent", ()
   assert.equal(result.ok, true);
   assert.equal(result.checks.find((check) => check.name === "mcp:handshake")?.ok, true);
 });
+
+test("DSH installer writes the skills and MCP row, and the doctor passes", {
+  skip: process.platform === "win32" ? "the stand-in dsh executable needs a POSIX shebang" : false,
+}, () => {
+  const dshHome = tempDir();
+  const installer = fileURLToPath(new URL("../scripts/install-dsh.mjs", import.meta.url));
+  const doctor = fileURLToPath(new URL("../scripts/doctor-dsh.mjs", import.meta.url));
+
+  // Stand in for `dsh plugin --profile <name> add`, which needs DSH and pnpm.
+  const fakeDsh = path.join(dshHome, "fake-dsh.cjs");
+  fs.writeFileSync(
+    fakeDsh,
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const profile = process.argv[process.argv.indexOf("--profile") + 1];
+const bundle = process.argv[process.argv.length - 1];
+const dir = path.join(process.env.DSH_HOME, "profiles", profile);
+fs.mkdirSync(dir, { recursive: true });
+fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({
+  name: "dsh-profile-" + profile,
+  private: true,
+  dependencies: { "@argus/dsh-plugin": "link:" + bundle },
+  dsh: { profile: { bundles: [
+    "@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@argus/dsh-plugin",
+  ] } },
+}, null, 2) + "\\n");
+`,
+    { mode: 0o755 },
+  );
+
+  const env = { ...process.env, DSH_HOME: dshHome };
+
+  // A skill renamed by a newer Argus must not linger as a stale slash entry.
+  const stale = path.join(dshHome, "skills", "full-review");
+  fs.mkdirSync(stale, { recursive: true });
+  fs.writeFileSync(path.join(stale, "SKILL.md"), "---\nname: full-review\n---\nstale\n");
+
+  for (let run = 0; run < 2; run += 1) {
+    const result = spawnSync(process.execPath, [installer, "--dsh-bin", fakeDsh], {
+      encoding: "utf8",
+      env,
+    });
+    assert.equal(result.status, 0, result.stderr);
+  }
+
+  // Re-running updates in place: one MCP row, no duplicated insert entries.
+  const patch = fs.readFileSync(path.join(dshHome, "cordis.patch.yml"), "utf8");
+  assert.match(patch, /id: mcp-argus/);
+  assert.match(patch, /argus-mcp\.js/);
+  assert.equal((patch.match(/id: mcp-argus/g) ?? []).length, 1);
+  assert.equal(
+    fs.readdirSync(dshHome).filter((name) => name.includes(".argus-backup-")).length,
+    0,
+  );
+  assert.ok(fs.existsSync(path.join(dshHome, "skills", "argus-review", "SKILL.md")));
+  assert.equal(fs.existsSync(stale), false);
+
+  const diagnosis = spawnSync(process.execPath, [doctor, "--dsh-bin", fakeDsh], {
+    encoding: "utf8",
+    env,
+  });
+  assert.equal(diagnosis.status, 0, diagnosis.stderr);
+  const result = JSON.parse(diagnosis.stdout);
+  assert.equal(result.ok, true);
+  assert.equal(result.checks.find((check) => check.name === "mcp:handshake")?.ok, true);
+  assert.equal(result.checks.find((check) => check.name === "bundle:registered")?.ok, true);
+  assert.equal(result.checks.find((check) => check.name === "skills:no-stale")?.ok, true);
+  assert.equal(result.checks.filter((check) => check.name.startsWith("skill:")).length, 6);
+});

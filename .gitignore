@@ -17,6 +17,9 @@ Thumbs.db
 # TypeScript incremental build info
 *.tsbuildinfo
 
+# pnpm may materialize a local store when `npm run install:dsh` runs from here
+.pnpm-store/
+
 # Argus per-target memory / exports (written into the repo being reviewed)
 .argus/
 

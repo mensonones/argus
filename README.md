@@ -16,9 +16,9 @@ was always watching.
 ## How it works
 
 Argus is **not** a standalone bot with its own API key. It is a plugin for AI
-coding assistants (**Claude Code**, **Codex**, **OpenCode**). Your assistant is
-the engine — it runs the reviewers as subagents and does the reasoning. Argus
-provides:
+coding assistants (**Claude Code**, **Codex**, **OpenCode**, **DeepSeek
+Harness**). Your assistant is the engine — it runs the reviewers as subagents and
+does the reasoning. Argus provides:
 
 - **Specialist reviewer subagents** — one bounded lens each.
 - **A Challenger subagent** — the adversarial validation stage.
@@ -170,6 +170,46 @@ The OpenCode Desktop artifacts are generated and schema-aligned, but remain
 experimental until this installation and review flow is exercised end to end in
 a released desktop build.
 
+---
+
+### DeepSeek Harness (DSH)
+
+DSH has no marketplace and no Markdown agents or commands: a profile is an
+ordered stack of patch layers, and a **bundle** is an npm package whose
+`dsh.bundle.patch` names a loader patch. Argus ships that bundle at
+`plugins/argus-dsh`, plus an installer that writes the machine-specific parts.
+
+```bash
+cd /absolute/path/to/argus
+npm run install:dsh        # build, generate, copy skills, register MCP + bundle
+npm run doctor:dsh         # verify artifacts, patch, and a real MCP handshake
+```
+
+The installer:
+
+1. copies the Argus skills to `$DSH_HOME/skills` — the user skill root that
+   `dsh-skill-filesystem` scans on every surface, the Web GUI's `standard`
+   preset included;
+2. registers the Argus MCP server in `$DSH_HOME/cordis.patch.yml` as `argus`, so
+   its tools appear as `mcp__argus__<tool>`;
+3. registers the bundle in the target profile (`--profile`, default `web`) with
+   `dsh plugin --profile web add`, which also appends it to `dsh.profile.bundles`.
+
+Restart DSH so the patch applies, open a Git project, and run `/argus-review` — or
+ask for an *"Argus review"*. Every DSH skill is slash-invocable, so the entry
+point is `/argus-review` (the kebab-case form of Claude Code's `/argus:review`)
+and each lens is reachable directly as `/correctness-review`,
+`/security-review`, `/performance-review`, `/architecture-review`, and
+`/challenger-validation`. The specialists become model-facing tools
+(`argus_correctness`, `argus_security`, `argus_performance`,
+`argus_architecture`) with `argus_challenger` for adversarial validation; each
+carries its reviewer persona and inherits the Argus skills and MCP tools. Without
+the bundle (`--skip-bundle`) the coordinator still applies the lenses
+sequentially, exactly as documented for hosts without named subagents.
+
+Installer flags: `--profile <name>`, `--dsh-home <dir>`, `--dsh-bin <path>`,
+`--dry-run`, `--skip-bundle`.
+
 ## The runtime (MCP tools / CLI)
 
 The deterministic pipeline is exposed both as MCP tools (preferred) and a CLI
@@ -248,23 +288,29 @@ plugins/argus/
   skills/                            # methodology + heuristics + gates
   templates/                         # finding + report templates
   scripts/argus-mcp.cjs              # MCP launcher
-  scripts/gen-hosts.mjs              # regenerates Codex/OpenCode from canon
+  scripts/gen-hosts.mjs              # regenerates Codex/OpenCode/DSH from canon
+  scripts/install-dsh.mjs            # DSH installer
+  scripts/doctor-dsh.mjs             # DSH diagnostics
   src/                               # TypeScript runtime (MCP + CLI + SQLite)
+plugins/argus-dsh/                   # DSH profile bundle (@argus/dsh-plugin)
+  cordis.patch.yml                   # generated specialist subagent tools
+  skills/                            # generated DSH-shaped skills
 .codex/agents/                       # generated Codex mirror
 .opencode/                           # generated OpenCode mirror
 opencode.json
 ```
 
-The Codex and OpenCode artifacts are **generated** from the canonical Claude Code
-plugin — run `npm run gen-hosts` after editing an agent, skill, or command.
+The Codex, OpenCode, and DSH artifacts are **generated** from the canonical
+Claude Code plugin — run `npm run gen-hosts` after editing an agent, skill, or
+command.
 
 ## Status
 
 **v0.1 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
 dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
-reports, and Claude Code / Codex / OpenCode Desktop packaging and diagnostics.
-Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and broader live
-host validation.
+reports, and Claude Code / Codex / OpenCode Desktop / DSH packaging and
+diagnostics. Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
+broader live host validation.
 
 ## License
 
