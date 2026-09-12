@@ -16,6 +16,8 @@ import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
+import { evidencePackageSchema } from "./evidence.js";
+import type { EvidencePackage } from "./types.js";
 import type { ReviewResult } from "./report/result.js";
 import {
   ALL_CATEGORIES,
@@ -160,6 +162,7 @@ export interface FindingInput {
   impact: string;
   scenario?: string;
   recommendation?: string;
+  evidencePackage?: EvidencePackage;
 }
 
 function coerce(input: FindingInput): Finding {
@@ -205,6 +208,8 @@ function coerce(input: FindingInput): Finding {
     lines,
     description: input.description ?? "",
     evidence: input.evidence.map(String).filter((item) => item.trim().length > 0),
+    evidencePackage: input.evidencePackage === undefined ? undefined
+      : evidencePackageSchema.parse(input.evidencePackage),
     impact: input.impact ?? "",
     scenario: input.scenario,
     recommendation: input.recommendation,
@@ -258,9 +263,14 @@ export function recordChallenge(
   findingId: string,
   result: ChallengeResult,
   reasoning: string,
+  evidencePackage?: EvidencePackage,
 ): boolean {
+  if (!["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(result) || !reasoning.trim()) {
+    throw new Error("Challenge requires a valid verdict and non-empty reasoning.");
+  }
+  const packet = evidencePackage === undefined ? undefined : evidencePackageSchema.parse(evidencePackage);
   return withCurrentRound(cwd, (mem, roundId) =>
-    mem.updateChallenge(roundId, findingId, result, reasoning), true);
+    mem.updateChallenge(roundId, findingId, result, reasoning, packet), true);
 }
 
 export function recordReviewerRun(
@@ -555,6 +565,8 @@ function parseBaselineFinding(value: unknown): Finding {
       : "medium",
     description: typeof value.description === "string" ? value.description : "Imported baseline finding.",
     evidence: Array.isArray(value.evidence) ? value.evidence.map(String) : [],
+    evidencePackage: value.evidencePackage === undefined ? undefined
+      : evidencePackageSchema.parse(value.evidencePackage),
     impact: typeof value.impact === "string" ? value.impact : "Previously reported.",
     reviewer: typeof value.reviewer === "string" ? value.reviewer : "baseline",
     status: "confirmed",

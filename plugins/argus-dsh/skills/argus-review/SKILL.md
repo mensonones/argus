@@ -28,6 +28,10 @@ Argus is deterministic where it can be and specialist where it must be: the
 (`.argus/` SQLite), dedup, ranking, and the report. The reasoning is done by
 specialist reviewer tools, one lens each.
 
+Before recording findings, read [the evidence packet contract](references/evidence-package.md).
+Pass it to reviewers and the Challenger. Include `evidencePackage` when the
+snapshot and observations can be established; never fabricate missing evidence.
+
 ## Steps
 
 1. **Init.** `mcp__argus__argus_init` with the host's absolute workspace root as
@@ -59,8 +63,8 @@ specialist reviewer tools, one lens each.
 
 5. **Consolidate + report.** `mcp__argus__argus_report` refuses to run while any candidate
    lacks a Challenger verdict, then deduplicates (merging findings
-   multiple reviewers agree on, which raises confidence), ranks by
-   `severity × confidence × evidence × agreement`, applies the severity floor,
+   multiple reviewers reported, preserving provenance), ranks by
+   `severity × confidence × challenge × validation`, applies the severity floor,
    and writes to `.argus/exports/`.
 
 6. **Present.** Lead with the top findings. Each: `severity · category ·

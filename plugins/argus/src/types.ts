@@ -32,6 +32,22 @@ export interface Challenge {
   reasoning: string;
 }
 
+/** Recorded observations, not an execution certificate issued by Argus. */
+export interface EvidencePackage {
+  schemaVersion: 1;
+  revision: string;
+  workingTree: "clean" | "dirty" | "unknown";
+  method: "static-analysis" | "test" | "reproduction";
+  executionPath: string[];
+  preconditions: string[];
+  expected: string;
+  observed: string;
+  limitations: string[];
+  command?: string;
+  artifact?: string;
+  negativeControl?: { scenario: string; observed: string };
+}
+
 export interface Finding {
   id: string;
   title: string;
@@ -44,6 +60,7 @@ export interface Finding {
   lines?: LineRange;
   description: string;
   evidence: string[];
+  evidencePackage?: EvidencePackage;
   impact: string;
   scenario?: string;
   recommendation?: string;
@@ -54,7 +71,7 @@ export interface Finding {
 
   /**
    * Populated by the deduplicator when several reviewers report the same
-   * problem. Contains every reviewer id that independently detected it.
+   * problem. Reviewer provenance does not establish statistical independence.
    */
   detectedBy?: string[];
   /** Ranking score assigned by the ranker. Higher = shown first. */

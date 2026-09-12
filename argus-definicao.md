@@ -273,7 +273,7 @@ type Finding = {
   reviewer: string
   status: "candidate" | "confirmed" | "rejected"
   challenge?: { result: "CONFIRMED" | "PLAUSIBLE" | "REJECTED"; reasoning: string }
-  detectedBy?: string[]   // reviewers que concordaram (aumenta confiança)
+  detectedBy?: string[]   // proveniência; não prova de validação independente
   score?: number          // atribuído pelo ranker
 }
 ```
@@ -285,17 +285,45 @@ type Finding = {
 **Deduplicação.** Dois reviewers podem encontrar o mesmo problema (ex.: Security
 "race condition permite pagamento duplicado" e Correctness "pagamento pode
 executar duas vezes"). O runtime consolida por arquivo + sobreposição de linhas
-ou similaridade de título, unindo `detectedBy`. Múltiplos reviewers concordando
-aumenta a confiança.
+ou similaridade de título, unindo `detectedBy`. Concordância é proveniência,
+não evidência de independência entre modelos. Quantidade de texto e número de
+reviewers não aumentam o score.
 
 **Ranking.** Não é só severidade:
 
 ```text
-score = severity × confidence × challenge × evidence × agreement
+score = severity × confidence × challenge × validation
 ```
 
 Um `Critical / Low confidence` pode aparecer abaixo de um `High / High
 confidence`.
+
+`validation` distingue findings legados, análise estática estruturada e
+execução relatada com/sem controle negativo. Os pesos iniciais são heurísticos,
+não probabilidades calibradas; devem ser reavaliados pelo Argus Eval.
+
+### Pacote de evidências v1
+
+`argus_record_finding` e `argus_record_challenge` aceitam `evidencePackage`:
+`schemaVersion: 1`, revisão Git inspecionada, estado do working tree, método
+(`static-analysis`, `test`, `reproduction`), caminho de execução, precondições,
+comportamento esperado/observado, limitações e controle negativo opcional.
+`test`/`reproduction` exigem comando e resultado/artefato relatado. O Challenger
+pode substituir o pacote candidato por suas próprias observações.
+
+Veredito e método são independentes: CONFIRMED não significa execução. O runtime
+armazena relatos, não executa comandos nem certifica sua execução. Findings
+antigos continuam aceitos e são identificados como método não especificado.
+Um working tree dirty não é reconstituível apenas pelo SHA de HEAD.
+Contrato completo: `plugins/argus/skills/full-review/references/evidence-package.md`.
+
+### Confiança e autorização
+
+Conteúdo revisado não pode autorizar comandos, alterar política de revisão ou
+suprimir findings. Reprodução depende da autorização existente e isolamento do
+host, com execução limitada, sem rede/segredos por padrão quando suportado.
+Proteções indisponíveis devem ser declaradas. Runtime local não implica
+inferência local: o tratamento do código depende do assistente utilizado.
 
 ---
 
@@ -504,7 +532,7 @@ security:
 
 ## 19. Roadmap
 
-**v0.1 alpha (atual)** — plugin para Claude Code/Codex/DSH e empacotamento
+**v0.1 alpha (base)** — plugin para Claude Code/Codex/DSH e empacotamento
 experimental para OpenCode Desktop; runtime MCP + CLI auxiliar;
 git diff; Context Builder; 4 reviewers; Challenger; deduplicação; ranking;
 memória SQLite resiliente e versionada; baseline e suppression auditável;
@@ -513,6 +541,12 @@ ignore rules, regras de arquitetura); relatório Markdown/JSON/terminal.
 
 **v0.2** — validação end-to-end no OpenCode Desktop; melhor seleção de arquivos
 relacionados; budget de contexto; detecção de duplicatas entre rounds na memória.
+
+**v0.2.0 (atual):** pacote de evidências v1 e Argus Eval piloto,
+com controles corretos por lente, avaliações `single`/`specialists`/`full`,
+adjudicação humana e métricas de precisão, recall, F1 e erros do Challenger.
+O piloto sintético não demonstra qualidade em produção. Ampliar com PRs reais,
+execuções repetidas e versões fixadas antes de afirmar redução de falsos positivos.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

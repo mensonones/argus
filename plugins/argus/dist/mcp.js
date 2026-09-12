@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
+import { evidencePackageSchema } from "./evidence.js";
 const SERVER_CWD = process.cwd();
 let activeCwd;
 function targetCwd() {
@@ -95,6 +96,7 @@ export async function startServer() {
             end_line: z.number().optional(),
             description: z.string().min(1),
             evidence: z.array(z.string().min(1)).min(1),
+            evidencePackage: evidencePackageSchema.optional(),
             impact: z.string().min(1),
             scenario: z.string().optional(),
             recommendation: z.string().optional(),
@@ -115,11 +117,12 @@ export async function startServer() {
         inputSchema: {
             finding_id: z.string(),
             verdict: z.enum(["CONFIRMED", "PLAUSIBLE", "REJECTED"]),
-            reasoning: z.string(),
+            reasoning: z.string().trim().min(1),
+            evidencePackage: evidencePackageSchema.optional(),
         },
     }, async (args) => {
         try {
-            const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning);
+            const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage);
             return text(ok
                 ? `Recorded ${args.verdict} for ${args.finding_id}.`
                 : `No finding with id ${args.finding_id}.`);

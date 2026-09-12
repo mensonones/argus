@@ -14,6 +14,7 @@ import type {
   ChallengeResult,
   Confidence,
   Finding,
+  EvidencePackage,
   Severity,
 } from "./types.js";
 
@@ -107,6 +108,7 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_suppressions_expiry ON suppressions(expires_at);
     `,
   },
+  { id: "003-evidence-packages", sql: "ALTER TABLE findings ADD COLUMN evidence_package TEXT;" },
 ] as const;
 
 function nowIso(): string {
@@ -224,8 +226,8 @@ export class Memory {
           id, round_id, reviewer, category, severity, confidence, title, file,
           start_line, end_line, description, evidence, impact, scenario,
           recommendation, status, challenge_result, challenge_reasoning,
-          detected_by, score, created_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          detected_by, score, created_at, evidence_package
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
           reviewer=excluded.reviewer, category=excluded.category,
           severity=excluded.severity, confidence=excluded.confidence,
@@ -236,7 +238,8 @@ export class Memory {
           recommendation=excluded.recommendation, status=excluded.status,
           challenge_result=excluded.challenge_result,
           challenge_reasoning=excluded.challenge_reasoning,
-          detected_by=excluded.detected_by, score=excluded.score`,
+          detected_by=excluded.detected_by, score=excluded.score,
+          evidence_package=excluded.evidence_package`,
       )
       .run(
         f.id,
@@ -260,6 +263,7 @@ export class Memory {
         JSON.stringify(f.detectedBy ?? [f.reviewer]),
         f.score ?? null,
         createdAt,
+        f.evidencePackage ? JSON.stringify(f.evidencePackage) : null,
       );
     return { ...f, roundId, createdAt };
   }
@@ -269,13 +273,14 @@ export class Memory {
     findingId: string,
     result: ChallengeResult,
     reasoning: string,
+    evidencePackage?: EvidencePackage,
   ): boolean {
     const status = result === "REJECTED" ? "rejected" : "confirmed";
     const res = this.db
       .prepare(
-        "UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=? WHERE id=? AND round_id=?",
+        "UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?, evidence_package=COALESCE(?, evidence_package) WHERE id=? AND round_id=?",
       )
-      .run(result, reasoning, status, findingId, roundId);
+      .run(result, reasoning, status, evidencePackage ? JSON.stringify(evidencePackage) : null, findingId, roundId);
     return res.changes > 0;
   }
 
@@ -501,6 +506,8 @@ function migrate(db: ResilientDatabase): void {
       .get(migration.id) as { found?: number } | undefined;
     if (applied) continue;
     db.transaction(() => {
+      // Another process may have migrated while this one waited for the lock.
+      if (db.prepare("SELECT 1 FROM schema_migrations WHERE id=?").get(migration.id)) return;
       db.exec(migration.sql);
       db.prepare("INSERT OR IGNORE INTO schema_migrations(id,applied_at) VALUES(?,?)")
         .run(migration.id, nowIso());
@@ -551,6 +558,8 @@ function rowToFinding(row: Record<string, unknown>): Finding {
       start != null ? { start, end: end ?? start } : undefined,
     description: (row.description as string) ?? "",
     evidence: safeJsonArray(row.evidence),
+    evidencePackage: typeof row.evidence_package === "string"
+      ? JSON.parse(row.evidence_package) as EvidencePackage : undefined,
     impact: (row.impact as string) ?? "",
     scenario: (row.scenario as string) ?? undefined,
     recommendation: (row.recommendation as string) ?? undefined,

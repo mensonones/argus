@@ -52,6 +52,9 @@ function merge(a, b) {
         severity: maxSeverity(a.severity, b.severity),
         confidence: maxConfidence(a.confidence, b.confidence),
         evidence: Array.from(new Set([...primary.evidence, ...secondary.evidence])),
+        evidencePackage: a.challenge?.result === "CONFIRMED" ? a.evidencePackage
+            : b.challenge?.result === "CONFIRMED" ? b.evidencePackage
+                : primary.evidencePackage,
         detectedBy,
         challenge: a.challenge?.result === "CONFIRMED" ? a.challenge
             : b.challenge?.result === "CONFIRMED" ? b.challenge
@@ -61,7 +64,7 @@ function merge(a, b) {
 }
 /**
  * Consolidate findings that multiple reviewers reported. Multiple reviewers
- * agreeing is itself a confidence signal (design doc §22).
+ * agreeing is recorded as provenance, not proof of independent validation.
  */
 export function deduplicate(findings) {
     const merged = [];
@@ -88,8 +91,8 @@ const CONFIRM_WEIGHT = {
     REJECTED: 0,
 };
 /**
- * Score = severity × confidence × challenge-strength × evidence-quality, plus a
- * small boost when multiple reviewers agreed. Ranking is NOT severity alone:
+ * Score = severity × confidence × challenge-strength × validation-strength.
+ * Text volume and reviewer agreement do not inflate confidence. NOT severity alone:
  * a high/high-confidence finding can outrank a critical/low-confidence one
  * (design doc §23).
  */
@@ -97,9 +100,11 @@ export function scoreFinding(f) {
     const sev = SEVERITY_ORDER[f.severity] + 1; // 1..5
     const conf = CONFIDENCE_ORDER[f.confidence] + 1; // 1..3
     const challenge = f.challenge ? CONFIRM_WEIGHT[f.challenge.result] ?? 0.6 : 0.6;
-    const evidence = Math.min(f.evidence.length, 4) / 4 + 0.25; // 0.25..1.25
-    const agreement = (f.detectedBy?.length ?? 1) > 1 ? 1.2 : 1.0;
-    return sev * conf * challenge * evidence * agreement;
+    // Conservative initial heuristic, not a calibrated probability of correctness.
+    const packet = f.evidencePackage;
+    const validation = !packet ? 1 : packet.method === "static-analysis" ? 1.1
+        : packet.negativeControl ? 1.3 : 1.2;
+    return sev * conf * challenge * validation;
 }
 export function rank(findings) {
     return findings

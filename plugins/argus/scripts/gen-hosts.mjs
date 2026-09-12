@@ -80,6 +80,15 @@ for (const file of agentFiles) {
 }
 
 // --- Codex marketplace ------------------------------------------------------
+// Keep Claude marketplace release metadata aligned with the runtime package.
+const releaseVersion = JSON.parse(read(path.join(pluginDir, "package.json"))).version;
+const claudeMarketplacePath = path.join(repoRoot, ".claude-plugin", "marketplace.json");
+const claudeMarketplace = JSON.parse(read(claudeMarketplacePath));
+claudeMarketplace.version = releaseVersion;
+for (const entry of claudeMarketplace.plugins) {
+  if (entry.name === "argus") entry.version = releaseVersion;
+}
+write(claudeMarketplacePath, JSON.stringify(claudeMarketplace, null, 2) + "\n");
 const codexMarketplace = {
   name: "argus-marketplace",
   interface: { displayName: "Argus" },

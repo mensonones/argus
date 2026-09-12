@@ -23,5 +23,8 @@ Thumbs.db
 # Argus per-target memory / exports (written into the repo being reviewed)
 .argus/
 
+# Local evaluation runs may contain private reviewer transcripts.
+eval/runs/
+
 # NOTE: the plugin ships its compiled dist/ (committed) so it runs without a
 # build step on install — do NOT ignore plugins/argus/dist.

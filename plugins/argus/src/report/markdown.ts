@@ -46,6 +46,20 @@ function renderFinding(f: Finding, index: number): string {
     lines.push("");
   }
   lines.push(`**Confidence:** ${f.confidence.toUpperCase()}`);
+  const packet = f.evidencePackage;
+  lines.push(`**Validation:** ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`);
+  if (packet) {
+    lines.push(`**Snapshot:** ${packet.revision} · working tree: ${packet.workingTree}`);
+    lines.push("");
+    lines.push("**Validation observations**", "");
+    lines.push(`- Path: ${packet.executionPath.join(" → ")}`);
+    for (const item of packet.preconditions) lines.push(`- Precondition: ${item}`);
+    lines.push(`- Expected: ${packet.expected}`, `- Observed: ${packet.observed}`);
+    if (packet.command) lines.push(`- Command (not executed by Argus): ${packet.command}`);
+    if (packet.artifact) lines.push(`- Recorded result/artifact: ${packet.artifact}`);
+    if (packet.negativeControl) lines.push(`- Negative control: ${packet.negativeControl.scenario} — ${packet.negativeControl.observed}`);
+    for (const item of packet.limitations) lines.push(`- Limitation: ${item}`);
+  }
   if (f.baselineStatus) lines.push(`**Baseline:** ${f.baselineStatus.toUpperCase()}`);
   lines.push("");
   if (f.recommendation) {

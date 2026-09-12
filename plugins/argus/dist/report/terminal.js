@@ -68,6 +68,16 @@ export function renderTerminal(result) {
             out.push(block("Impact", f.impact));
         }
         out.push(block("Confidence", `  ${f.confidence.toUpperCase()}`));
+        const packet = f.evidencePackage;
+        out.push(block("Validation", `  ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`));
+        if (packet) {
+            out.push(block("Snapshot", `  ${packet.revision} · working tree: ${packet.workingTree}`));
+            out.push(block("Observations", `Expected: ${packet.expected}\nObserved: ${packet.observed}`));
+            if (packet.negativeControl)
+                out.push(block("Negative control", `${packet.negativeControl.scenario}: ${packet.negativeControl.observed}`));
+            if (packet.limitations.length)
+                out.push(block("Limitations", packet.limitations.join("\n")));
+        }
         if (f.baselineStatus)
             out.push(block("Baseline", `  ${f.baselineStatus.toUpperCase()}`));
         if (f.recommendation) {

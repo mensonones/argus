@@ -66,6 +66,9 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    `argus_record_finding` (using its reviewer id). Never tell a subagent to
    "review the repo" — assign concrete files and its single lens. Run
    independent specialists in parallel when possible.
+   Read `skills/full-review/references/evidence-package.md` and provide its
+   contract to each specialist and the Challenger. Record `evidencePackage`
+   when the snapshot and observations can be established; never invent them.
    If the host has no subagent facility, run the selected lenses sequentially
    in the coordinator by loading each matching review skill. Preserve the same
    bounded scope and recording contract; do not skip the review.

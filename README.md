@@ -13,6 +13,21 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
+## Evidence and evaluation
+
+Findings and Challenger verdicts optionally carry an `evidencePackage` v1:
+revision, working-tree state, validation method, execution path, preconditions,
+expected/observed behavior, limitations and optional negative control. Executed
+methods require a command and recorded output/artifact. These are agent-reported
+observations, not execution certificates. Legacy findings remain supported.
+The ranking no longer rewards evidence text volume or reviewer agreement.
+
+`npm run eval:prepare` emits label-free pilot tasks for your existing assistant.
+`npm run eval:score -- /absolute/path/run.json` scores human-adjudicated runs.
+See [Argus Eval](eval/README.md) for configurations, format and limitations.
+The eight-case synthetic pilot tests the evaluation workflow; it does **not**
+establish production review quality. No model API or API key is introduced.
+
 ## How it works
 
 Argus is **not** a standalone bot with its own API key. It is a plugin for AI
@@ -47,7 +62,7 @@ select reviewers      (skip pure docs/config/asset changes)
 argus-challenger       adversarially validates each → CONFIRMED / PLAUSIBLE / REJECTED
    │
    ▼
-argus_report           dedup · rank (severity × confidence × evidence × agreement) · render
+argus_report           dedup · rank (severity × confidence × challenge × validation) · render
 ```
 
 ## Install

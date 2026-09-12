@@ -12,6 +12,8 @@ code you actually read.
 - **start_line** / **end_line**: the exact region
 - **description**: what the problem is, concretely
 - **evidence**: the exact code / call chain / taint path / cost analysis
+- **evidencePackage** (optional): structured snapshot and validation observations;
+  use the contract in `skills/full-review/references/evidence-package.md`.
 - **impact**: what goes wrong and why it matters
 - **scenario**: a concrete input or sequence that triggers it
 - **recommendation**: how to fix it

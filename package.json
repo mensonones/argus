@@ -1,6 +1,6 @@
 {
   "name": "argus-marketplace",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Argus — agentic multi-perspective code review plugin for Claude Code, Codex, OpenCode Desktop, and the DeepSeek Harness (DSH).",
   "scripts": {
@@ -12,7 +12,9 @@
     "doctor:dsh": "node plugins/argus/scripts/doctor-dsh.mjs",
     "release:validate": "npm --prefix plugins/argus run release:validate",
     "typecheck": "npm --prefix plugins/argus run typecheck",
-    "test": "npm --prefix plugins/argus test"
+    "test": "npm --prefix plugins/argus test",
+    "eval:score": "node eval/score.mjs",
+    "eval:prepare": "node eval/prepare.mjs"
   },
   "license": "MIT",
   "engines": {

@@ -5,10 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 
 import { loadConfig } from "../dist/config.js";
 import { GlobalMemory, Memory } from "../dist/db.js";
-import { deduplicate } from "../dist/dedup.js";
+import { deduplicate, scoreFinding } from "../dist/dedup.js";
 import { buildDiff } from "../dist/git.js";
 import {
   initReview,
@@ -58,6 +59,38 @@ function finding(overrides = {}) {
     ...overrides,
   };
 }
+
+function evidencePacket(overrides = {}) {
+  return {schemaVersion:1,revision:"inspected-revision",workingTree:"dirty",
+    method:"static-analysis",executionPath:["handler","write"],preconditions:["another owner"],
+    expected:"deny",observed:"write allowed",limitations:["not executed"],...overrides};
+}
+
+test("evidence packet survives SQLite and Challenger update and appears in reports", async () => {
+  const cwd = repo();
+  await initReview({cwd});
+  const {id} = recordFinding(cwd,{...finding(), evidencePackage:evidencePacket()});
+  const packet = evidencePacket({method:"reproduction",command:"node test.js",artifact:"output: unauthorized write",negativeControl:{scenario:"owner write",observed:"allowed"}});
+  assert.equal(recordChallenge(cwd,id,"CONFIRMED","Verified path",packet),true);
+  const mem = Memory.open(cwd);
+  assert.deepEqual(mem.getFinding(id).evidencePackage,packet);
+  mem.close();
+  const out = report({cwd,format:"markdown",write:false,promoteGlobal:false});
+  assert.match(out.rendered,/reproduction \(reviewer-reported\)/);
+  assert.match(out.rendered,/Negative control/);
+  assert.deepEqual(out.result.findings[0].evidencePackage,packet);
+});
+test("invalid observations and blank verdict reasoning are rejected", async () => {
+  const cwd = repo(); await initReview({cwd});
+  assert.throws(()=>recordFinding(cwd,{...finding(),evidencePackage:evidencePacket({method:"test"})}),/Executed validation/);
+  const {id} = recordFinding(cwd,finding());
+  assert.throws(()=>recordChallenge(cwd,id,"CONFIRMED"," "),/non-empty/);
+});
+test("ranking is not inflated by repeated text or correlated reviewer agreement", () => {
+  const base = finding();
+  assert.equal(scoreFinding(base), scoreFinding({...base,evidence:Array(20).fill("same"),detectedBy:["a","b","c"]}));
+  assert.ok(scoreFinding({...base,evidencePackage:evidencePacket()}) > scoreFinding(base));
+});
 
 test("invalid argus.yaml fails instead of silently using defaults", () => {
   const cwd = tempDir();
@@ -186,12 +219,29 @@ test("global memory stores and retrieves confirmed findings", () => {
 test("database migrations are versioned and idempotent", () => {
   const cwd = repo();
   const first = Memory.open(cwd);
-  assert.equal(first.getMeta("schema_version"), "2");
-  assert.equal(first.getMeta("runtime_version"), "0.1.1");
+  assert.equal(first.getMeta("schema_version"), "3");
+  assert.equal(first.getMeta("runtime_version"), "0.2.0");
   first.close();
   const second = Memory.open(cwd);
-  assert.equal(second.getMeta("schema_version"), "2");
+  assert.equal(second.getMeta("schema_version"), "3");
   second.close();
+});
+
+test("schema v2 migrates existing findings without requiring an evidence packet", () => {
+  const cwd = repo();
+  const mem = Memory.open(cwd);
+  const round = mem.createRound("main","legacy");
+  const original = finding();
+  mem.recordFinding(round.id,original); mem.close();
+  // Reconstruct the actual v2 schema/ledger, preserving the legacy finding.
+  const db = new DatabaseSync(path.join(cwd,".argus","memory.sqlite"));
+  db.exec("ALTER TABLE findings DROP COLUMN evidence_package; DELETE FROM schema_migrations WHERE id='003-evidence-packages'; UPDATE meta SET value='2' WHERE key='schema_version';");
+  db.close();
+  const migrated = Memory.open(cwd);
+  assert.equal(migrated.getMeta("schema_version"),"3");
+  assert.equal(migrated.getFinding(original.id).title,original.title);
+  assert.equal(migrated.getFinding(original.id).evidencePackage,undefined);
+  migrated.close();
 });
 
 test("parallel reviewer processes can write to the same SQLite memory", async () => {
