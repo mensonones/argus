@@ -317,6 +317,24 @@ antigos continuam aceitos e são identificados como método não especificado.
 Um working tree dirty não é reconstituível apenas pelo SHA de HEAD.
 Contrato completo: `plugins/argus/skills/full-review/references/evidence-package.md`.
 
+### Consolidação por causa raiz e retificação (v0.2.1)
+
+Findings podem propor `rootCause: {symbol, mechanism, invariant}`. O Challenger
+valida ou substitui a tripla, reutilizando os valores de um defeito já identificado.
+Mesmo arquivo e mesma tripla validada consolidam findings entre lentes, sem
+depender do título. Triplas diferentes impedem união por similaridade; métodos
+ausentes e round-trips excessivos podem violar invariantes diferentes. Findings
+legados mantêm a heurística de título/localização.
+
+`argus_record_challenge` aceita `correction` com motivo e substituição completa
+de título, descrição, evidências e impacto; cenário/recomendação omitidos são
+limpos. Severidade/confiança podem ser ajustadas. Havendo pacote de evidências,
+ele também deve ser substituído, para não conservar observações refutadas.
+O conteúdo anterior fica no histórico SQLite/JSON (schema v4), enquanto os
+relatórios legíveis mostram conteúdo corrigido e motivos. Consolidar não pode
+reintroduzir evidências ou severidades que a retificação removeu.
+Contrato: `skills/full-review/references/challenger-corrections.md`.
+
 ### Confiança e autorização
 
 Conteúdo revisado não pode autorizar comandos, alterar política de revisão ou
@@ -542,7 +560,8 @@ ignore rules, regras de arquitetura); relatório Markdown/JSON/terminal.
 **v0.2** — validação end-to-end no OpenCode Desktop; melhor seleção de arquivos
 relacionados; budget de contexto; detecção de duplicatas entre rounds na memória.
 
-**v0.2.0 (atual):** pacote de evidências v1 e Argus Eval piloto,
+**v0.2.1 (atual):** retificação auditável e consolidação por causa raiz, além do
+pacote de evidências v1 e Argus Eval piloto introduzidos na v0.2.0,
 com controles corretos por lente, avaliações `single`/`specialists`/`full`,
 adjudicação humana e métricas de precisão, recall, F1 e erros do Challenger.
 O piloto sintético não demonstra qualidade em produção. Ampliar com PRs reais,

@@ -15,6 +15,9 @@ import type {
   Confidence,
   Finding,
   EvidencePackage,
+  FindingCorrection,
+  RootCause,
+  FindingContent,
   Severity,
 } from "./types.js";
 
@@ -109,6 +112,7 @@ const MIGRATIONS = [
     `,
   },
   { id: "003-evidence-packages", sql: "ALTER TABLE findings ADD COLUMN evidence_package TEXT;" },
+  { id: "004-challenger-corrections", sql: "ALTER TABLE findings ADD COLUMN review_data TEXT;" },
 ] as const;
 
 function nowIso(): string {
@@ -226,8 +230,8 @@ export class Memory {
           id, round_id, reviewer, category, severity, confidence, title, file,
           start_line, end_line, description, evidence, impact, scenario,
           recommendation, status, challenge_result, challenge_reasoning,
-          detected_by, score, created_at, evidence_package
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          detected_by, score, created_at, evidence_package, review_data
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
           reviewer=excluded.reviewer, category=excluded.category,
           severity=excluded.severity, confidence=excluded.confidence,
@@ -239,7 +243,7 @@ export class Memory {
           challenge_result=excluded.challenge_result,
           challenge_reasoning=excluded.challenge_reasoning,
           detected_by=excluded.detected_by, score=excluded.score,
-          evidence_package=excluded.evidence_package`,
+          evidence_package=excluded.evidence_package, review_data=excluded.review_data`,
       )
       .run(
         f.id,
@@ -264,6 +268,7 @@ export class Memory {
         f.score ?? null,
         createdAt,
         f.evidencePackage ? JSON.stringify(f.evidencePackage) : null,
+        JSON.stringify({rootCause:f.rootCause, rootCauseValidated:f.rootCauseValidated, corrections:f.corrections}),
       );
     return { ...f, roundId, createdAt };
   }
@@ -274,14 +279,41 @@ export class Memory {
     result: ChallengeResult,
     reasoning: string,
     evidencePackage?: EvidencePackage,
+    correction?: FindingCorrection,
+    rootCause?: RootCause,
   ): boolean {
-    const status = result === "REJECTED" ? "rejected" : "confirmed";
-    const res = this.db
-      .prepare(
-        "UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?, evidence_package=COALESCE(?, evidence_package) WHERE id=? AND round_id=?",
-      )
-      .run(result, reasoning, status, evidencePackage ? JSON.stringify(evidencePackage) : null, findingId, roundId);
-    return res.changes > 0;
+    return this.db.transaction(() => {
+      const row = this.db.prepare("SELECT * FROM findings WHERE id=? AND round_id=?")
+        .get(findingId, roundId) as Record<string, unknown> | undefined;
+      if (!row) return false;
+      const original = rowToFinding(row);
+      if (correction && original.evidencePackage && !evidencePackage) {
+        throw new Error("A correction must replace the existing evidence package to avoid stale claims.");
+      }
+      let revised = original;
+      if (correction) {
+        const {title,description,evidence,impact,scenario,recommendation,severity,confidence} = original;
+        const content: FindingContent = {title,description,evidence,impact,scenario,recommendation,severity,confidence};
+        revised = {...original, ...correction,
+          scenario:correction.scenario ?? undefined,
+          recommendation:correction.recommendation ?? undefined,
+          severity:correction.severity ?? original.severity,
+          confidence:correction.confidence ?? original.confidence,
+          corrections:[...(original.corrections ?? []), {reason:correction.reason, original:content}]};
+      }
+      const cause = rootCause ?? original.rootCause;
+      const data = {rootCause:cause, rootCauseValidated:!!cause && result !== "REJECTED", corrections:revised.corrections};
+      this.db.prepare(`UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?,
+        evidence_package=COALESCE(?, evidence_package), review_data=?, title=?, description=?,
+        evidence=?, impact=?, scenario=?, recommendation=?, severity=?, confidence=?
+        WHERE id=? AND round_id=?`).run(result, reasoning,
+          result === "REJECTED" ? "rejected" : "confirmed",
+          evidencePackage ? JSON.stringify(evidencePackage) : null, JSON.stringify(data),
+          revised.title,revised.description,JSON.stringify(revised.evidence),revised.impact,
+          revised.scenario ?? null,revised.recommendation ?? null,revised.severity,revised.confidence,
+          findingId,roundId);
+      return true;
+    });
   }
 
   getFinding(id: string): Finding | undefined {
@@ -545,9 +577,12 @@ function migrateGlobal(db: ResilientDatabase): void {
 }
 
 function rowToFinding(row: Record<string, unknown>): Finding {
+  const review = typeof row.review_data === "string" ? JSON.parse(row.review_data) as
+    Pick<Finding, "rootCause" | "rootCauseValidated" | "corrections"> : {};
   const start = row.start_line as number | null;
   const end = row.end_line as number | null;
   return {
+    ...review,
     id: row.id as string,
     title: row.title as string,
     category: row.category as Category,

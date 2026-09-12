@@ -4,6 +4,7 @@ import { z } from "zod";
 import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema } from "./evidence.js";
+import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
 const SERVER_CWD = process.cwd();
 let activeCwd;
 function targetCwd() {
@@ -97,6 +98,7 @@ export async function startServer() {
             description: z.string().min(1),
             evidence: z.array(z.string().min(1)).min(1),
             evidencePackage: evidencePackageSchema.optional(),
+            rootCause: rootCauseSchema.optional(),
             impact: z.string().min(1),
             scenario: z.string().optional(),
             recommendation: z.string().optional(),
@@ -113,16 +115,20 @@ export async function startServer() {
         title: "Record a challenge verdict",
         description: "The Challenger records its verdict for a finding after trying to " +
             "prove it wrong. CONFIRMED or PLAUSIBLE keep the finding; REJECTED " +
-            "removes it from the report.",
+            "removes it from the report. Validate/reuse rootCause for the same defect. " +
+            "Use correction to replace unsupported claim-bearing content; replace " +
+            "the existing evidencePackage too. Originals remain in the audit history.",
         inputSchema: {
             finding_id: z.string(),
             verdict: z.enum(["CONFIRMED", "PLAUSIBLE", "REJECTED"]),
             reasoning: z.string().trim().min(1),
             evidencePackage: evidencePackageSchema.optional(),
+            rootCause: rootCauseSchema.optional(),
+            correction: findingCorrectionSchema.optional(),
         },
     }, async (args) => {
         try {
-            const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage);
+            const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage, args.correction, args.rootCause);
             return text(ok
                 ? `Recorded ${args.verdict} for ${args.finding_id}.`
                 : `No finding with id ${args.finding_id}.`);

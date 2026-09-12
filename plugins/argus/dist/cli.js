@@ -44,7 +44,7 @@ Commands
   reviewer-run <id> <s>     Record reviewer status (started|completed|failed)
   record-finding --json <j> Record a finding from a JSON object (or stdin)
   challenge <id> <verdict>  Record a challenge (CONFIRMED|PLAUSIBLE|REJECTED)
-    --reason <text> [--evidence-package <json>]
+    --reason <text> [--evidence-package <json>] [--correction <json>] [--root-cause <json>]
   memory <query>            Search past findings for this target
   memory-status <fp> <s>    Set global memory active|retired [--note text]
   baseline-import <file>    Import findings from an Argus JSON report
@@ -144,13 +144,14 @@ export async function main(argv) {
                 const [id, verdict] = rest;
                 const { values } = parseArgs({
                     args: rest.slice(2),
-                    options: { reason: { type: "string" }, "evidence-package": { type: "string" } },
+                    options: { reason: { type: "string" }, "evidence-package": { type: "string" },
+                        correction: { type: "string" }, "root-cause": { type: "string" } },
                 });
                 if (!id || !["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(verdict)) {
                     console.error("Usage: argus challenge <id> <CONFIRMED|PLAUSIBLE|REJECTED> --reason <text>");
                     return 1;
                 }
-                const ok = recordChallenge(cwd, id, verdict, values.reason ?? "", values["evidence-package"] ? JSON.parse(values["evidence-package"]) : undefined);
+                const ok = recordChallenge(cwd, id, verdict, values.reason ?? "", values["evidence-package"] ? JSON.parse(values["evidence-package"]) : undefined, values.correction ? JSON.parse(values.correction) : undefined, values["root-cause"] ? JSON.parse(values["root-cause"]) : undefined);
                 console.log(ok ? `Recorded ${verdict} for ${id}.` : `No finding ${id}.`);
                 return ok ? 0 : 1;
             }

@@ -5,12 +5,13 @@ import { repoRootSync, exportsDir } from "./paths.js";
 import { findingFingerprint, GlobalMemory, Memory, } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
-import { deduplicate, rank } from "./dedup.js";
+import { deduplicate, rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema } from "./evidence.js";
+import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
 import { ALL_CATEGORIES, SEVERITY_ORDER, } from "./types.js";
 const SEVERITIES = ["info", "low", "medium", "high", "critical"];
 const CONFIDENCES = ["low", "medium", "high"];
@@ -137,6 +138,7 @@ function coerce(input) {
         evidence: input.evidence.map(String).filter((item) => item.trim().length > 0),
         evidencePackage: input.evidencePackage === undefined ? undefined
             : evidencePackageSchema.parse(input.evidencePackage),
+        rootCause: input.rootCause === undefined ? undefined : rootCauseSchema.parse(input.rootCause),
         impact: input.impact ?? "",
         scenario: input.scenario,
         recommendation: input.recommendation,
@@ -174,12 +176,16 @@ export function recordFinding(cwd, input) {
         return { id: finding.id, similar };
     }, true);
 }
-export function recordChallenge(cwd, findingId, result, reasoning, evidencePackage) {
+export function recordChallenge(cwd, findingId, result, reasoning, evidencePackage, correction, rootCause) {
     if (!["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(result) || !reasoning.trim()) {
         throw new Error("Challenge requires a valid verdict and non-empty reasoning.");
     }
     const packet = evidencePackage === undefined ? undefined : evidencePackageSchema.parse(evidencePackage);
-    return withCurrentRound(cwd, (mem, roundId) => mem.updateChallenge(roundId, findingId, result, reasoning, packet), true);
+    const corrected = correction === undefined ? undefined : findingCorrectionSchema.parse(correction);
+    const cause = rootCause === undefined ? undefined : rootCauseSchema.parse(rootCause);
+    if (corrected && result === "REJECTED")
+        throw new Error("Correct surviving findings; reject invalid ones without a correction.");
+    return withCurrentRound(cwd, (mem, roundId) => mem.updateChallenge(roundId, findingId, result, reasoning, packet, corrected, cause), true);
 }
 export function recordReviewerRun(cwd, reviewer, status, detail) {
     withCurrentRound(cwd, (mem, roundId) => {
@@ -383,7 +389,8 @@ export function report(opts) {
 }
 function matchFinding(finding, candidates) {
     const fingerprint = findingFingerprint(finding);
-    return candidates.some((candidate) => findingFingerprint(candidate) === fingerprint ||
+    return candidates.some((candidate) => (candidate.rootCauseValidated && finding.rootCauseValidated && sameRootCause(candidate, finding)) ||
+        findingFingerprint(candidate) === fingerprint ||
         (candidate.file === finding.file && candidate.category === finding.category &&
             titleSim(candidate.title, finding.title) >= 0.75));
 }
@@ -415,6 +422,8 @@ function parseBaselineFinding(value) {
         evidence: Array.isArray(value.evidence) ? value.evidence.map(String) : [],
         evidencePackage: value.evidencePackage === undefined ? undefined
             : evidencePackageSchema.parse(value.evidencePackage),
+        rootCause: value.rootCause === undefined ? undefined : rootCauseSchema.parse(value.rootCause),
+        rootCauseValidated: value.rootCauseValidated === true,
         impact: typeof value.impact === "string" ? value.impact : "Previously reported.",
         reviewer: typeof value.reviewer === "string" ? value.reviewer : "baseline",
         status: "confirmed",

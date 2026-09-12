@@ -27,6 +27,11 @@ function titleSimilarity(a: string, b: string): number {
 
 function isDuplicate(a: Finding, b: Finding): boolean {
   if (a.file !== b.file) return false;
+  if (a.rootCause && b.rootCause) {
+    // Distinct violated invariants remain distinct even on identical lines.
+    if (!sameRootCause(a, b)) return false;
+    if (a.rootCauseValidated && b.rootCauseValidated) return true;
+  }
   const similarity = titleSimilarity(a.title, b.title);
   // Nearby lines are only a location hint, never proof of a shared root cause.
   if (linesOverlap(a, b)) {
@@ -34,6 +39,13 @@ function isDuplicate(a: Finding, b: Finding): boolean {
   }
   // Without a shared location, require a strong title match and the same lens.
   return a.category === b.category && similarity >= 0.75;
+}
+
+export function sameRootCause(a: Finding, b: Finding): boolean {
+  if (a.file !== b.file || !a.rootCause || !b.rootCause) return false;
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
+  return (["symbol", "mechanism", "invariant"] as const)
+    .every(key => normalize(a.rootCause![key]) === normalize(b.rootCause![key]));
 }
 
 function maxSeverity(a: Severity, b: Severity): Severity {
@@ -52,24 +64,25 @@ function merge(a: Finding, b: Finding): Finding {
     ...(a.categories ?? [a.category]),
     ...(b.categories ?? [b.category]),
   ])) as Category[];
-  // Keep the richer description/evidence.
-  const primary = a.evidence.length >= b.evidence.length ? a : b;
+  // Prefer confirmed, corrected observations, not verbosity. Preserve one packet.
+  const preference = (f: Finding) => (f.challenge?.result === "CONFIRMED" ? 10 : 0)
+    + (f.corrections?.length ? 20 : 0) + (f.evidencePackage ? 1 : 0);
+  const primary = preference(b) > preference(a) ? b : a;
   const secondary = primary === a ? b : a;
+  const corrected = !!primary.corrections?.length;
   return {
     ...primary,
     category: primary.category,
     categories,
-    severity: maxSeverity(a.severity, b.severity),
-    confidence: maxConfidence(a.confidence, b.confidence),
-    evidence: Array.from(new Set([...primary.evidence, ...secondary.evidence])),
-    evidencePackage: a.challenge?.result === "CONFIRMED" ? a.evidencePackage
-      : b.challenge?.result === "CONFIRMED" ? b.evidencePackage
-        : primary.evidencePackage,
+    severity: corrected ? primary.severity : maxSeverity(a.severity, b.severity),
+    confidence: corrected ? primary.confidence : maxConfidence(a.confidence, b.confidence),
+    evidence: corrected ? primary.evidence : Array.from(new Set([...primary.evidence, ...secondary.evidence])),
+    evidencePackage: primary.evidencePackage,
+    rootCause: primary.rootCause ?? secondary.rootCause,
+    rootCauseValidated: a.rootCauseValidated || b.rootCauseValidated,
+    corrections: [...(a.corrections ?? []), ...(b.corrections ?? [])],
     detectedBy,
-    challenge:
-      a.challenge?.result === "CONFIRMED" ? a.challenge
-        : b.challenge?.result === "CONFIRMED" ? b.challenge
-          : primary.challenge,
+    challenge: primary.challenge,
     reviewer: detectedBy.join(", "),
   };
 }

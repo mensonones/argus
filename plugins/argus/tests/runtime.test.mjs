@@ -92,6 +92,65 @@ test("ranking is not inflated by repeated text or correlated reviewer agreement"
   assert.ok(scoreFinding({...base,evidencePackage:evidencePacket()}) > scoreFinding(base));
 });
 
+const ownerCause = {symbol:"updateAccount",mechanism:"missing-owner-check",invariant:"only-owner-may-update"};
+test("root causes consolidate actual lab titles across lenses without joining different invariants", () => {
+  const a = finding({title:"updateAccount() missing owner check allows any user to mutate any account",category:"correctness",rootCause:ownerCause,rootCauseValidated:true});
+  const b = finding({id:crypto.randomUUID(),title:"Missing ownership check in updateAccount enables IDOR/BOLA write to any account",rootCause:{...ownerCause},rootCauseValidated:true});
+  const result = deduplicate([a,b]);
+  assert.equal(result.findings.length,1);
+  assert.equal(result.removed,1);
+  assert.deepEqual(result.findings[0].categories.sort(),["correctness","security"]);
+  const c = finding({id:crypto.randomUUID(),title:a.title,rootCause:{...ownerCause,invariant:"storage-interface-compatibility"},rootCauseValidated:true});
+  assert.equal(deduplicate([a,c]).findings.length,2);
+  assert.equal(deduplicate([{...a,rootCauseValidated:false},{...b,rootCauseValidated:false}]).findings.length,2);
+});
+
+test("Challenger correction removes unsupported claims and preserves original content atomically", async () => {
+  const cwd = repo(); await initReview({cwd});
+  const original = finding({impact:"Loses ordering and causes N calls",scenario:"Old scenario",recommendation:"Old fix"});
+  const {id} = recordFinding(cwd,{...original,evidencePackage:evidencePacket(),rootCause:ownerCause});
+  const correction = {reason:"Ordering is preserved; only repeated IO is proven",title:"Repeated storage calls",description:"One call per ID",evidence:["await storage.get inside loop"],impact:"N calls instead of one",severity:"medium"};
+  assert.throws(()=>recordChallenge(cwd,id,"CONFIRMED","Core holds",undefined,correction),/replace the existing/);
+  let mem = Memory.open(cwd);
+  assert.equal(mem.getFinding(id).status,"candidate"); mem.close();
+  recordChallenge(cwd,id,"CONFIRMED","Core holds",evidencePacket(),correction,ownerCause);
+  mem = Memory.open(cwd); const revised = mem.getFinding(id); mem.close();
+  assert.equal(revised.impact,correction.impact);
+  assert.equal(revised.scenario,undefined);
+  assert.equal(revised.recommendation,undefined);
+  assert.equal(revised.severity,"medium");
+  assert.equal(revised.rootCauseValidated,true);
+  assert.equal(revised.corrections[0].original.impact,original.impact);
+  const out = report({cwd,format:"markdown",write:false,promoteGlobal:false});
+  assert.doesNotMatch(out.rendered,/Loses ordering|Old scenario|Old fix/);
+  assert.match(out.rendered,/Challenger corrections/);
+  assert.equal(out.result.findings[0].corrections[0].original.impact,original.impact);
+});
+
+test("consolidation does not reintroduce corrected evidence, severity or mismatched packets", () => {
+  const original = finding({rootCause:ownerCause,rootCauseValidated:true,evidence:["unsupported ordering claim"],evidencePackage:evidencePacket({observed:"unsupported observation"})});
+  const revised = finding({id:crypto.randomUUID(),rootCause:ownerCause,rootCauseValidated:true,severity:"medium",impact:"supported impact",evidence:["supported evidence"],evidencePackage:evidencePacket({observed:"supported observation"}),corrections:[{reason:"remove overstatement",original:{title:original.title,description:original.description,evidence:original.evidence,impact:original.impact,severity:original.severity,confidence:original.confidence}}]});
+  for (const input of [[original,revised],[revised,original]]) {
+    const result = deduplicate(input).findings[0];
+    assert.equal(result.impact,"supported impact");
+    assert.deepEqual(result.evidence,["supported evidence"]);
+    assert.equal(result.evidencePackage.observed,"supported observation");
+    assert.equal(result.severity,"medium");
+  }
+  const plausible = {...revised,challenge:{result:"PLAUSIBLE",reasoning:"narrowed claim remains uncertain"}};
+  assert.deepEqual(deduplicate([original,plausible]).findings[0].evidence,["supported evidence"]);
+  assert.equal(deduplicate([original,plausible]).findings[0].challenge.result,"PLAUSIBLE");
+});
+
+test("correction schema refuses partial edits, identity edits and rejected-core corrections", async () => {
+  const cwd = repo(); await initReview({cwd}); const {id} = recordFinding(cwd,finding());
+  const correction = {reason:"narrow impact",title:"Revised",description:"Revised description",evidence:["code"],impact:"Revised impact"};
+  assert.throws(()=>recordChallenge(cwd,id,"CONFIRMED","holds",undefined,{reason:"partial"}));
+  assert.throws(()=>recordChallenge(cwd,id,"CONFIRMED","holds",undefined,{...correction,file:"other.js"}));
+  assert.throws(()=>recordChallenge(cwd,id,"REJECTED","invalid core",undefined,correction),/without a correction/);
+  assert.equal(recordChallenge(cwd,"not-found","CONFIRMED","holds",undefined,correction),false);
+});
+
 test("invalid argus.yaml fails instead of silently using defaults", () => {
   const cwd = tempDir();
   fs.writeFileSync(path.join(cwd, "argus.yaml"), "severity:\n  minimum: medum\n");
@@ -219,11 +278,11 @@ test("global memory stores and retrieves confirmed findings", () => {
 test("database migrations are versioned and idempotent", () => {
   const cwd = repo();
   const first = Memory.open(cwd);
-  assert.equal(first.getMeta("schema_version"), "3");
-  assert.equal(first.getMeta("runtime_version"), "0.2.0");
+  assert.equal(first.getMeta("schema_version"), "4");
+  assert.equal(first.getMeta("runtime_version"), "0.2.1");
   first.close();
   const second = Memory.open(cwd);
-  assert.equal(second.getMeta("schema_version"), "3");
+  assert.equal(second.getMeta("schema_version"), "4");
   second.close();
 });
 
@@ -235,13 +294,26 @@ test("schema v2 migrates existing findings without requiring an evidence packet"
   mem.recordFinding(round.id,original); mem.close();
   // Reconstruct the actual v2 schema/ledger, preserving the legacy finding.
   const db = new DatabaseSync(path.join(cwd,".argus","memory.sqlite"));
-  db.exec("ALTER TABLE findings DROP COLUMN evidence_package; DELETE FROM schema_migrations WHERE id='003-evidence-packages'; UPDATE meta SET value='2' WHERE key='schema_version';");
+  db.exec("ALTER TABLE findings DROP COLUMN evidence_package; ALTER TABLE findings DROP COLUMN review_data; DELETE FROM schema_migrations WHERE id IN ('003-evidence-packages','004-challenger-corrections'); UPDATE meta SET value='2' WHERE key='schema_version';");
   db.close();
   const migrated = Memory.open(cwd);
-  assert.equal(migrated.getMeta("schema_version"),"3");
+  assert.equal(migrated.getMeta("schema_version"),"4");
   assert.equal(migrated.getFinding(original.id).title,original.title);
   assert.equal(migrated.getFinding(original.id).evidencePackage,undefined);
   migrated.close();
+});
+
+test("schema v3 migration preserves recorded observations", () => {
+  const cwd = repo(); const mem = Memory.open(cwd);
+  const round = mem.createRound("main","v3");
+  const original = finding({evidencePackage:evidencePacket()});
+  mem.recordFinding(round.id,original); mem.close();
+  const db = new DatabaseSync(path.join(cwd,".argus","memory.sqlite"));
+  db.exec("ALTER TABLE findings DROP COLUMN review_data; DELETE FROM schema_migrations WHERE id='004-challenger-corrections'; UPDATE meta SET value='3' WHERE key='schema_version';");
+  db.close();
+  const migrated = Memory.open(cwd);
+  assert.deepEqual(migrated.getFinding(original.id).evidencePackage,original.evidencePackage);
+  assert.equal(migrated.getMeta("schema_version"),"4"); migrated.close();
 });
 
 test("parallel reviewer processes can write to the same SQLite memory", async () => {

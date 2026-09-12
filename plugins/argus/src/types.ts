@@ -32,6 +32,27 @@ export interface Challenge {
   reasoning: string;
 }
 
+export interface RootCause {
+  symbol: string;
+  mechanism: string;
+  invariant: string;
+}
+
+export interface FindingCorrection {
+  reason: string;
+  title: string;
+  description: string;
+  evidence: string[];
+  impact: string;
+  scenario?: string | null;
+  recommendation?: string | null;
+  severity?: Severity;
+  confidence?: Confidence;
+}
+
+export type FindingContent = Pick<Finding,
+  "title" | "description" | "evidence" | "impact" | "scenario" | "recommendation" | "severity" | "confidence">;
+
 /** Recorded observations, not an execution certificate issued by Argus. */
 export interface EvidencePackage {
   schemaVersion: 1;
@@ -61,6 +82,9 @@ export interface Finding {
   description: string;
   evidence: string[];
   evidencePackage?: EvidencePackage;
+  rootCause?: RootCause;
+  rootCauseValidated?: boolean;
+  corrections?: Array<{ reason: string; original: FindingContent }>;
   impact: string;
   scenario?: string;
   recommendation?: string;

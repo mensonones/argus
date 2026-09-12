@@ -11,12 +11,14 @@ import {
 } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
-import { deduplicate, rank } from "./dedup.js";
+import { deduplicate, rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema } from "./evidence.js";
+import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
+import type { FindingCorrection, RootCause } from "./types.js";
 import type { EvidencePackage } from "./types.js";
 import type { ReviewResult } from "./report/result.js";
 import {
@@ -163,6 +165,7 @@ export interface FindingInput {
   scenario?: string;
   recommendation?: string;
   evidencePackage?: EvidencePackage;
+  rootCause?: RootCause;
 }
 
 function coerce(input: FindingInput): Finding {
@@ -210,6 +213,7 @@ function coerce(input: FindingInput): Finding {
     evidence: input.evidence.map(String).filter((item) => item.trim().length > 0),
     evidencePackage: input.evidencePackage === undefined ? undefined
       : evidencePackageSchema.parse(input.evidencePackage),
+    rootCause: input.rootCause === undefined ? undefined : rootCauseSchema.parse(input.rootCause),
     impact: input.impact ?? "",
     scenario: input.scenario,
     recommendation: input.recommendation,
@@ -264,13 +268,18 @@ export function recordChallenge(
   result: ChallengeResult,
   reasoning: string,
   evidencePackage?: EvidencePackage,
+  correction?: FindingCorrection,
+  rootCause?: RootCause,
 ): boolean {
   if (!["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(result) || !reasoning.trim()) {
     throw new Error("Challenge requires a valid verdict and non-empty reasoning.");
   }
   const packet = evidencePackage === undefined ? undefined : evidencePackageSchema.parse(evidencePackage);
+  const corrected = correction === undefined ? undefined : findingCorrectionSchema.parse(correction);
+  const cause = rootCause === undefined ? undefined : rootCauseSchema.parse(rootCause);
+  if (corrected && result === "REJECTED") throw new Error("Correct surviving findings; reject invalid ones without a correction.");
   return withCurrentRound(cwd, (mem, roundId) =>
-    mem.updateChallenge(roundId, findingId, result, reasoning, packet), true);
+    mem.updateChallenge(roundId, findingId, result, reasoning, packet, corrected, cause), true);
 }
 
 export function recordReviewerRun(
@@ -534,6 +543,7 @@ export function report(opts: ReportOptions): ReportOutput {
 function matchFinding(finding: Finding, candidates: Finding[]): boolean {
   const fingerprint = findingFingerprint(finding);
   return candidates.some((candidate) =>
+    (candidate.rootCauseValidated && finding.rootCauseValidated && sameRootCause(candidate, finding)) ||
     findingFingerprint(candidate) === fingerprint ||
     (candidate.file === finding.file && candidate.category === finding.category &&
       titleSim(candidate.title, finding.title) >= 0.75),
@@ -567,6 +577,8 @@ function parseBaselineFinding(value: unknown): Finding {
     evidence: Array.isArray(value.evidence) ? value.evidence.map(String) : [],
     evidencePackage: value.evidencePackage === undefined ? undefined
       : evidencePackageSchema.parse(value.evidencePackage),
+    rootCause: value.rootCause === undefined ? undefined : rootCauseSchema.parse(value.rootCause),
+    rootCauseValidated: value.rootCauseValidated === true,
     impact: typeof value.impact === "string" ? value.impact : "Previously reported.",
     reviewer: typeof value.reviewer === "string" ? value.reviewer : "baseline",
     status: "confirmed",

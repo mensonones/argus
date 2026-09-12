@@ -13,6 +13,8 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
+Current version: **0.2.1** — see [Changelog](CHANGELOG.md).
+
 ## Evidence and evaluation
 
 Findings and Challenger verdicts optionally carry an `evidencePackage` v1:
@@ -21,6 +23,17 @@ expected/observed behavior, limitations and optional negative control. Executed
 methods require a command and recorded output/artifact. These are agent-reported
 observations, not execution certificates. Legacy findings remain supported.
 The ranking no longer rewards evidence text volume or reviewer agreement.
+
+Version 0.2.1 adds Challenger-validated `rootCause` triples
+(symbol, mechanism, violated invariant) for cross-lens consolidation. Distinct
+invariants stay separate even on the same lines. Legacy findings fall back to
+title/location matching; the runtime does not infer semantic equivalence.
+
+The Challenger can submit a `correction` with revised claim-bearing content,
+a reason and a replacement evidence packet. Original content stays in the
+SQLite/JSON audit history; reports show corrected claims and correction reasons.
+Correcting an exaggeration is different from rejecting a real defect or
+suppressing a finding. These corrections ship in version 0.2.1.
 
 `npm run eval:prepare` emits label-free pilot tasks for your existing assistant.
 `npm run eval:score -- /absolute/path/run.json` scores human-adjudicated runs.
@@ -51,7 +64,7 @@ does the reasoning. Argus provides:
 argus_init            detect repo · committed + working-tree diff · open a round
    │
    ▼
-select reviewers      (skip pure docs/config/asset changes)
+select reviewers      (skip docs/assets/ignored files; configuration may be reviewed)
    │
    ├── argus-correctness ─┐   each a subagent using the host's Read/Grep/git
    ├── argus-security     │   + argus_record_finding to store evidence-backed
@@ -59,7 +72,7 @@ select reviewers      (skip pure docs/config/asset changes)
    └── argus-architecture ┘
    │
    ▼
-argus-challenger       adversarially validates each → CONFIRMED / PLAUSIBLE / REJECTED
+argus-challenger       validate claims · correct overstatements · identify root causes
    │
    ▼
 argus_report           dedup · rank (severity × confidence × challenge × validation) · render
@@ -181,9 +194,11 @@ Restart OpenCode Desktop, open a Git project, and run `/argus` or ask for a
 key; OpenCode Desktop still needs access to a model through one of its supported
 providers.
 
-The OpenCode Desktop artifacts are generated and schema-aligned, but remain
-experimental until this installation and review flow is exercised end to end in
-a released desktop build.
+An initial synthetic end-to-end OpenCode Desktop review found the three
+prepared defects and left two changed negative controls clean. It exposed
+cross-lens duplication and unremoved overstatements, motivating the current
+root-cause/correction work. This is a smoke test, not broad host certification
+or proof of production-quality precision/recall; support remains experimental.
 
 ---
 
@@ -235,7 +250,7 @@ fallback:
 | `argus_init` | `argus init` | detect repo, committed + working-tree diff, context, open a round |
 | `argus_record_finding` | `argus record-finding --json` | store a candidate finding |
 | `argus_record_reviewer_run` | `argus reviewer-run <id> <status>` | record reviewer coverage |
-| `argus_record_challenge` | `argus challenge <id> <verdict>` | store a verdict |
+| `argus_record_challenge` | `argus challenge <id> <verdict>` | store verdict, validated root cause and optional correction |
 | `argus_list_findings` | `argus list` | list findings by status |
 | `argus_query_similar` | — | dedupe helper |
 | `argus_memory_search` | `argus memory <q>` | search past findings |
@@ -321,10 +336,12 @@ command.
 
 ## Status
 
-**v0.1 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
+**v0.2.1 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
 dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
-reports, and Claude Code / Codex / OpenCode Desktop / DSH packaging and
-diagnostics. Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
+structured evidence packets, Argus Eval pilot, reports, and Claude Code / Codex /
+OpenCode Desktop / DSH packaging and diagnostics. Version 0.2.1 adds
+auditable Challenger corrections and root-cause consolidation (schema v4).
+Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
 broader live host validation.
 
 ## License

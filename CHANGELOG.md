@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-09-12
+
+- Challenger-validated root causes for cross-lens consolidation, keeping distinct
+  violated invariants separate.
+- Complete claim corrections with original-content audit history and replacement
+  evidence packets; coherent corrected content survives consolidation.
+- Schema v4 migration and documentation aligned with released 0.2.0 status.
+
 ## 0.2.0 — 2026-09-12
 
 - Optional structured evidence packets on findings and Challenger verdicts,

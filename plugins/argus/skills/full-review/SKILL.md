@@ -21,6 +21,7 @@ Argus is deterministic where it can be and specialist where it must be: the
 specialist subagents, one lens each.
 
 Before recording findings, read [the evidence packet contract](references/evidence-package.md).
+Also read [root causes and Challenger corrections](references/challenger-corrections.md).
 Pass it to reviewers and the Challenger. Include `evidencePackage` when the
 snapshot and observations can be established; never fabricate missing evidence.
 
@@ -52,6 +53,10 @@ snapshot and observations can be established; never fabricate missing evidence.
    should include a reproduction or negative control when practical. Never skip
    this. A coordinator must never suppress a finding on its own; suppression is
    an explicit maintainer decision with a recorded reason and optional expiry.
+   Validate every material claim, not just the core defect. Use `correction`
+   to remove unsupported impact/scenario/evidence while preserving a valid
+   finding, and replace its packet. Validate a shared `rootCause` triple for
+   cross-lens duplicates; keep distinct violated invariants separate.
 
 5. **Consolidate + report.** `argus_report` refuses to run while any candidate
    lacks a Challenger verdict, then deduplicates (merging findings

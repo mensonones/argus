@@ -75,6 +75,8 @@ export function renderTerminal(result: ReviewResult): string {
       out.push(block("Impact", f.impact));
     }
     out.push(block("Confidence", `  ${f.confidence.toUpperCase()}`));
+    if (f.rootCause) out.push(block("Root cause", `${f.rootCause.symbol} · ${f.rootCause.mechanism} · ${f.rootCause.invariant}`));
+    if (f.corrections?.length) out.push(block("Challenger corrections", f.corrections.map(c=>c.reason).join("\n")));
     const packet = f.evidencePackage;
     out.push(block("Validation", `  ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`));
     if (packet) {

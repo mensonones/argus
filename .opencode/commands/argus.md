@@ -69,6 +69,10 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    Read `skills/full-review/references/evidence-package.md` and provide its
    contract to each specialist and the Challenger. Record `evidencePackage`
    when the snapshot and observations can be established; never invent them.
+   Read `skills/full-review/references/challenger-corrections.md` as well.
+   Provide that contract to the Challenger: validate canonical `rootCause`
+   triples and correct unsupported claims using complete `correction` content
+   and replacement evidence packets, not just explanatory reasoning.
    If the host has no subagent facility, run the selected lenses sequentially
    in the coordinator by loading each matching review skill. Preserve the same
    bounded scope and recording contract; do not skip the review.

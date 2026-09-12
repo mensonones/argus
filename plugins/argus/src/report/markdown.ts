@@ -46,6 +46,12 @@ function renderFinding(f: Finding, index: number): string {
     lines.push("");
   }
   lines.push(`**Confidence:** ${f.confidence.toUpperCase()}`);
+  if (f.rootCause) lines.push(`**Root cause:** ${f.rootCause.symbol} · ${f.rootCause.mechanism} · ${f.rootCause.invariant}`);
+  if (f.corrections?.length) {
+    lines.push("", "**Challenger corrections**", "");
+    for (const correction of f.corrections) lines.push(`- ${correction.reason}`);
+    lines.push("");
+  }
   const packet = f.evidencePackage;
   lines.push(`**Validation:** ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`);
   if (packet) {
