@@ -17,7 +17,8 @@ import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema } from "./validation.js";
+import { consolidateReconciled, findingsSignature, type ReconciliationGroup } from "./reconciliation.js";
 import type { FindingCorrection, RootCause } from "./types.js";
 import type { EvidencePackage } from "./types.js";
 import type { ReviewResult } from "./report/result.js";
@@ -152,7 +153,7 @@ export async function initReview(opts: InitOptions): Promise<InitResult> {
 
 export interface FindingInput {
   reviewer: string;
-  category?: string;
+  category: string;
   severity?: string;
   confidence?: string;
   title: string;
@@ -186,9 +187,7 @@ function coerce(input: FindingInput): Finding {
   if (!Array.isArray(input.evidence) || !input.evidence.some((item) => String(item).trim())) {
     throw new Error("A finding must contain at least one concrete evidence item.");
   }
-  const category = (ALL_CATEGORIES as string[]).includes(input.category ?? "")
-    ? (input.category as Category)
-    : "correctness";
+  const category = categorySchema.parse(input.category);
   const severity = SEVERITIES.includes(input.severity as Severity)
     ? (input.severity as Severity)
     : "medium";
@@ -406,6 +405,16 @@ export function listSuppressions(cwd: string, activeOnly = true): Suppression[] 
   }
 }
 
+export function reconcileFindings(cwd: string, input: ReconciliationGroup[]) {
+  const groups = reconciliationSchema.parse(input);
+  return withCurrentRound(cwd, (mem, roundId) => {
+    const all = mem.listFindings(roundId);
+    const result = consolidateReconciled(all, groups);
+    mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups }));
+    return { groups: result.findings.length, duplicatesMerged: result.removed };
+  }, true);
+}
+
 export interface ReportOptions {
   cwd: string;
   format?: "markdown" | "json" | "terminal";
@@ -438,8 +447,11 @@ export function report(opts: ReportOptions): ReportOutput {
     }
 
     const rejectedCount = all.filter((f) => f.status === "rejected").length;
-    const survivors = all.filter((f) => f.status === "confirmed");
-    const { findings: deduped, removed } = deduplicate(survivors);
+    const stored = mem.getMeta(`reconciliation:${round.id}`);
+    if (!stored) throw new Error("Run argus_reconcile / argus reconcile before reporting, including zero-finding rounds.");
+    const reconciliation = JSON.parse(stored) as { signature: string; groups: ReconciliationGroup[] };
+    if (reconciliation.signature !== findingsSignature(all)) throw new Error("Findings changed after reconciliation; run argus_reconcile again.");
+    const { findings: deduped, removed } = consolidateReconciled(all, reconciliationSchema.parse(reconciliation.groups));
     const previous = deduplicate(mem.previousReportedFindings(round.id)).findings;
     const older = deduplicate(mem.olderConfirmedFindings(round.id)).findings;
     const imported = deduplicate(mem.listBaselineFindings()).findings;
@@ -453,7 +465,7 @@ export function report(opts: ReportOptions): ReportOutput {
             ? "regression" as const
             : "new" as const,
     }));
-    const resolvedFindings = previous
+    const unmatchedPreviousFindings = previous
       .filter((finding) => !matchFinding(finding, classified))
       .map(({ title, file, severity, category }) => ({ title, file, severity, category }));
     const activeSuppressions = new Set(mem.listSuppressions(true).map((item) => item.fingerprint));
@@ -490,7 +502,9 @@ export function report(opts: ReportOptions): ReportOutput {
       rejectedCount,
       duplicatesRemoved: removed,
       suppressedCount,
-      resolvedCount: resolvedFindings.length,
+      resolvedCount: 0,
+      unmatchedPreviousCount: unmatchedPreviousFindings.length,
+      unmatchedPreviousFindings,
       findings: filtered,
       reviewerStats: reviewers.map((r) => ({
         reviewer: r,
@@ -498,7 +512,7 @@ export function report(opts: ReportOptions): ReportOutput {
         status: reviewerRuns.find((run) => run.reviewer === r)?.status ?? "untracked",
         detail: reviewerRuns.find((run) => run.reviewer === r)?.detail,
       })),
-      resolvedFindings,
+      resolvedFindings: [],
     };
 
     const format = opts.format ?? "terminal";

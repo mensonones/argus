@@ -30,9 +30,9 @@ it and consolidate it. Follow this contract exactly.
 Prefer the **Argus MCP tools** (`argus_init`, `argus_record_finding`,
 `argus_record_reviewer_run`, `argus_record_challenge`, `argus_list_findings`, `argus_query_similar`,
 `argus_memory_search`, `argus_import_baseline`, `argus_suppress_finding`,
-`argus_list_suppressions`, `argus_report`). If the MCP server is unavailable, fall
+`argus_list_suppressions`, `argus_reconcile`, `argus_report`). If the MCP server is unavailable, fall
 back to the `argus` CLI (`argus init`, `argus record-finding --json ...`,
-`argus challenge <id> <verdict> --reason ...`, `argus report`). State stays in
+`argus challenge <id> <verdict> --reason ...`, `argus reconcile --json ...`, `argus report`). State stays in
 `.argus/` (SQLite) so reviewers coordinate through shared memory.
 
 ## Workflow
@@ -63,7 +63,9 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    (Task tool), one bounded assignment each. Give every subagent: the review
    overview, the specific files to focus on, and the instruction to investigate
    the real code (Read/Grep/git) and record each finding with
-   `argus_record_finding` (using its reviewer id). Never tell a subagent to
+   `argus_record_finding` (using its reviewer id and explicit valid category).
+   Missing/invalid categories fail; never substitute correctness for another lens.
+   Never tell a subagent to
    "review the repo" — assign concrete files and its single lens. Run
    independent specialists in parallel when possible.
    Read `skills/full-review/references/evidence-package.md` and provide its
@@ -85,16 +87,26 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    skip it. Never suppress a finding automatically; suppression requires an
    explicit maintainer decision and an audit reason.
 
-5. **Consolidate + Report.** Call `argus_report` (default `format: markdown`,
-   or honor a format the user asked for). It deduplicates, ranks, applies the
-   severity floor, and writes the report to `.argus/exports/`. The runtime will
-   refuse to report while any candidate still lacks a Challenger verdict.
+5. **Reconcile + Report.** Read the full-review skill's reconciliation contract.
+   List all survivors; review every claim and partition IDs into distinct defects.
+   Correct canonical content before grouping so it contains every retained
+   verified symptom and no exaggeration. Call `argus_reconcile` with `groups`:
+   each group has `canonical_id`, `members` (each `finding_id` and reviewed
+   `category`), `rootCause` (symbol/mechanism/invariant), nonempty `reasoning`,
+   and `claims_reviewed: true`. Cover each survivor exactly once; include singleton
+   groups and use `[]` for zero survivors. Do not merge by proximity, title, lens
+   or shared fix alone. The canonical content is used without unioning member prose.
+   Then call `argus_report` (default markdown). Pending verdicts, absent plans,
+   and finding/verdict/correction changes after reconciliation block reporting.
+   If anything changes, reconcile again. Do not bypass the gate with a handwritten
+   report. The runtime ranks, filters and writes `.argus/exports/`.
 
 6. **Present.** Show the final findings to the user. Lead with the highest-ranked
    ones. For each: severity · category · `file:line`, what it is, the evidence,
    the concrete impact, and the recommendation. Note how many candidates were
    raised, how many the Challenger rejected, and how many duplicates were merged.
-   Include baseline state and resolved findings when the report provides them.
+   Include baseline state and previous findings not redetected; absence does not
+   establish that they were fixed.
    Keep it tight and readable — write for the developer, not about your process.
 
 If the user asked to restrict reviewers (e.g. "security only") or set a severity

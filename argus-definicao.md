@@ -360,6 +360,7 @@ inferência local: o tratamento do código depende do assistente utilizado.
 | `argus_suppress_finding` | `argus suppress <id> --reason ...` | suprimir fingerprint com auditoria |
 | `argus_list_suppressions` | `argus suppressions` | listar suppressions ativas/expiradas |
 | `argus_report` | `argus report` | dedup + rank + render + export |
+| `argus_reconcile` | `argus reconcile --json '<grupos>'` | reconciliação explícita obrigatória antes do relatório (pós-0.2.1) |
 
 Os reviewers usam as ferramentas **nativas do host** (Read, Grep, git) para ler
 código. O Argus não reimplementa isso; foca no que é específico do pipeline.
@@ -375,11 +376,22 @@ código. O Argus não reimplementa isso; foca no que é específico do pipeline.
 2. Select         escolher reviewers relevantes aos arquivos revisáveis
 3. Review         registrar execução + dispatch (ou lentes sequenciais no host)
 4. Challenge      para cada candidate → argus-challenger → argus_record_challenge
-5. Gate           argus_report recusa candidates sem verdict
-6. Baseline       classificar new/persistent/regression e detectar resolvidos
-7. Consolidate    argus_report: suppression + dedup + rank + severidade
+5. Reconcile      argus_reconcile: IDs canônicos/membros, categorias, causa e justificativa
+6. Gate           argus_report recusa candidates, plano ausente ou desatualizado
+7. Consolidate    grupos explícitos + baseline + suppression + rank + severidade
 8. Report         apresentar findings; exportar em .argus/exports/
 ```
+
+Contrato de desenvolvimento pós-0.2.1: todo finding exige categoria válida,
+sem fallback para correctness. A reconciliação cobre cada sobrevivente uma vez
+(`[]` se nenhum), com `canonical_id`, `members` (`finding_id`, `category`),
+`rootCause`, `reasoning` e `claims_reviewed: true`. O coordenador valida a
+equivalência semântica e corrige o conteúdo canônico antes de agrupar; o runtime
+valida cobertura/identidade e preserva proveniência, sem unir alegações brutas.
+Alterações posteriores de finding/verdict/correction invalidam o plano.
+Findings anteriores não reencontrados não são considerados resolvidos sem
+prova de correção; o JSON distingue `unmatchedPreviousFindings`/Count dos
+campos legados `resolvedFindings`/Count, mantidos vazios/zero.
 
 ---
 

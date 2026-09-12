@@ -19,12 +19,104 @@ import {
   recordFinding,
   recordReviewerRun,
   report,
+  reconcileFindings,
+  listFindings,
   suppressFinding,
 } from "../dist/service.js";
+
+function reconcileSingles(cwd) {
+  reconcileFindings(cwd, listFindings(cwd).filter(f => f.status === "confirmed").map(f => ({
+    canonical_id: f.id, members: [{ finding_id: f.id, category: f.category }],
+    rootCause: f.rootCause ?? { symbol: f.file, mechanism: f.title, invariant: f.impact },
+    reasoning: "Test fixture: one independently validated defect.", claims_reviewed: true,
+  })));
+}
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "argus-test-"));
 }
+
+test("categories are required and invalid values never fall back to correctness", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  for (const category of [undefined, "Security", "unknown", ""]) {
+    assert.throws(() => recordFinding(cwd, { ...finding(), category }));
+  }
+  for (const category of ["security", "performance"]) recordFinding(cwd, finding({ category }));
+  assert.deepEqual(listFindings(cwd).map(f => f.category).sort(), ["performance", "security"]);
+});
+
+test("reconciliation is mandatory even for zero findings", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /argus_reconcile/);
+  reconcileFindings(cwd, []);
+  assert.equal(report({ cwd, write: false, promoteGlobal: false }).result.findings.length, 0);
+});
+
+test("explicit groups merge six cross-lens candidates into three and retain canonical claims", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const ids = Array.from({ length: 6 }, (_, i) => recordFinding(cwd, finding({
+    title: `Independent prose ${i}`, category: "correctness", reviewer: i % 2 ? "security" : "correctness",
+    impact: `Only canonical impact ${i}`, rootCause: { ...ownerCause, mechanism: `different-${i}` },
+  })).id);
+  for (const id of ids) recordChallenge(cwd, id, "CONFIRMED", "Test witness verified.");
+  const groups = [0, 2, 4].map((i) => ({
+    canonical_id: ids[i], members: [{ finding_id: ids[i], category: i === 4 ? "performance" : "security" },
+      { finding_id: ids[i + 1], category: "correctness" }],
+    rootCause: { ...ownerCause, symbol: `symbol-${i}` }, reasoning: "Same independently verified cause, not another defect.", claims_reviewed: true,
+  }));
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /argus_reconcile/);
+  assert.throws(() => reconcileFindings(cwd, groups.slice(1)), /every surviving/);
+  assert.throws(() => reconcileFindings(cwd, [...groups, groups[0]]), /repeated/);
+  assert.throws(() => reconcileFindings(cwd, [{ ...groups[0], canonical_id: "foreign-id" }, ...groups.slice(1)]), /Canonical/);
+  assert.throws(() => reconcileFindings(cwd, [{ ...groups[0], claims_reviewed: false }, ...groups.slice(1)]));
+  assert.deepEqual(reconcileFindings(cwd, groups), { groups: 3, duplicatesMerged: 3 });
+  recordChallenge(cwd, ids[0], "PLAUSIBLE", "Updated confidence.");
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /changed after reconciliation/);
+  reconcileFindings(cwd, groups);
+  const result = report({ cwd, write: false, promoteGlobal: false }).result;
+  assert.equal(result.findings.length, 3);
+  assert.equal(result.duplicatesRemoved, 3);
+  const first = result.findings.find(f => f.id === ids[0]);
+  assert.equal(first.category, "security");
+  assert.deepEqual(first.consolidation.memberIds, ids.slice(0, 2));
+  assert.equal(first.impact, "Only canonical impact 0");
+  assert.deepEqual(first.categories, ["security", "correctness"]);
+  assert.equal(listFindings(cwd).length, 6);
+});
+
+test("reconciliation refuses pending, rejected and cross-file members", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const a = recordFinding(cwd, finding()).id;
+  const b = recordFinding(cwd, finding({ file: "other.js" })).id;
+  const group = { canonical_id: a, members: [{ finding_id: a, category: "security" }, { finding_id: b, category: "security" }],
+    rootCause: ownerCause, reasoning: "Fixture", claims_reviewed: true };
+  assert.throws(() => reconcileFindings(cwd, [group]), /Challenge all/);
+  recordChallenge(cwd, a, "CONFIRMED", "Verified"); recordChallenge(cwd, b, "CONFIRMED", "Verified");
+  assert.throws(() => reconcileFindings(cwd, [group]), /same file/);
+  recordChallenge(cwd, b, "REJECTED", "Not reachable");
+  assert.throws(() => reconcileFindings(cwd, [group]), /rejected/);
+});
+
+test("corrections and new findings invalidate reconciliation without restoring duplicate claims", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const id = recordFinding(cwd, finding({ evidencePackage: evidencePacket() })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Verified");
+  reconcileSingles(cwd);
+  const correction = { reason: "Trim unsupported impact", title: "Verified narrow defect", description: "Narrow claim",
+    evidence: ["Verified witness"], impact: "Only the verified consequence" };
+  recordChallenge(cwd, id, "CONFIRMED", "Narrow claim verified", evidencePacket(), correction);
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /changed after reconciliation/);
+  reconcileSingles(cwd);
+  const other = recordFinding(cwd, finding()).id;
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /Challenger verdicts/);
+  recordChallenge(cwd, other, "REJECTED", "Duplicate claim is unsupported");
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /changed after reconciliation/);
+  reconcileSingles(cwd);
+  const out = report({ cwd, format: "json", write: false, promoteGlobal: false });
+  assert.equal(out.result.findings[0].impact, correction.impact);
+  assert.equal(out.result.findings[0].corrections.length, 1);
+  assert.equal(JSON.parse(out.rendered).unmatchedPreviousCount, 0);
+});
 
 function git(cwd, ...args) {
   return execFileSync("git", args, { cwd, encoding: "utf8" });
@@ -75,6 +167,7 @@ test("evidence packet survives SQLite and Challenger update and appears in repor
   const mem = Memory.open(cwd);
   assert.deepEqual(mem.getFinding(id).evidencePackage,packet);
   mem.close();
+  reconcileSingles(cwd);
   const out = report({cwd,format:"markdown",write:false,promoteGlobal:false});
   assert.match(out.rendered,/reproduction \(reviewer-reported\)/);
   assert.match(out.rendered,/Negative control/);
@@ -121,6 +214,7 @@ test("Challenger correction removes unsupported claims and preserves original co
   assert.equal(revised.severity,"medium");
   assert.equal(revised.rootCauseValidated,true);
   assert.equal(revised.corrections[0].original.impact,original.impact);
+  reconcileSingles(cwd);
   const out = report({cwd,format:"markdown",write:false,promoteGlobal:false});
   assert.doesNotMatch(out.rendered,/Loses ordering|Old scenario|Old fix/);
   assert.match(out.rendered,/Challenger corrections/);
@@ -223,6 +317,7 @@ test("report requires challenge and records reviewers with zero findings", async
     /still require Challenger verdicts/,
   );
   assert.equal(recordChallenge(cwd, id, "CONFIRMED", "Verified consumer contract."), true);
+  reconcileSingles(cwd);
   const out = report({ cwd, write: false, promoteGlobal: false });
   assert.deepEqual(new Set(out.result.reviewersRun), new Set(["security", "correctness"]));
   assert.equal(out.result.findings.length, 1);
@@ -238,6 +333,7 @@ test("MCP init accepts an explicit target repository path", () => {
       clientInfo: { name: "argus-test", version: "1" },
     } },
     { jsonrpc: "2.0", method: "notifications/initialized" },
+    { jsonrpc: "2.0", id: 3, method: "tools/list", params: {} },
     { jsonrpc: "2.0", id: 2, method: "tools/call", params: {
       name: "argus_init",
       arguments: { repo_path: cwd, base: "main" },
@@ -250,6 +346,9 @@ test("MCP init accepts an explicit target repository path", () => {
     timeout: 5_000,
   });
   assert.equal(child.status, 0, child.stderr);
+  const inventory = child.stdout.split("\n").filter(Boolean).map(line => JSON.parse(line)).find(item => item.id === 3);
+  assert.ok(inventory.result.tools.some(tool => tool.name === "argus_reconcile"));
+  assert.ok(inventory.result.tools.find(tool => tool.name === "argus_record_finding").inputSchema.required.includes("category"));
   const response = child.stdout.split("\n").filter(Boolean)
     .map((line) => JSON.parse(line)).find((item) => item.id === 2);
   assert.equal(response.result.isError, undefined);
@@ -340,7 +439,7 @@ test("parallel reviewer processes can write to the same SQLite memory", async ()
   memory.close();
 });
 
-test("reports classify persistent and resolved findings between rounds", async () => {
+test("reports never equate unmatched historical findings with verified fixes", async () => {
   const cwd = repo();
   fs.writeFileSync(path.join(cwd, "app.js"), "export const value = 2;\n");
   await initReview({ cwd, base: "main" });
@@ -351,6 +450,7 @@ test("reports classify persistent and resolved findings between rounds", async (
     impact: "Another account can be changed.",
   });
   recordChallenge(cwd, recorded.id, "CONFIRMED", "Confirmed.");
+  reconcileSingles(cwd);
   report({ cwd, write: false, promoteGlobal: false });
 
   await initReview({ cwd, base: "main" });
@@ -361,13 +461,18 @@ test("reports classify persistent and resolved findings between rounds", async (
     impact: "Another account can be changed.",
   });
   recordChallenge(cwd, recorded.id, "CONFIRMED", "Still present.");
+  reconcileSingles(cwd);
   const persistent = report({ cwd, write: false, promoteGlobal: false });
   assert.equal(persistent.result.findings[0].baselineStatus, "persistent");
 
   await initReview({ cwd, base: "main" });
+  reconcileSingles(cwd);
   const resolved = report({ cwd, write: false, promoteGlobal: false });
-  assert.equal(resolved.result.resolvedCount, 1);
-  assert.equal(resolved.result.resolvedFindings[0].title, "Authorization bypass in account update");
+  assert.equal(resolved.result.resolvedCount, 0);
+  assert.deepEqual(resolved.result.resolvedFindings, []);
+  assert.equal(resolved.result.unmatchedPreviousCount, 1);
+  assert.equal(resolved.result.unmatchedPreviousFindings[0].title, "Authorization bypass in account update");
+  assert.match(resolved.rendered, /not verified as fixed/);
 
   await initReview({ cwd, base: "main" });
   recorded = recordFinding(cwd, {
@@ -377,6 +482,7 @@ test("reports classify persistent and resolved findings between rounds", async (
     impact: "Another account can be changed.",
   });
   recordChallenge(cwd, recorded.id, "CONFIRMED", "Returned after one clean round.");
+  reconcileSingles(cwd);
   const regression = report({ cwd, write: false, promoteGlobal: false });
   assert.equal(regression.result.findings[0].baselineStatus, "regression");
 });
@@ -397,6 +503,7 @@ test("imported baseline and audited suppression affect the report", async () => 
   const suppression = suppressFinding(cwd, recorded.id, "Accepted risk until replacement ships", "2099-01-01");
   assert.match(suppression.fingerprint, /^[a-f0-9]{64}$/);
   assert.equal(listSuppressions(cwd).length, 1);
+  reconcileSingles(cwd);
   const output = report({ cwd, write: false, promoteGlobal: false });
   assert.equal(output.result.suppressedCount, 1);
   assert.equal(output.result.findings.length, 0);

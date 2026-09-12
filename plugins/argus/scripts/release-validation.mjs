@@ -72,7 +72,7 @@ try {
   const namesFromMcp = new Set(tools.map((tool) => tool.name));
   for (const required of [
     "argus_init", "argus_record_finding", "argus_record_challenge",
-    "argus_import_baseline", "argus_suppress_finding", "argus_report",
+    "argus_import_baseline", "argus_suppress_finding", "argus_reconcile", "argus_report",
   ]) {
     if (!namesFromMcp.has(required)) throw new Error(`Packaged MCP is missing ${required}`);
   }

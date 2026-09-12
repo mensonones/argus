@@ -11,7 +11,8 @@ import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema } from "./validation.js";
+import { consolidateReconciled, findingsSignature } from "./reconciliation.js";
 import { ALL_CATEGORIES, SEVERITY_ORDER, } from "./types.js";
 const SEVERITIES = ["info", "low", "medium", "high", "critical"];
 const CONFIDENCES = ["low", "medium", "high"];
@@ -112,9 +113,7 @@ function coerce(input) {
     if (!Array.isArray(input.evidence) || !input.evidence.some((item) => String(item).trim())) {
         throw new Error("A finding must contain at least one concrete evidence item.");
     }
-    const category = ALL_CATEGORIES.includes(input.category ?? "")
-        ? input.category
-        : "correctness";
+    const category = categorySchema.parse(input.category);
     const severity = SEVERITIES.includes(input.severity)
         ? input.severity
         : "medium";
@@ -281,6 +280,15 @@ export function listSuppressions(cwd, activeOnly = true) {
         mem.close();
     }
 }
+export function reconcileFindings(cwd, input) {
+    const groups = reconciliationSchema.parse(input);
+    return withCurrentRound(cwd, (mem, roundId) => {
+        const all = mem.listFindings(roundId);
+        const result = consolidateReconciled(all, groups);
+        mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups }));
+        return { groups: result.findings.length, duplicatesMerged: result.removed };
+    }, true);
+}
 export function report(opts) {
     const repoRoot = repoRootSync(opts.cwd);
     const mem = Memory.open(repoRoot);
@@ -294,8 +302,13 @@ export function report(opts) {
             throw new Error(`Cannot generate report: ${pending.length} candidate finding(s) still require Challenger verdicts.`);
         }
         const rejectedCount = all.filter((f) => f.status === "rejected").length;
-        const survivors = all.filter((f) => f.status === "confirmed");
-        const { findings: deduped, removed } = deduplicate(survivors);
+        const stored = mem.getMeta(`reconciliation:${round.id}`);
+        if (!stored)
+            throw new Error("Run argus_reconcile / argus reconcile before reporting, including zero-finding rounds.");
+        const reconciliation = JSON.parse(stored);
+        if (reconciliation.signature !== findingsSignature(all))
+            throw new Error("Findings changed after reconciliation; run argus_reconcile again.");
+        const { findings: deduped, removed } = consolidateReconciled(all, reconciliationSchema.parse(reconciliation.groups));
         const previous = deduplicate(mem.previousReportedFindings(round.id)).findings;
         const older = deduplicate(mem.olderConfirmedFindings(round.id)).findings;
         const imported = deduplicate(mem.listBaselineFindings()).findings;
@@ -309,7 +322,7 @@ export function report(opts) {
                         ? "regression"
                         : "new",
         }));
-        const resolvedFindings = previous
+        const unmatchedPreviousFindings = previous
             .filter((finding) => !matchFinding(finding, classified))
             .map(({ title, file, severity, category }) => ({ title, file, severity, category }));
         const activeSuppressions = new Set(mem.listSuppressions(true).map((item) => item.fingerprint));
@@ -342,7 +355,9 @@ export function report(opts) {
             rejectedCount,
             duplicatesRemoved: removed,
             suppressedCount,
-            resolvedCount: resolvedFindings.length,
+            resolvedCount: 0,
+            unmatchedPreviousCount: unmatchedPreviousFindings.length,
+            unmatchedPreviousFindings,
             findings: filtered,
             reviewerStats: reviewers.map((r) => ({
                 reviewer: r,
@@ -350,7 +365,7 @@ export function report(opts) {
                 status: reviewerRuns.find((run) => run.reviewer === r)?.status ?? "untracked",
                 detail: reviewerRuns.find((run) => run.reviewer === r)?.detail,
             })),
-            resolvedFindings,
+            resolvedFindings: [],
         };
         const format = opts.format ?? "terminal";
         const rendered = format === "json"

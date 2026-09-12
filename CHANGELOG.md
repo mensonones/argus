@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Required explicit reconciliation before reporting: canonical/member IDs,
+  reviewed categories, root cause and reasoning; complete coverage and stale-plan
+  guards. Canonical claims are retained without unioning duplicate exaggerations.
+- Missing or invalid finding categories now fail instead of defaulting to correctness.
+- Updated generated host instructions and runtime regression tests.
+- Historical findings not redetected are no longer labeled resolved without
+  fix verification; JSON exposes unmatchedPreviousCount/unmatchedPreviousFindings.
+
 ## 0.2.1 — 2026-09-12
 
 - Challenger-validated root causes for cross-lens consolidation, keeping distinct

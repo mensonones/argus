@@ -12,10 +12,12 @@ new causes. Do not use line proximity as proof. Conversely, a missing storage
 method and excessive round trips violate different invariants and can remain
 separate findings if independently substantiated.
 
-Both validated triples plus file must match for explicit consolidation.
-Different explicit triples prevent title-based merging. Findings without that
-metadata retain the legacy title/location heuristic. The runtime does not infer
-semantic equivalence from prose or certify an agent's proposed grouping.
+Current-round consolidation requires `argus_reconcile`: the coordinator supplies
+canonical/member IDs, reviewed member categories, a root cause, reasoning and
+`claims_reviewed: true`. All survivors must be covered once, including singleton
+groups; use `[]` for no survivors. Matching root prose alone no longer merges
+current findings automatically. Legacy title/root heuristics remain only for
+historical baseline matching. The runtime does not certify semantic equivalence.
 
 If a candidate has a real core defect but unsupported additional claims, send
 `correction` on `argus_record_challenge` with CONFIRMED or PLAUSIBLE:
@@ -43,6 +45,6 @@ controls and limitations. Never describe an inferred result as an executed test.
 
 Every correction records its reason and previous content in SQLite/JSON.
 Readable reports show revised content and correction reasons, not the removed
-claims. Consolidation prefers confirmed corrected content and does not union
+claims. Reconciliation uses the chosen canonical content and does not union
 old duplicate evidence or restore a superseded severity. Invalid core claims
 are REJECTED without a correction. Correcting a true claim is not suppression.

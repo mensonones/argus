@@ -69,7 +69,7 @@ function handshake(command) {
     const responses = child.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
     const tools = responses.find((message) => message.id === 2)?.result?.tools;
     const names = Array.isArray(tools) ? tools.map((tool) => tool.name) : [];
-    const required = ["argus_init", "argus_record_finding", "argus_record_challenge", "argus_report"];
+    const required = ["argus_init", "argus_record_finding", "argus_record_challenge", "argus_reconcile", "argus_report"];
     const missing = required.filter((name) => !names.includes(name));
     return missing.length === 0
       ? { ok: true, detail: `${names.length} MCP tools available` }

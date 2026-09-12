@@ -67,6 +67,8 @@ function renderFinding(f: Finding, index: number): string {
     for (const item of packet.limitations) lines.push(`- Limitation: ${item}`);
   }
   if (f.baselineStatus) lines.push(`**Baseline:** ${f.baselineStatus.toUpperCase()}`);
+  if (f.consolidation) lines.push(`**Reconciliation:** canonical ${f.consolidation.canonicalId}; members ${f.consolidation.memberIds.join(", ")} — ${f.consolidation.reasoning}`);
+  if (f.categories?.length) lines.push(`**Lenses:** ${f.categories.join(", ")}`);
   lines.push("");
   if (f.recommendation) {
     lines.push("**Recommendation**");
@@ -100,7 +102,7 @@ export function renderMarkdown(result: ReviewResult): string {
     out.push(`- ${result.duplicatesRemoved} duplicate(s) removed`);
   }
   if (result.suppressedCount > 0) out.push(`- ${result.suppressedCount} suppressed finding(s)`);
-  if (result.resolvedCount > 0) out.push(`- ${result.resolvedCount} resolved since the previous review`);
+  if (result.unmatchedPreviousCount > 0) out.push(`- ${result.unmatchedPreviousCount} previous findings not redetected (not verified as fixed)`);
   out.push(`- **${result.findings.length} finding(s)**`);
   out.push("");
 
@@ -122,10 +124,10 @@ export function renderMarkdown(result: ReviewResult): string {
     });
   }
 
-  if (result.resolvedFindings.length > 0) {
-    out.push("## Resolved since previous review");
+  if (result.unmatchedPreviousFindings.length > 0) {
+    out.push("## Previous findings not redetected — not verified as fixed");
     out.push("");
-    for (const finding of result.resolvedFindings) {
+    for (const finding of result.unmatchedPreviousFindings) {
       out.push(`- ${finding.severity.toUpperCase()} · ${finding.file} — ${finding.title}`);
     }
     out.push("");

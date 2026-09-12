@@ -26,8 +26,9 @@ The ranking no longer rewards evidence text volume or reviewer agreement.
 
 Version 0.2.1 adds Challenger-validated `rootCause` triples
 (symbol, mechanism, violated invariant) for cross-lens consolidation. Distinct
-invariants stay separate even on the same lines. Legacy findings fall back to
-title/location matching; the runtime does not infer semantic equivalence.
+invariants stay separate even on the same lines. In that released version,
+legacy findings fall back to title/location matching; the development contract
+below replaces current-round automatic merging with explicit reconciliation.
 
 The Challenger can submit a `correction` with revised claim-bearing content,
 a reason and a replacement evidence packet. Original content stays in the
@@ -75,10 +76,28 @@ select reviewers      (skip docs/assets/ignored files; configuration may be revi
 argus-challenger       validate claims · correct overstatements · identify root causes
    │
    ▼
-argus_report           dedup · rank (severity × confidence × challenge × validation) · render
+argus_reconcile        required canonical/member IDs · reviewed categories · claim reconciliation
+   │
+   ▼
+argus_report           explicit groups · rank (severity × confidence × challenge × validation) · render
 ```
 
 ## Install
+
+Development changes after 0.2.1 require explicit reconciliation before reporting.
+Each group supplies `canonical_id`, `members` (`finding_id`, reviewed `category`),
+`rootCause`, `reasoning` and `claims_reviewed: true`. Every surviving ID must occur
+once; use `[]` when none survive. The coordinator reviews semantics and corrects
+canonical claims first; the runtime checks coverage, retains provenance and
+blocks stale plans after any finding/verdict/correction change. It does not
+certify semantic equivalence or union duplicate prose. Missing/invalid finding
+categories now fail. These changes require rebuilding and reinstalling your
+host integration before retesting; they are not in the published 0.2.1 install.
+
+Historical findings absent from a later review are labeled **not redetected**,
+not resolved: absence or a changed fingerprint is not proof of a fix. JSON exposes
+`unmatchedPreviousCount` and `unmatchedPreviousFindings`; legacy `resolvedCount`
+and `resolvedFindings` remain zero/empty until fix verification is supported.
 
 This repo is a plugin **marketplace**. Whatever the host, the deterministic
 runtime (the MCP server + `argus` CLI) must be built first.
@@ -258,6 +277,7 @@ fallback:
 | `argus_suppress_finding` | `argus suppress <id> --reason ...` | suppress a fingerprint with audit metadata |
 | `argus_list_suppressions` | `argus suppressions` | inspect active/expired suppressions |
 | `argus_report` | `argus report` | dedup, rank, render, export |
+| `argus_reconcile` | `argus reconcile --json '<groups>'` | required explicit grouping before report |
 
 Memory: per-target `<repo>/.argus/memory.sqlite`, plus confirmed findings promoted
 to cross-target `~/.argus/global.sqlite`. Uses Node's built-in `node:sqlite` (Node 22+). Add
@@ -266,7 +286,7 @@ to cross-target `~/.argus/global.sqlite`. Uses Node's built-in `node:sqlite` (No
 SQLite runs in WAL mode with bounded busy retries, and schema migrations are
 applied idempotently. Reports compare against the previous reported round and
 any imported JSON baseline, classify findings as `new`, `persistent`, or
-`regression`, and list findings resolved since the previous review. Suppressions
+`regression`, and list previous findings not redetected (not verified fixes). Suppressions
 require a reason, can expire, and are retained for audit.
 
 ## Configuration (`argus.yaml`)

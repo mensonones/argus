@@ -17,6 +17,8 @@ export interface ReviewResult {
   duplicatesRemoved: number;
   suppressedCount: number;
   resolvedCount: number;
+  unmatchedPreviousCount: number;
+  unmatchedPreviousFindings: Array<Pick<Finding, "title" | "file" | "severity" | "category">>;
   /** Final, ranked, challenged findings after the severity floor. */
   findings: Finding[];
   reviewerStats: ReviewerRunStats[];

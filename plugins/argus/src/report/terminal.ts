@@ -43,7 +43,7 @@ export function renderTerminal(result: ReviewResult): string {
     out.push(`${result.duplicatesRemoved} duplicate removed`);
   }
   if (result.suppressedCount > 0) out.push(`${result.suppressedCount} suppressed`);
-  if (result.resolvedCount > 0) out.push(`${result.resolvedCount} resolved since previous review`);
+  if (result.unmatchedPreviousCount > 0) out.push(`${result.unmatchedPreviousCount} previous findings not redetected (not verified as fixed)`);
   out.push("");
   out.push(color.bold(`${result.findings.length} findings`));
 
@@ -76,6 +76,8 @@ export function renderTerminal(result: ReviewResult): string {
     }
     out.push(block("Confidence", `  ${f.confidence.toUpperCase()}`));
     if (f.rootCause) out.push(block("Root cause", `${f.rootCause.symbol} · ${f.rootCause.mechanism} · ${f.rootCause.invariant}`));
+    if (f.consolidation) out.push(block("Reconciliation", `Canonical: ${f.consolidation.canonicalId}\nMembers: ${f.consolidation.memberIds.join(", ")}\n${f.consolidation.reasoning}`));
+    if (f.categories?.length) out.push(block("Lenses", f.categories.join(", ")));
     if (f.corrections?.length) out.push(block("Challenger corrections", f.corrections.map(c=>c.reason).join("\n")));
     const packet = f.evidencePackage;
     out.push(block("Validation", `  ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`));
@@ -101,10 +103,10 @@ export function renderTerminal(result: ReviewResult): string {
     );
   }
 
-  if (result.resolvedFindings.length > 0) {
+  if (result.unmatchedPreviousFindings.length > 0) {
     out.push("");
-    out.push(color.bold("Resolved since previous review"));
-    for (const finding of result.resolvedFindings) {
+    out.push(color.bold("Previous findings not redetected — not verified as fixed"));
+    for (const finding of result.unmatchedPreviousFindings) {
       out.push(`  ${finding.severity.toUpperCase()} · ${finding.file} — ${finding.title}`);
     }
   }

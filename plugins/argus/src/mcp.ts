@@ -14,11 +14,12 @@ import {
   listSuppressions,
   updateGlobalMemory,
   report,
+  reconcileFindings,
 } from "./service.js";
 import type { Severity } from "./types.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema } from "./validation.js";
 
 const SERVER_CWD = process.cwd();
 let activeCwd: string | undefined;
@@ -47,6 +48,15 @@ function errorText(err: unknown) {
 
 export async function startServer(): Promise<void> {
   const server = new McpServer({ name: "argus", version: ARGUS_VERSION });
+
+  server.registerTool("argus_reconcile", {
+    title: "Reconcile challenged findings before reporting",
+    description: "Required coordinator step: cover every surviving finding exactly once with canonical IDs, member categories, root cause and reasoning. Review all claims and correct canonical content before grouping. Do not merge distinct defects by line proximity or lens. Use [] for zero findings. Later finding or verdict changes invalidate reconciliation.",
+    inputSchema: { groups: reconciliationSchema },
+  }, async args => {
+    try { return text(reconcileFindings(targetCwd(), args.groups)); }
+    catch (err) { return errorText(err); }
+  });
 
   server.registerTool(
     "argus_init",
@@ -121,8 +131,7 @@ export async function startServer(): Promise<void> {
           .string().min(1)
           .describe("Reviewer id: correctness|security|performance|architecture"),
         category: z
-          .enum(["correctness", "security", "performance", "architecture", "tests"])
-          .optional(),
+          .enum(["correctness", "security", "performance", "architecture", "tests"]),
         severity: z.enum(["info", "low", "medium", "high", "critical"]).optional(),
         confidence: z.enum(["low", "medium", "high"]).optional(),
         title: z.string().min(1),

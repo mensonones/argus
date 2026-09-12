@@ -66,17 +66,38 @@ snapshot and observations can be established; never fabricate missing evidence.
    finding, and replace its packet. Validate a shared `rootCause` triple for
    cross-lens duplicates; keep distinct violated invariants separate.
 
-5. **Consolidate + report.** `mcp__argus__argus_report` refuses to run while any candidate
-   lacks a Challenger verdict, then deduplicates (merging findings
-   multiple reviewers reported, preserving provenance), ranks by
+5. **Reconcile, then report.** List all surviving findings after the Challenger.
+   Review every claim and explicitly partition them into distinct root causes.
+   Correct canonical content first if needed: it must cover all retained,
+   verified symptoms, without unsupported claims from duplicate candidates.
+   Call `mcp__argus__argus_reconcile` with `groups` using the contract below, even if `[]`.
+   Each surviving ID must occur exactly once. Choose an existing canonical ID,
+   explicitly check each member's category, and justify why the members describe
+   one defect. Never merge solely by title, line proximity, lens, or shared fix.
+   Distinct independently substantiated invariants may remain separate.
+   The runtime checks coverage and identity, not semantic truth. It preserves
+   member IDs and reviewer provenance but does not union member claim text.
+   Any later finding/verdict/correction change requires reconciliation again.
+   `mcp__argus__argus_report` refuses missing/stale reconciliation or pending verdicts,
+   applies the explicit groups, and ranks by
    `severity × confidence × challenge × validation`, applies the severity floor,
    and writes to `.argus/exports/`.
+
+   Example group (`argus reconcile --json '<array>'` is the CLI fallback):
+   ```json
+   [{"canonical_id":"surviving-id","members":[{"finding_id":"surviving-id","category":"security"},{"finding_id":"duplicate-id","category":"correctness"}],"rootCause":{"symbol":"updateAccount","mechanism":"missing-owner-check","invariant":"only-owner-may-update"},"reasoning":"Both witnesses demonstrate the same unauthorized mutation; no independent defect remains.","claims_reviewed":true}]
+   ```
+
+   `category` is mandatory on every recorded finding. Supported categories:
+   correctness, security, performance, architecture, tests. Missing or invalid
+   values fail instead of silently becoming correctness.
 
 6. **Present.** Lead with the top findings. Each: `severity · category ·
    file:line`, the problem, the evidence, the concrete impact, the fix. Report
    the funnel: N candidates → M rejected by challenger → K duplicates merged →
    final findings. Include baseline state (`new`, `persistent`, `regression`) and
-   resolved findings when present. Write for the developer; do not narrate your
+   previous findings not redetected when present (never claim fixed without
+   verification). Write for the developer; do not narrate your
    own process.
 
 ## Related skills
