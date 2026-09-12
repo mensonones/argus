@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 — 2026-09-12
 
 - Required explicit reconciliation before reporting: canonical/member IDs,
   reviewed categories, root cause and reasoning; complete coverage and stale-plan
@@ -9,6 +9,10 @@
 - Updated generated host instructions and runtime regression tests.
 - Historical findings not redetected are no longer labeled resolved without
   fix verification; JSON exposes unmatchedPreviousCount/unmatchedPreviousFindings.
+
+Compatibility: direct CLI/MCP callers must provide a valid finding category and
+reconcile before reporting. SQLite schema remains v4. Reinstall host definitions
+and restart the host before reviewing with this version.
 
 ## 0.2.1 — 2026-09-12
 

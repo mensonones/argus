@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
 import { loadConfig } from "../dist/config.js";
+import { ARGUS_VERSION } from "../dist/version.js";
 import { GlobalMemory, Memory } from "../dist/db.js";
 import { deduplicate, scoreFinding } from "../dist/dedup.js";
 import { buildDiff } from "../dist/git.js";
@@ -378,7 +379,7 @@ test("database migrations are versioned and idempotent", () => {
   const cwd = repo();
   const first = Memory.open(cwd);
   assert.equal(first.getMeta("schema_version"), "4");
-  assert.equal(first.getMeta("runtime_version"), "0.2.1");
+  assert.equal(first.getMeta("runtime_version"), ARGUS_VERSION);
   first.close();
   const second = Memory.open(cwd);
   assert.equal(second.getMeta("schema_version"), "4");

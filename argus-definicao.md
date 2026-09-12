@@ -360,7 +360,7 @@ inferência local: o tratamento do código depende do assistente utilizado.
 | `argus_suppress_finding` | `argus suppress <id> --reason ...` | suprimir fingerprint com auditoria |
 | `argus_list_suppressions` | `argus suppressions` | listar suppressions ativas/expiradas |
 | `argus_report` | `argus report` | dedup + rank + render + export |
-| `argus_reconcile` | `argus reconcile --json '<grupos>'` | reconciliação explícita obrigatória antes do relatório (pós-0.2.1) |
+| `argus_reconcile` | `argus reconcile --json '<grupos>'` | reconciliação explícita obrigatória antes do relatório (v0.2.2) |
 
 Os reviewers usam as ferramentas **nativas do host** (Read, Grep, git) para ler
 código. O Argus não reimplementa isso; foca no que é específico do pipeline.
@@ -382,7 +382,7 @@ código. O Argus não reimplementa isso; foca no que é específico do pipeline.
 8. Report         apresentar findings; exportar em .argus/exports/
 ```
 
-Contrato de desenvolvimento pós-0.2.1: todo finding exige categoria válida,
+Contrato v0.2.2: todo finding exige categoria válida,
 sem fallback para correctness. A reconciliação cobre cada sobrevivente uma vez
 (`[]` se nenhum), com `canonical_id`, `members` (`finding_id`, `category`),
 `rootCause`, `reasoning` e `claims_reviewed: true`. O coordenador valida a
@@ -572,12 +572,17 @@ ignore rules, regras de arquitetura); relatório Markdown/JSON/terminal.
 **v0.2** — validação end-to-end no OpenCode Desktop; melhor seleção de arquivos
 relacionados; budget de contexto; detecção de duplicatas entre rounds na memória.
 
-**v0.2.1 (atual):** retificação auditável e consolidação por causa raiz, além do
+**v0.2.1:** retificação auditável e consolidação por causa raiz, além do
 pacote de evidências v1 e Argus Eval piloto introduzidos na v0.2.0,
 com controles corretos por lente, avaliações `single`/`specialists`/`full`,
 adjudicação humana e métricas de precisão, recall, F1 e erros do Challenger.
 O piloto sintético não demonstra qualidade em produção. Ampliar com PRs reais,
 execuções repetidas e versões fixadas antes de afirmar redução de falsos positivos.
+
+**v0.2.2 (atual):** reconciliação explícita obrigatória com cobertura completa,
+categorias válidas sem fallback e proteção contra planos desatualizados.
+Findings históricos não reencontrados não equivalem a correções comprovadas.
+Schema SQLite permanece v4; reinstalar as definições e reiniciar o host.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

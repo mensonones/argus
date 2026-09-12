@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.1** — see [Changelog](CHANGELOG.md).
+Current version: **0.2.2** — see [Changelog](CHANGELOG.md).
 
 ## Evidence and evaluation
 
@@ -84,15 +84,15 @@ argus_report           explicit groups · rank (severity × confidence × challe
 
 ## Install
 
-Development changes after 0.2.1 require explicit reconciliation before reporting.
+Version 0.2.2 requires explicit reconciliation before reporting.
 Each group supplies `canonical_id`, `members` (`finding_id`, reviewed `category`),
 `rootCause`, `reasoning` and `claims_reviewed: true`. Every surviving ID must occur
 once; use `[]` when none survive. The coordinator reviews semantics and corrects
 canonical claims first; the runtime checks coverage, retains provenance and
 blocks stale plans after any finding/verdict/correction change. It does not
 certify semantic equivalence or union duplicate prose. Missing/invalid finding
-categories now fail. These changes require rebuilding and reinstalling your
-host integration before retesting; they are not in the published 0.2.1 install.
+categories now fail. When upgrading from 0.2.1, rebuild/reinstall your host
+integration and restart the host before retesting.
 
 Historical findings absent from a later review are labeled **not redetected**,
 not resolved: absence or a changed fingerprint is not proof of a fix. JSON exposes
@@ -356,11 +356,13 @@ command.
 
 ## Status
 
-**v0.2.1 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
+**v0.2.2 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
 dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
 structured evidence packets, Argus Eval pilot, reports, and Claude Code / Codex /
 OpenCode Desktop / DSH packaging and diagnostics. Version 0.2.1 adds
 auditable Challenger corrections and root-cause consolidation (schema v4).
+Version 0.2.2 requires explicit reconciliation, rejects invalid categories and
+distinguishes historical findings not redetected from verified fixes.
 Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
 broader live host validation.
 
