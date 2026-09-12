@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.2** — see [Changelog](CHANGELOG.md).
+Current version: **0.2.3** — see [Changelog](CHANGELOG.md).
 
 ## Evidence and evaluation
 
@@ -83,6 +83,15 @@ argus_report           explicit groups · rank (severity × confidence × challe
 ```
 
 ## Install
+
+Version 0.2.3 baseline improvements preserve canonical groups across rounds.
+`argus_baseline_findings` / `argus baseline-list` exposes previous, historical and
+imported findings. Reconciliation can include `baseline_match` with a historical
+`finding_id` and semantic-equivalence `reasoning` to preserve `baselineIdentity`
+despite changed wording/category. The runtime checks existing IDs, same file and
+one identity per current defect; semantic truth remains the coordinator's job.
+Distinct validated root causes do not automatically match by title or line.
+Reported history includes filtered/suppressed canonical findings, not raw duplicates.
 
 Version 0.2.2 requires explicit reconciliation before reporting.
 Each group supplies `canonical_id`, `members` (`finding_id`, reviewed `category`),
@@ -278,6 +287,7 @@ fallback:
 | `argus_list_suppressions` | `argus suppressions` | inspect active/expired suppressions |
 | `argus_report` | `argus report` | dedup, rank, render, export |
 | `argus_reconcile` | `argus reconcile --json '<groups>'` | required explicit grouping before report |
+| `argus_baseline_findings` | `argus baseline-list` | inspect canonical historical findings for identity matching |
 
 Memory: per-target `<repo>/.argus/memory.sqlite`, plus confirmed findings promoted
 to cross-target `~/.argus/global.sqlite`. Uses Node's built-in `node:sqlite` (Node 22+). Add
@@ -356,13 +366,15 @@ command.
 
 ## Status
 
-**v0.2.2 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
+**v0.2.3 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
 dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
 structured evidence packets, Argus Eval pilot, reports, and Claude Code / Codex /
 OpenCode Desktop / DSH packaging and diagnostics. Version 0.2.1 adds
 auditable Challenger corrections and root-cause consolidation (schema v4).
 Version 0.2.2 requires explicit reconciliation, rejects invalid categories and
 distinguishes historical findings not redetected from verified fixes.
+Version 0.2.3 preserves canonical historical snapshots and stable baseline
+identities through audited semantic matches across rounds (schema remains v4).
 Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
 broader live host validation.
 

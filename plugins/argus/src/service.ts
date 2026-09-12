@@ -11,7 +11,7 @@ import {
 } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
-import { deduplicate, rank, sameRootCause } from "./dedup.js";
+import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
@@ -410,9 +410,38 @@ export function reconcileFindings(cwd: string, input: ReconciliationGroup[]) {
   return withCurrentRound(cwd, (mem, roundId) => {
     const all = mem.listFindings(roundId);
     const result = consolidateReconciled(all, groups);
+    attachBaselineLinks(result.findings, groups, baselineHistory(mem, roundId));
     mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups }));
     return { groups: result.findings.length, duplicatesMerged: result.removed };
   }, true);
+}
+
+function baselineHistory(mem: Memory, roundId: string) {
+  return {
+    previous: mem.previousReportedFindings(roundId),
+    historical: mem.olderConfirmedFindings(roundId),
+    imported: mem.listBaselineFindings(),
+  };
+}
+
+export function listBaselineFindings(cwd: string) {
+  return withCurrentRound(cwd, (mem, roundId) => baselineHistory(mem, roundId));
+}
+
+function attachBaselineLinks(findings: Finding[], groups: ReconciliationGroup[], history: ReturnType<typeof baselineHistory>): void {
+  const candidates = [...history.previous, ...history.historical, ...history.imported];
+  const used = new Set<string>();
+  for (const finding of findings) {
+    const link = groups.find(g => g.canonical_id === finding.id)?.baseline_match;
+    const candidate = link ? candidates.find(f => f.id === link.finding_id)
+      : candidates.find(f => matchFinding(finding, [f]));
+    if (link && (!candidate || candidate.file !== finding.file)) throw new Error("Baseline match must reference an existing historical finding in the same file.");
+    const identity = candidate?.baselineIdentity ?? candidate?.id ?? finding.id;
+    if (used.has(identity)) throw new Error("Different current defects cannot claim the same baseline identity.");
+    used.add(identity);
+    finding.baselineIdentity = identity;
+    if (link) finding.baselineMatch = { findingId: candidate!.id, reasoning: link.reasoning };
+  }
 }
 
 export interface ReportOptions {
@@ -452,9 +481,11 @@ export function report(opts: ReportOptions): ReportOutput {
     const reconciliation = JSON.parse(stored) as { signature: string; groups: ReconciliationGroup[] };
     if (reconciliation.signature !== findingsSignature(all)) throw new Error("Findings changed after reconciliation; run argus_reconcile again.");
     const { findings: deduped, removed } = consolidateReconciled(all, reconciliationSchema.parse(reconciliation.groups));
-    const previous = deduplicate(mem.previousReportedFindings(round.id)).findings;
-    const older = deduplicate(mem.olderConfirmedFindings(round.id)).findings;
-    const imported = deduplicate(mem.listBaselineFindings()).findings;
+    const history = baselineHistory(mem, round.id);
+    attachBaselineLinks(deduped, reconciliation.groups, history);
+    const previous = history.previous;
+    const older = history.historical;
+    const imported = history.imported;
     const classified = deduped.map((finding) => ({
       ...finding,
       baselineStatus: matchFinding(finding, previous)
@@ -547,6 +578,7 @@ export function report(opts: ReportOptions): ReportOutput {
       }
     }
 
+    mem.setMeta(`reported-findings:${round.id}`, JSON.stringify(classified));
     mem.setRoundStatus(round.id, "reported");
     return { result, rendered, exportPath };
   } finally {
@@ -556,12 +588,14 @@ export function report(opts: ReportOptions): ReportOutput {
 
 function matchFinding(finding: Finding, candidates: Finding[]): boolean {
   const fingerprint = findingFingerprint(finding);
-  return candidates.some((candidate) =>
-    (candidate.rootCauseValidated && finding.rootCauseValidated && sameRootCause(candidate, finding)) ||
-    findingFingerprint(candidate) === fingerprint ||
-    (candidate.file === finding.file && candidate.category === finding.category &&
-      titleSim(candidate.title, finding.title) >= 0.75),
-  );
+  return candidates.some((candidate) => {
+    if (candidate.file !== finding.file) return false;
+    if (finding.baselineIdentity && finding.baselineIdentity === (candidate.baselineIdentity ?? candidate.id)) return true;
+    if (candidate.baselineIdentity && candidate.baselineIdentity === finding.id) return true;
+    if (candidate.rootCauseValidated && finding.rootCauseValidated && candidate.rootCause && finding.rootCause) return sameRootCause(candidate, finding);
+    return findingFingerprint(candidate) === fingerprint ||
+      (candidate.category === finding.category && titleSim(candidate.title, finding.title) >= 0.75);
+  });
 }
 
 function parseBaselineFinding(value: unknown): Finding {
@@ -593,6 +627,8 @@ function parseBaselineFinding(value: unknown): Finding {
       : evidencePackageSchema.parse(value.evidencePackage),
     rootCause: value.rootCause === undefined ? undefined : rootCauseSchema.parse(value.rootCause),
     rootCauseValidated: value.rootCauseValidated === true,
+    baselineIdentity: typeof value.baselineIdentity === "string" && value.baselineIdentity.trim()
+      ? value.baselineIdentity : undefined,
     impact: typeof value.impact === "string" ? value.impact : "Previously reported.",
     reviewer: typeof value.reviewer === "string" ? value.reviewer : "baseline",
     status: "confirmed",

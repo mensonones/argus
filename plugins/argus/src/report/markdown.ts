@@ -67,6 +67,8 @@ function renderFinding(f: Finding, index: number): string {
     for (const item of packet.limitations) lines.push(`- Limitation: ${item}`);
   }
   if (f.baselineStatus) lines.push(`**Baseline:** ${f.baselineStatus.toUpperCase()}`);
+  if (f.baselineIdentity) lines.push(`**Baseline identity:** ${f.baselineIdentity}`);
+  if (f.baselineMatch) lines.push(`**Historical match:** ${f.baselineMatch.findingId} — ${f.baselineMatch.reasoning}`);
   if (f.consolidation) lines.push(`**Reconciliation:** canonical ${f.consolidation.canonicalId}; members ${f.consolidation.memberIds.join(", ")} — ${f.consolidation.reasoning}`);
   if (f.categories?.length) lines.push(`**Lenses:** ${f.categories.join(", ")}`);
   lines.push("");

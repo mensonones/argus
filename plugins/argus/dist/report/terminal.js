@@ -88,6 +88,10 @@ export function renderTerminal(result) {
         }
         if (f.baselineStatus)
             out.push(block("Baseline", `  ${f.baselineStatus.toUpperCase()}`));
+        if (f.baselineIdentity)
+            out.push(block("Baseline identity", f.baselineIdentity));
+        if (f.baselineMatch)
+            out.push(block("Historical match", `${f.baselineMatch.findingId}: ${f.baselineMatch.reasoning}`));
         if (f.recommendation) {
             out.push(block("Recommendation", f.recommendation));
         }

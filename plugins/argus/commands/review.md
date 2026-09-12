@@ -30,7 +30,7 @@ it and consolidate it. Follow this contract exactly.
 Prefer the **Argus MCP tools** (`argus_init`, `argus_record_finding`,
 `argus_record_reviewer_run`, `argus_record_challenge`, `argus_list_findings`, `argus_query_similar`,
 `argus_memory_search`, `argus_import_baseline`, `argus_suppress_finding`,
-`argus_list_suppressions`, `argus_reconcile`, `argus_report`). If the MCP server is unavailable, fall
+`argus_list_suppressions`, `argus_baseline_findings`, `argus_reconcile`, `argus_report`). If the MCP server is unavailable, fall
 back to the `argus` CLI (`argus init`, `argus record-finding --json ...`,
 `argus challenge <id> <verdict> --reason ...`, `argus reconcile --json ...`, `argus report`). State stays in
 `.argus/` (SQLite) so reviewers coordinate through shared memory.
@@ -88,6 +88,12 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    explicit maintainer decision and an audit reason.
 
 5. **Reconcile + Report.** Read the full-review skill's reconciliation contract.
+   Inspect `argus_baseline_findings` (`argus baseline-list`) before grouping.
+   Compare previous canonical evidence to current evidence. If the same defect
+   persists with changed wording/lens, add `baseline_match` with the historical
+   `finding_id` and nonempty `reasoning` establishing semantic equivalence.
+   Do not match by title/line proximity alone; omit uncertain links. Each historical
+   identity can be assigned to only one current group. Current IDs are not history.
    List all survivors; review every claim and partition IDs into distinct defects.
    Correct canonical content before grouping so it contains every retained
    verified symptom and no exaggeration. Call `argus_reconcile` with `groups`:

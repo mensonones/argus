@@ -15,6 +15,7 @@ import {
   updateGlobalMemory,
   report,
   reconcileFindings,
+  listBaselineFindings,
 } from "./service.js";
 import type { Severity } from "./types.js";
 import { ARGUS_VERSION } from "./version.js";
@@ -48,6 +49,15 @@ function errorText(err: unknown) {
 
 export async function startServer(): Promise<void> {
   const server = new McpServer({ name: "argus", version: ARGUS_VERSION });
+
+  server.registerTool("argus_baseline_findings", {
+    title: "Inspect canonical findings from previous reviews",
+    description: "Read previous, historical and imported baseline findings before reconciliation. Compare actual causes and evidence, not titles or nearby lines. Use an existing ID in baseline_match only when the same defect persists; justify semantic equivalence. Current candidates are excluded.",
+    inputSchema: {},
+  }, async () => {
+    try { return text(listBaselineFindings(targetCwd())); }
+    catch (err) { return errorText(err); }
+  });
 
   server.registerTool("argus_reconcile", {
     title: "Reconcile challenged findings before reporting",

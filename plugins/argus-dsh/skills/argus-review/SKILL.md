@@ -67,6 +67,15 @@ snapshot and observations can be established; never fabricate missing evidence.
    cross-lens duplicates; keep distinct violated invariants separate.
 
 5. **Reconcile, then report.** List all surviving findings after the Challenger.
+   Call `mcp__argus__argus_baseline_findings` (CLI: `argus baseline-list`) to inspect canonical
+   previous/historical/imported findings and their evidence. For a reworded or
+   reclassified instance of the same defect, include `baseline_match` in its
+   group: `{"finding_id":"historical-id","reasoning":"why the same cause and violated contract persist"}`.
+   Reference an actual historical ID, not a current candidate. Do not infer
+   identity from line proximity, title similarity or a shared fix. If equivalence
+   cannot be established, omit the link. Each historical identity can belong to
+   only one distinct current group. The runtime propagates a stable
+   `baselineIdentity` and retains the match justification without changing history.
    Review every claim and explicitly partition them into distinct root causes.
    Correct canonical content first if needed: it must cover all retained,
    verified symptoms, without unsupported claims from duplicate candidates.

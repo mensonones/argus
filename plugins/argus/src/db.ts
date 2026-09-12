@@ -9,6 +9,8 @@ import {
 } from "./paths.js";
 import { ResilientDatabase } from "./sqlite.js";
 import { ARGUS_VERSION, DATABASE_SCHEMA_VERSION } from "./version.js";
+import { consolidateReconciled } from "./reconciliation.js";
+import { reconciliationSchema } from "./validation.js";
 import type {
   Category,
   ChallengeResult,
@@ -348,17 +350,24 @@ export class Memory {
        WHERE status='reported' AND id<>?
        ORDER BY created_at DESC LIMIT 1`,
     ).get(currentRoundId) as { id?: string } | undefined;
-    return previous?.id ? this.listFindings(previous.id).filter((f) => f.status === "confirmed") : [];
+    return previous?.id ? this.reportedFindings(previous.id) : [];
+  }
+
+  /** Preserve canonical history, including filtered/suppressed findings. */
+  reportedFindings(roundId: string): Finding[] {
+    const snapshot = this.getMeta(`reported-findings:${roundId}`);
+    if (snapshot) return JSON.parse(snapshot) as Finding[];
+    const all = this.listFindings(roundId);
+    const plan = this.getMeta(`reconciliation:${roundId}`);
+    if (plan) return consolidateReconciled(all, reconciliationSchema.parse(JSON.parse(plan).groups)).findings;
+    return all.filter(f => f.status === "confirmed");
   }
 
   olderConfirmedFindings(currentRoundId: string): Finding[] {
     const rows = this.db.prepare(
-      `SELECT f.* FROM findings f
-       JOIN rounds r ON r.id=f.round_id
-       WHERE r.id<>? AND r.status='reported' AND f.status='confirmed'
-       ORDER BY f.created_at DESC`,
-    ).all(currentRoundId) as Record<string, unknown>[];
-    return rows.map(rowToFinding);
+      `SELECT id FROM rounds WHERE id<>? AND status='reported' ORDER BY created_at DESC`,
+    ).all(currentRoundId) as { id: string }[];
+    return rows.flatMap(row => this.reportedFindings(row.id));
   }
 
   importBaseline(source: string, findings: Finding[]): number {

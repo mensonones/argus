@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3 — 2026-09-12
+
+- Canonical historical snapshots preserve reconciled groups, reviewed categories,
+  provenance and stable baseline identities before report filtering/suppression.
+- `argus_baseline_findings` / `argus baseline-list` and audited explicit
+  `baseline_match` links support persistence across wording/category changes.
+- Unknown/cross-file links and reuse of one identity across distinct groups fail;
+  conflicting validated root causes block automatic title-based matching.
+- Older reconciled rounds are reconstructed without changing their original data.
+
+SQLite schema remains v4. Reinstall host definitions and restart the host before
+testing the historical identity workflow. Match reasoning is agent-reviewed,
+not a runtime certification of semantic equivalence.
+
 ## 0.2.2 — 2026-09-12
 
 - Required explicit reconciliation before reporting: canonical/member IDs,

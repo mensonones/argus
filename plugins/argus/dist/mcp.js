@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, } from "./service.js";
+import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, listBaselineFindings, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema } from "./evidence.js";
 import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema } from "./validation.js";
@@ -27,6 +27,18 @@ function errorText(err) {
 }
 export async function startServer() {
     const server = new McpServer({ name: "argus", version: ARGUS_VERSION });
+    server.registerTool("argus_baseline_findings", {
+        title: "Inspect canonical findings from previous reviews",
+        description: "Read previous, historical and imported baseline findings before reconciliation. Compare actual causes and evidence, not titles or nearby lines. Use an existing ID in baseline_match only when the same defect persists; justify semantic equivalence. Current candidates are excluded.",
+        inputSchema: {},
+    }, async () => {
+        try {
+            return text(listBaselineFindings(targetCwd()));
+        }
+        catch (err) {
+            return errorText(err);
+        }
+    });
     server.registerTool("argus_reconcile", {
         title: "Reconcile challenged findings before reporting",
         description: "Required coordinator step: cover every surviving finding exactly once with canonical IDs, member categories, root cause and reasoning. Review all claims and correct canonical content before grouping. Do not merge distinct defects by line proximity or lens. Use [] for zero findings. Later finding or verdict changes invalidate reconciliation.",

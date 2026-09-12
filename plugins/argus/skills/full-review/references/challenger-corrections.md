@@ -19,6 +19,16 @@ groups; use `[]` for no survivors. Matching root prose alone no longer merges
 current findings automatically. Legacy title/root heuristics remain only for
 historical baseline matching. The runtime does not certify semantic equivalence.
 
+Historical baseline identity is independent of current canonical IDs. Inspect
+`argus_baseline_findings`, then optionally include `baseline_match` with an existing
+historical `finding_id` and a justified `reasoning` in reconciliation. This
+propagates `baselineIdentity` across rewording/category changes. Unknown or
+cross-file IDs and reuse of one identity for multiple current defects fail.
+Do not link distinct invariants merely because they share lines. Conflicting
+validated causes block automatic title-based matching; explicit links require
+reviewed semantic equivalence. Uncertain old entries remain not redetected,
+never verified fixed. History stores canonical groups before filtering/suppression.
+
 If a candidate has a real core defect but unsupported additional claims, send
 `correction` on `argus_record_challenge` with CONFIRMED or PLAUSIBLE:
 

@@ -12,6 +12,7 @@ export const reconciliationSchema = z.array(z.object({
     rootCause: rootCauseSchema,
     reasoning: text,
     claims_reviewed: z.literal(true),
+    baseline_match: z.object({ finding_id: text, reasoning: text }).strict().optional(),
 }).strict());
 /** Complete replacement of claim-bearing content, not a partial cosmetic edit. */
 export const findingCorrectionSchema = z.object({

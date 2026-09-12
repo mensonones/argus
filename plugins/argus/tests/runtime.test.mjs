@@ -22,6 +22,7 @@ import {
   report,
   reconcileFindings,
   listFindings,
+  listBaselineFindings,
   suppressFinding,
 } from "../dist/service.js";
 
@@ -32,6 +33,87 @@ function reconcileSingles(cwd) {
     reasoning: "Test fixture: one independently validated defect.", claims_reviewed: true,
   })));
 }
+
+test("canonical history and explicit links preserve three identities across changed prose and lenses", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const pairs = [0, 1, 2].map(i => [0, 1].map(j => recordFinding(cwd, finding({ title: `first-${i}-${j}` })).id));
+  for (const id of pairs.flat()) recordChallenge(cwd, id, "CONFIRMED", "Verified");
+  const groups = pairs.map((ids, i) => ({ canonical_id: ids[0], members: ids.map(id => ({ finding_id: id, category: "security" })),
+    rootCause: { ...ownerCause, symbol: `function-${i}` }, reasoning: "Same defect per pair", claims_reviewed: true }));
+  reconcileFindings(cwd, groups);
+  const first = report({ cwd, write: false, promoteGlobal: false }).result.findings;
+  for (let round = 0; round < 2; round++) {
+    await initReview({ cwd });
+    const previous = listBaselineFindings(cwd).previous;
+    assert.equal(previous.length, 3); // Not six raw cross-lens candidates.
+    const nextGroups = previous.map((old, i) => {
+      const id = recordFinding(cwd, finding({ title: `unrelated-title-${round}-${i}`, category: "performance" })).id;
+      recordChallenge(cwd, id, "CONFIRMED", "Same defect witnessed again");
+      return { canonical_id: id, members: [{ finding_id: id, category: "performance" }],
+        rootCause: { symbol: `function-${i}`, mechanism: `new-wording-${round}`, invariant: `rephrased-${i}` },
+        reasoning: "Single current defect", claims_reviewed: true,
+        baseline_match: { finding_id: old.id, reasoning: "Inspected old and current evidence: same operation and violated contract, only wording/lens changed." } };
+    });
+    assert.throws(() => reconcileFindings(cwd, [{ ...nextGroups[0], baseline_match: { finding_id: "unknown", reasoning: "Fixture" } }, ...nextGroups.slice(1)]), /existing historical/);
+    assert.throws(() => reconcileFindings(cwd, nextGroups.map(g => ({ ...g, baseline_match: nextGroups[0].baseline_match }))), /same baseline identity/);
+    reconcileFindings(cwd, nextGroups);
+    const result = report({ cwd, format: "json", write: false, promoteGlobal: false }).result;
+    assert.equal(result.unmatchedPreviousCount, 0);
+    assert.deepEqual(result.findings.map(f => f.baselineStatus), ["persistent", "persistent", "persistent"]);
+    assert.deepEqual(result.findings.map(f => f.baselineIdentity).sort(), first.map(f => f.baselineIdentity).sort());
+    assert.ok(result.findings.every(f => f.baselineMatch.reasoning));
+  }
+});
+
+test("distinct validated causes on identical lines and titles never auto-match the baseline", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const id = recordFinding(cwd, finding({ rootCause: ownerCause })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Verified", undefined, undefined, ownerCause);
+  reconcileSingles(cwd); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const different = { ...ownerCause, invariant: "separate-independent-invariant" };
+  const next = recordFinding(cwd, finding({ rootCause: different })).id;
+  recordChallenge(cwd, next, "CONFIRMED", "Independent defect", undefined, undefined, different);
+  reconcileSingles(cwd);
+  const result = report({ cwd, write: false, promoteGlobal: false }).result;
+  assert.equal(result.findings[0].baselineStatus, "new");
+  assert.equal(result.unmatchedPreviousCount, 1);
+});
+
+test("legacy reconciled rounds recover canonical groups without a stored snapshot", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const ids = [0, 1].map(i => recordFinding(cwd, finding({ title: `legacy-${i}` })).id);
+  ids.forEach(id => recordChallenge(cwd, id, "CONFIRMED", "Verified"));
+  reconcileFindings(cwd, [{ canonical_id: ids[0], members: ids.map(id => ({ finding_id: id, category: "security" })),
+    rootCause: ownerCause, reasoning: "Same old defect", claims_reviewed: true }]);
+  const mem = Memory.open(cwd);
+  mem.setRoundStatus(mem.activeRound().id, "reported"); mem.close();
+  await initReview({ cwd });
+  assert.equal(listBaselineFindings(cwd).previous.length, 1);
+  assert.deepEqual(listBaselineFindings(cwd).previous[0].consolidation.memberIds, ids);
+});
+
+test("filtered and suppressed canonical history survives, and explicit older links classify regressions", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const ids = [0, 1, 2].map(i => recordFinding(cwd, finding({ title: `historical-${i}`, file: `file-${i}.js` })).id);
+  ids.forEach(id => recordChallenge(cwd, id, "CONFIRMED", "Verified"));
+  suppressFinding(cwd, ids[0], "Fixture accepted risk");
+  reconcileSingles(cwd);
+  assert.equal(report({ cwd, maxFindings: 1, write: false, promoteGlobal: false }).result.findings.length, 1);
+  await initReview({ cwd });
+  assert.equal(listBaselineFindings(cwd).previous.length, 3);
+  reconcileFindings(cwd, []); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const id = recordFinding(cwd, finding({ file: "file-1.js", title: "Reworded older defect" })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Verified again");
+  const group = { canonical_id: id, members: [{ finding_id: id, category: "security" }], rootCause: ownerCause,
+    reasoning: "Singleton", claims_reviewed: true, baseline_match: { finding_id: ids[1], reasoning: "Same older operation and broken invariant" } };
+  assert.throws(() => reconcileFindings(cwd, [{ ...group, baseline_match: { ...group.baseline_match, finding_id: ids[0] } }]), /same file/);
+  reconcileFindings(cwd, [group]);
+  const result = report({ cwd, write: false, promoteGlobal: false }).result;
+  assert.equal(result.findings[0].baselineStatus, "regression");
+  assert.equal(result.findings[0].baselineIdentity, ids[1]);
+});
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "argus-test-"));
@@ -349,6 +431,7 @@ test("MCP init accepts an explicit target repository path", () => {
   assert.equal(child.status, 0, child.stderr);
   const inventory = child.stdout.split("\n").filter(Boolean).map(line => JSON.parse(line)).find(item => item.id === 3);
   assert.ok(inventory.result.tools.some(tool => tool.name === "argus_reconcile"));
+  assert.ok(inventory.result.tools.some(tool => tool.name === "argus_baseline_findings"));
   assert.ok(inventory.result.tools.find(tool => tool.name === "argus_record_finding").inputSchema.required.includes("category"));
   const response = child.stdout.split("\n").filter(Boolean)
     .map((line) => JSON.parse(line)).find((item) => item.id === 2);

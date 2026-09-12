@@ -369,6 +369,15 @@ código. O Argus não reimplementa isso; foca no que é específico do pipeline.
 
 ## 13. Fluxo de execução
 
+Melhoria v0.2.3: preservar snapshots dos findings canônicos antes de
+filtros/suppression e expor `argus_baseline_findings` (`argus baseline-list`).
+O coordenador pode ligar um grupo a um finding histórico via `baseline_match`
+(`finding_id`, `reasoning`), justificando equivalência semântica e propagando
+`baselineIdentity` estável. IDs inexistentes/de outro arquivo e reutilização de
+uma identidade em defeitos atuais distintos são recusados. Causas validadas
+conflitantes não casam automaticamente por título. Rodadas reconciliadas antigas
+são reconstruídas, sem reescrever histórico ou afirmar que ausência prova correção.
+
 ```text
 /argus:review
 
@@ -579,10 +588,14 @@ adjudicação humana e métricas de precisão, recall, F1 e erros do Challenger.
 O piloto sintético não demonstra qualidade em produção. Ampliar com PRs reais,
 execuções repetidas e versões fixadas antes de afirmar redução de falsos positivos.
 
-**v0.2.2 (atual):** reconciliação explícita obrigatória com cobertura completa,
+**v0.2.2:** reconciliação explícita obrigatória com cobertura completa,
 categorias válidas sem fallback e proteção contra planos desatualizados.
 Findings históricos não reencontrados não equivalem a correções comprovadas.
 Schema SQLite permanece v4; reinstalar as definições e reiniciar o host.
+
+**v0.2.3 (atual):** snapshots canônicos e identidade histórica estável,
+com vínculos semânticos auditáveis via `baseline_match` e inspeção de baseline.
+Preserva rodadas antigas sem reescrevê-las; schema SQLite continua v4.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

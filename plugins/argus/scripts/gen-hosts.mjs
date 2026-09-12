@@ -177,6 +177,7 @@ const DSH_MCP_TOOLS = [
   "argus_record_finding",
   "argus_record_challenge",
   "argus_reconcile",
+  "argus_baseline_findings",
   "argus_list_findings",
   "argus_query_similar",
   "argus_memory_search",

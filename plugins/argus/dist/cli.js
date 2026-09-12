@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, } from "./service.js";
+import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, listBaselineFindings, } from "./service.js";
 import { color } from "./logger.js";
 import { ARGUS_VERSION } from "./version.js";
 const VERSION = ARGUS_VERSION;
@@ -44,6 +44,7 @@ Commands
   reviewer-run <id> <s>     Record reviewer status (started|completed|failed)
   record-finding --json <j> Record a finding from a JSON object (or stdin)
   reconcile --json <groups> Required canonical grouping (or stdin); [] for zero findings
+  baseline-list            Inspect canonical previous/historical/imported findings
   challenge <id> <verdict>  Record a challenge (CONFIRMED|PLAUSIBLE|REJECTED)
     --reason <text> [--evidence-package <json>] [--correction <json>] [--root-cause <json>]
   memory <query>            Search past findings for this target
@@ -84,6 +85,10 @@ export async function main(argv) {
     }
     try {
         switch (command) {
+            case "baseline-list": {
+                console.log(JSON.stringify(listBaselineFindings(cwd), null, 2));
+                return 0;
+            }
             case "reconcile": {
                 const { values } = parseArgs({ args: rest, options: { json: { type: "string" } } });
                 console.log(JSON.stringify(reconcileFindings(cwd, JSON.parse(values.json ?? await readStdin())), null, 2));

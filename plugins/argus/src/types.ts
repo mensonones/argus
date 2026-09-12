@@ -76,6 +76,8 @@ export interface Finding {
   /** All lenses associated with a consolidated finding. */
   categories?: Category[];
   consolidation?: { canonicalId: string; memberIds: string[]; reasoning: string };
+  baselineIdentity?: string;
+  baselineMatch?: { findingId: string; reasoning: string };
   severity: Severity;
   confidence: Confidence;
   file: string;

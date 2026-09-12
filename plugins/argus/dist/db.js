@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { ensureDir, exportsDir, globalDbPath, globalDir, targetDbPath, targetDir, } from "./paths.js";
 import { ResilientDatabase } from "./sqlite.js";
 import { ARGUS_VERSION, DATABASE_SCHEMA_VERSION } from "./version.js";
+import { consolidateReconciled } from "./reconciliation.js";
+import { reconciliationSchema } from "./validation.js";
 const CORE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
@@ -235,14 +237,22 @@ export class Memory {
         const previous = this.db.prepare(`SELECT id FROM rounds
        WHERE status='reported' AND id<>?
        ORDER BY created_at DESC LIMIT 1`).get(currentRoundId);
-        return previous?.id ? this.listFindings(previous.id).filter((f) => f.status === "confirmed") : [];
+        return previous?.id ? this.reportedFindings(previous.id) : [];
+    }
+    /** Preserve canonical history, including filtered/suppressed findings. */
+    reportedFindings(roundId) {
+        const snapshot = this.getMeta(`reported-findings:${roundId}`);
+        if (snapshot)
+            return JSON.parse(snapshot);
+        const all = this.listFindings(roundId);
+        const plan = this.getMeta(`reconciliation:${roundId}`);
+        if (plan)
+            return consolidateReconciled(all, reconciliationSchema.parse(JSON.parse(plan).groups)).findings;
+        return all.filter(f => f.status === "confirmed");
     }
     olderConfirmedFindings(currentRoundId) {
-        const rows = this.db.prepare(`SELECT f.* FROM findings f
-       JOIN rounds r ON r.id=f.round_id
-       WHERE r.id<>? AND r.status='reported' AND f.status='confirmed'
-       ORDER BY f.created_at DESC`).all(currentRoundId);
-        return rows.map(rowToFinding);
+        const rows = this.db.prepare(`SELECT id FROM rounds WHERE id<>? AND status='reported' ORDER BY created_at DESC`).all(currentRoundId);
+        return rows.flatMap(row => this.reportedFindings(row.id));
     }
     importBaseline(source, findings) {
         let imported = 0;
