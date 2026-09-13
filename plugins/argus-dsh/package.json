@@ -1,6 +1,6 @@
 {
   "name": "@argus/dsh-plugin",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Argus multi-perspective code review for the DeepSeek Harness: specialist reviewer subagent tools plus the DSH-shaped Argus skills.",
   "license": "MIT",
   "type": "module",

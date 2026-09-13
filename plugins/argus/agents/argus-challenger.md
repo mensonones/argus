@@ -43,4 +43,7 @@ Use the coordinator's root-cause/correction contract. Verify every material
 claim. Correct unsupported portions of an otherwise valid candidate with
 `correction` plus replacement evidence packet; reasoning alone does not remove
 claims from the report. Match existing validated rootCause triples for the same
-defect across lenses, keeping independently violated invariants separate.
+defect across lenses. For disputed splits, compare preconditions, contracts and
+observable consequences using the supplied causal-independence procedure.
+Different invariant labels, reviewer votes and examples are not proof of a
+separate defect. Record uncertainty and the actual disputed assumption.

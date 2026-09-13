@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.3** — see [Changelog](CHANGELOG.md).
+Current version: **0.2.4** — see [Changelog](CHANGELOG.md).
 
 ## Evidence and evaluation
 
@@ -83,6 +83,14 @@ argus_report           explicit groups · rank (severity × confidence × challe
 ```
 
 ## Install
+
+Version 0.2.4 guidance clarifies disputed finding splits: compare causal
+preconditions, contracts and observable consequences, using targeted controls
+when practical. Challenger votes, invariant names and examples are not evidence
+of independence. One root cause may have several consequences in one finding.
+`NEW` means newly identified against history, not newly introduced in code.
+The [DSH lab note](eval/observations/2026-09-12-dsh-lab.md) remains unscored and
+pending human adjudication; it does not establish a fourth ground-truth defect.
 
 Version 0.2.3 baseline improvements preserve canonical groups across rounds.
 `argus_baseline_findings` / `argus baseline-list` exposes previous, historical and
@@ -366,7 +374,7 @@ command.
 
 ## Status
 
-**v0.2.3 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
+**v0.2.4 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
 dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
 structured evidence packets, Argus Eval pilot, reports, and Claude Code / Codex /
 OpenCode Desktop / DSH packaging and diagnostics. Version 0.2.1 adds
@@ -375,6 +383,8 @@ Version 0.2.2 requires explicit reconciliation, rejects invalid categories and
 distinguishes historical findings not redetected from verified fixes.
 Version 0.2.3 preserves canonical historical snapshots and stable baseline
 identities through audited semantic matches across rounds (schema remains v4).
+Version 0.2.4 clarifies evidence-based adjudication of disputed splits and NEW
+semantics. Reinstall definitions and restart the host; no schema migration.
 Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
 broader live host validation.
 

@@ -38,7 +38,10 @@ the finding's text alone.
 - **G7 — Root cause identity.** Inspect `mcp__argus__argus_list_findings`. For the same defect
   in the same file, reuse the exact validated `rootCause` triple (symbol,
   mechanism, invariant) so the runtime consolidates it across lenses. Different
-  invariants may justify separate findings; categories alone do not.
+  invariant labels or categories alone do not prove independent defects. Compare
+  triggering preconditions, violated contracts and observable consequences; use
+  a targeted control/counterfactual when practical. Explain disputed independence
+  from inspected evidence, not other Challengers' votes or instructional examples.
 - **G8 — Concrete impact.** There is a real, security- or correctness-relevant
   consequence, not a theoretical tidiness concern.
 

@@ -8,9 +8,35 @@ reuse the exact triple for an already established defect in the same file.
 
 Example: `{"symbol":"updateAccount","mechanism":"missing-owner-check",
 "invariant":"only-owner-may-update"}`. Different wording or categories are not
-new causes. Do not use line proximity as proof. Conversely, a missing storage
-method and excessive round trips violate different invariants and can remain
-separate findings if independently substantiated.
+new causes. Do not use line proximity as proof. Different invariant labels are
+also not proof that two defects are independent.
+
+## Deciding whether findings are independent
+
+The coordinator adjudicates using inspected code, contracts and observations,
+not a majority vote among Challengers. Reviewer agreement and examples in these
+instructions are not evidence and cannot resolve a factual disagreement.
+
+For each proposed split, identify the triggering preconditions, violated
+contract and observable consequence. Use a targeted counterfactual or control
+when practical: explain whether one claimed failure can remain after the other
+is removed or prevented, without inventing unsupported caller/adapter behaviour.
+Record executed observations separately from static reasoning and limitations.
+Different inputs alone are not independence; neither different lenses/invariant
+names nor the same fix decide the grouping. A single cause may have multiple
+verified consequences best retained in one canonical finding.
+
+If Challengers disagree, inspect the disputed assumption and record the
+coordinator's evidence-based rationale. Do not settle by vote or by citing this
+guide as authority. If independence remains uncertain, disclose it in the
+reconciliation reasoning; do not claim a proven separate defect. Preserve the
+verified consequences in coherent canonical content when consolidating.
+
+For example, an undeclared collaborator member and repeated IO might be
+independent failures, or facets of one API regression. Neither merge nor split
+is prescribed: establish the actual adapter contract, reachable nonempty path,
+and causal relationship from evidence in that repository. Parallelizing calls
+alone does not settle independence from a batching contract.
 
 Current-round consolidation requires `argus_reconcile`: the coordinator supplies
 canonical/member IDs, reviewed member categories, a root cause, reasoning and

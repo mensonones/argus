@@ -1,5 +1,10 @@
 # Argus Eval — pilot v1
 
+Live workflow notes in `observations/` are unscored and may contain unresolved
+findings. Keep them out of blinded reviewer inputs. The
+[DSH lab observation](observations/2026-09-12-dsh-lab.md) records a disputed split
+pending human adjudication, not an extra pilot issue or a model ranking.
+
 This is a small synthetic smoke suite, **not** evidence of production review
 quality or a leaderboard. Eight authored cases pair a defect and a correct
 control for each current lens. Sources are standalone snapshots with explicit

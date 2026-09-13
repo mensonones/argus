@@ -102,6 +102,9 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    and `claims_reviewed: true`. Cover each survivor exactly once; include singleton
    groups and use `[]` for zero survivors. Do not merge by proximity, title, lens
    or shared fix alone. The canonical content is used without unioning member prose.
+   For disputed splits, apply the causal-independence procedure in the correction
+   reference. Resolve assumptions from evidence, not votes or literal examples;
+   invariant names alone do not prove independent defects. Record uncertainty.
    Then call `argus_report` (default markdown). Pending verdicts, absent plans,
    and finding/verdict/correction changes after reconciliation block reporting.
    If anything changes, reconcile again. Do not bypass the gate with a handwritten
@@ -113,6 +116,7 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    raised, how many the Challenger rejected, and how many duplicates were merged.
    Include baseline state and previous findings not redetected; absence does not
    establish that they were fixed.
+   `NEW` means newly identified against history, not newly introduced in code.
    Keep it tight and readable — write for the developer, not about your process.
 
 If the user asked to restrict reviewers (e.g. "security only") or set a severity

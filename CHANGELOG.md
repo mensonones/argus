@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4 — 2026-09-13
+
+- Reconciliation guidance uses causal evidence and targeted controls for disputed
+  splits, not Challenger voting, invariant labels or literal instructional examples.
+- Clarified NEW baseline semantics and recorded the DSH lab observation pending
+  human adjudication, without changing pilot labels or scoring it as ground truth.
+
+Instruction-only reconciliation changes; no new MCP tools or SQLite migration
+(schema remains v4). Reinstall host definitions and restart the host to load them.
+Unit/package validation does not demonstrate improved model behaviour.
+
 ## 0.2.3 — 2026-09-12
 
 - Canonical historical snapshots preserve reconciled groups, reviewed categories,

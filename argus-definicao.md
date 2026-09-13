@@ -322,8 +322,8 @@ Contrato completo: `plugins/argus/skills/full-review/references/evidence-package
 Findings podem propor `rootCause: {symbol, mechanism, invariant}`. O Challenger
 valida ou substitui a tripla, reutilizando os valores de um defeito já identificado.
 Mesmo arquivo e mesma tripla validada consolidam findings entre lentes, sem
-depender do título. Triplas diferentes impedem união por similaridade; métodos
-ausentes e round-trips excessivos podem violar invariantes diferentes. Findings
+depender do título. Triplas diferentes impedem união por similaridade; a
+independência causal deve ser substanciada, não inferida dos rótulos. Findings
 legados mantêm a heurística de título/localização.
 
 `argus_record_challenge` aceita `correction` com motivo e substituição completa
@@ -368,6 +368,15 @@ código. O Argus não reimplementa isso; foca no que é específico do pipeline.
 ---
 
 ## 13. Fluxo de execução
+
+Ajuste v0.2.4: divergências sobre separação de findings devem ser
+resolvidas por evidência causal (pré-condições, contratos e consequências), com
+controle/contrafactual quando viável, não por votação de Challengers ou exemplos
+literais. Rótulos de invariantes diferentes não provam independência. Uma causa
+pode ter várias consequências no mesmo finding; registrar incerteza na decisão.
+`NEW` significa recém-identificado contra o histórico, não recém-introduzido no
+código. O caso DSH está registrado em eval/observations, sem adjudicação humana
+concluída e sem alterar ground truth ou pontuar o piloto.
 
 Melhoria v0.2.3: preservar snapshots dos findings canônicos antes de
 filtros/suppression e expor `argus_baseline_findings` (`argus baseline-list`).
@@ -593,9 +602,13 @@ categorias válidas sem fallback e proteção contra planos desatualizados.
 Findings históricos não reencontrados não equivalem a correções comprovadas.
 Schema SQLite permanece v4; reinstalar as definições e reiniciar o host.
 
-**v0.2.3 (atual):** snapshots canônicos e identidade histórica estável,
+**v0.2.3:** snapshots canônicos e identidade histórica estável,
 com vínculos semânticos auditáveis via `baseline_match` e inspeção de baseline.
 Preserva rodadas antigas sem reescrevê-las; schema SQLite continua v4.
+
+**v0.2.4 (atual):** adjudicação de splits por evidência causal, sem votação
+ou exemplos como autoridade; semântica de NEW esclarecida e caso DSH pendente
+de adjudicação humana. Schema v4 e 14 tools MCP permanecem inalterados.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

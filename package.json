@@ -1,6 +1,6 @@
 {
   "name": "argus-marketplace",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Argus — agentic multi-perspective code review plugin for Claude Code, Codex, OpenCode Desktop, and the DeepSeek Harness (DSH).",
   "scripts": {

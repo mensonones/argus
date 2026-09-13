@@ -56,7 +56,7 @@ snapshot and observations can be established; never fabricate missing evidence.
    Validate every material claim, not just the core defect. Use `correction`
    to remove unsupported impact/scenario/evidence while preserving a valid
    finding, and replace its packet. Validate a shared `rootCause` triple for
-   cross-lens duplicates; keep distinct violated invariants separate.
+   cross-lens duplicates; assess independence from evidence, not invariant labels.
 
 5. **Reconcile, then report.** List all surviving findings after the Challenger.
    Call `argus_baseline_findings` (CLI: `argus baseline-list`) to inspect canonical
@@ -75,7 +75,9 @@ snapshot and observations can be established; never fabricate missing evidence.
    Each surviving ID must occur exactly once. Choose an existing canonical ID,
    explicitly check each member's category, and justify why the members describe
    one defect. Never merge solely by title, line proximity, lens, or shared fix.
-   Distinct independently substantiated invariants may remain separate.
+   Use the causal-independence procedure in the correction reference for disputed
+   splits. Different invariant labels, Challenger votes and examples are not
+   proof; a shared cause may have several consequences in one canonical finding.
    The runtime checks coverage and identity, not semantic truth. It preserves
    member IDs and reviewer provenance but does not union member claim text.
    Any later finding/verdict/correction change requires reconciliation again.
@@ -98,7 +100,9 @@ snapshot and observations can be established; never fabricate missing evidence.
    the funnel: N candidates → M rejected by challenger → K duplicates merged →
    final findings. Include baseline state (`new`, `persistent`, `regression`) and
    previous findings not redetected when present (never claim fixed without
-   verification). Write for the developer; do not narrate your
+   verification). Explain that `new` means newly identified against recorded
+   history, not proof that the code defect was just introduced. Disclose unresolved
+   split decisions. Write for the developer; do not narrate your
    own process.
 
 ## Related skills
