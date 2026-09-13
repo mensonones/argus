@@ -23,6 +23,7 @@ import {
   reconcileFindings,
   listFindings,
   listBaselineFindings,
+  queryBaselineFindings,
   suppressFinding,
 } from "../dist/service.js";
 
@@ -33,6 +34,44 @@ function reconcileSingles(cwd) {
     reasoning: "Test fixture: one independently validated defect.", claims_reviewed: true,
   })));
 }
+
+test("baseline query is compact, paginated, filtered and retrieves exact evidence", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const ids = Array.from({ length: 3 }, (_, i) => {
+    const rootCause = { symbol: `symbol${i}`, mechanism: `cause${i}`, invariant: "contract" };
+    const id = recordFinding(cwd, finding({ title: `Defect ${i}`, description: "large evidence ".repeat(10000), rootCause })).id;
+    recordChallenge(cwd, id, "CONFIRMED", "Verified", undefined, undefined, rootCause);
+    return id;
+  });
+  reconcileSingles(cwd); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const first = queryBaselineFindings(cwd, { limit: 2 });
+  assert.equal(first.total, 3); // Previous entries also present in older history are not repeated.
+  assert.equal(first.hasMore, true); assert.equal(first.nextOffset, 2);
+  assert.ok(JSON.stringify(first).length < 5000);
+  const last = queryBaselineFindings(cwd, { limit: 2, offset: first.nextOffset });
+  assert.equal(last.findings.length, 1); assert.equal(last.nextOffset, null);
+  assert.equal(new Set([...first.findings, ...last.findings].map(f => f.id)).size, 3);
+  assert.equal(queryBaselineFindings(cwd, { symbol: "symbol1" }).findings[0].id, ids[1]);
+  assert.equal(queryBaselineFindings(cwd, { file: "missing.js" }).total, 0);
+  assert.equal(queryBaselineFindings(cwd, { finding_id: ids[1] }).findings[0].description, "large evidence ".repeat(10000));
+  assert.equal(queryBaselineFindings(cwd, { finding_id: "unknown" }).total, 0);
+  for (const options of [{ limit: 101 }, { limit: 0 }, { offset: -1 }, { offset: NaN }, { symbol: " " }]) {
+    assert.throws(() => queryBaselineFindings(cwd, options));
+  }
+});
+
+test("report refuses started reviewers without closing the round or writing an export", async () => {
+  for (const status of ["completed", "failed"]) {
+    const cwd = repo(); await initReview({ cwd });
+    recordReviewerRun(cwd, "security", "started"); reconcileSingles(cwd);
+    assert.throws(() => report({ cwd, write: true, promoteGlobal: false }), /security.*completed or failed/);
+    assert.deepEqual(fs.readdirSync(path.join(cwd, ".argus", "exports")), []);
+    recordReviewerRun(cwd, "security", status, "Fixture finished");
+    const out = report({ cwd, write: false, promoteGlobal: false });
+    assert.equal(out.result.findings.length, 0);
+  }
+});
 
 test("incorporation covers an old facet without marking it missing or fixed and preserves history", async () => {
   const cwd = repo(); await initReview({ cwd });
@@ -69,7 +108,11 @@ test("incorporation covers an old facet without marking it missing or fixed and 
   for (const invalid of [{ ...link, reasoning: " " }, { ...link, covered_claims: [] }]) {
     assert.throws(() => reconcileFindings(cwd, [{ ...group, incorporated_baselines: [invalid] }]));
   }
-  reconcileFindings(cwd, [group]);
+  const confirmation = reconcileFindings(cwd, [group]).appliedGroups[0];
+  assert.equal(confirmation.matchMode, "explicit");
+  assert.equal(confirmation.baselineStatus, "persistent");
+  assert.equal(confirmation.baselineMatch.findingId, original[0]);
+  assert.equal(confirmation.incorporatedBaselines[0].findingId, original[1]);
   const out = report({ cwd, format: "json", minSeverity: "critical", write: false, promoteGlobal: false });
   assert.equal(out.result.findings.length, 0); // Filtering does not erase the canonical link.
   assert.equal(out.result.incorporatedBaselineCount, 1);
@@ -225,7 +268,11 @@ test("explicit groups merge six cross-lens candidates into three and retain cano
   assert.throws(() => reconcileFindings(cwd, [...groups, groups[0]]), /repeated/);
   assert.throws(() => reconcileFindings(cwd, [{ ...groups[0], canonical_id: "foreign-id" }, ...groups.slice(1)]), /Canonical/);
   assert.throws(() => reconcileFindings(cwd, [{ ...groups[0], claims_reviewed: false }, ...groups.slice(1)]));
-  assert.deepEqual(reconcileFindings(cwd, groups), { groups: 3, duplicatesMerged: 3 });
+  const applied = reconcileFindings(cwd, groups);
+  assert.equal(applied.groups, 3);
+  assert.equal(applied.duplicatesMerged, 3);
+  assert.equal(applied.appliedGroups.length, 3);
+  assert.ok(applied.appliedGroups.every(g => g.baselineStatus === "new" && g.matchMode === "none" && g.baselineMatch === null));
   recordChallenge(cwd, ids[0], "PLAUSIBLE", "Updated confidence.");
   assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /changed after reconciliation/);
   reconcileFindings(cwd, groups);

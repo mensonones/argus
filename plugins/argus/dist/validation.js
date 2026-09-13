@@ -31,3 +31,10 @@ export const findingCorrectionSchema = z.object({
     severity: z.enum(["info", "low", "medium", "high", "critical"]).optional(),
     confidence: z.enum(["low", "medium", "high"]).optional(),
 }).strict();
+export const baselineQuerySchema = z.object({
+    file: z.string().trim().min(1).optional(),
+    symbol: z.string().trim().min(1).optional(),
+    finding_id: z.string().trim().min(1).optional(),
+    offset: z.number().int().min(0).default(0),
+    limit: z.number().int().min(1).max(100).default(20),
+}).strict();

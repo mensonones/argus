@@ -15,12 +15,12 @@ import {
   updateGlobalMemory,
   report,
   reconcileFindings,
-  listBaselineFindings,
+  queryBaselineFindings,
 } from "./service.js";
 import type { Severity } from "./types.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
 
 const SERVER_CWD = process.cwd();
 let activeCwd: string | undefined;
@@ -52,10 +52,10 @@ export async function startServer(): Promise<void> {
 
   server.registerTool("argus_baseline_findings", {
     title: "Inspect canonical findings from previous reviews",
-    description: "Read previous, historical and imported baseline findings before reconciliation. Compare actual causes and evidence, not titles or nearby lines. Use an existing ID in baseline_match only when the same defect persists; justify semantic equivalence. Current candidates are excluded.",
-    inputSchema: {},
-  }, async () => {
-    try { return text(listBaselineFindings(targetCwd())); }
+    description: "Inspect compact historical summaries (default 20, maximum 100), filtered by exact file or root-cause symbol. Follow nextOffset while hasMore; a partial page is not historical absence. Supply finding_id to retrieve one historical finding with full evidence. Use an existing ID in baseline_match only for reviewed semantic equivalence. Current candidates are excluded.",
+    inputSchema: baselineQuerySchema.shape,
+  }, async args => {
+    try { return text(queryBaselineFindings(targetCwd(), args)); }
     catch (err) { return errorText(err); }
   });
 

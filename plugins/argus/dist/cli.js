@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, listBaselineFindings, } from "./service.js";
+import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
 import { color } from "./logger.js";
 import { ARGUS_VERSION } from "./version.js";
 const VERSION = ARGUS_VERSION;
@@ -86,7 +86,15 @@ export async function main(argv) {
     try {
         switch (command) {
             case "baseline-list": {
-                console.log(JSON.stringify(listBaselineFindings(cwd), null, 2));
+                const { values } = parseArgs({ args: rest, options: {
+                        file: { type: "string" }, symbol: { type: "string" },
+                        "finding-id": { type: "string" }, offset: { type: "string" }, limit: { type: "string" },
+                    } });
+                console.log(JSON.stringify(queryBaselineFindings(cwd, {
+                    file: values.file, symbol: values.symbol, finding_id: values["finding-id"],
+                    offset: values.offset === undefined ? undefined : Number(values.offset),
+                    limit: values.limit === undefined ? undefined : Number(values.limit),
+                }), null, 2));
                 return 0;
             }
             case "reconcile": {

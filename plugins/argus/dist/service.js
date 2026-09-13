@@ -11,7 +11,7 @@ import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
 import { consolidateReconciled, findingsSignature } from "./reconciliation.js";
 import { ALL_CATEGORIES, SEVERITY_ORDER, } from "./types.js";
 const SEVERITIES = ["info", "low", "medium", "high", "critical"];
@@ -285,9 +285,19 @@ export function reconcileFindings(cwd, input) {
     return withCurrentRound(cwd, (mem, roundId) => {
         const all = mem.listFindings(roundId);
         const result = consolidateReconciled(all, groups);
-        attachBaselineLinks(result.findings, groups, baselineHistory(mem, roundId));
+        const history = baselineHistory(mem, roundId);
+        attachBaselineLinks(result.findings, groups, history);
         mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups }));
-        return { groups: result.findings.length, duplicatesMerged: result.removed };
+        return { groups: result.findings.length, duplicatesMerged: result.removed,
+            appliedGroups: result.findings.map(f => ({
+                canonicalId: f.id,
+                memberIds: f.consolidation?.memberIds ?? [f.id],
+                baselineIdentity: f.baselineIdentity,
+                baselineStatus: baselineStatus(f, history),
+                matchMode: f.baselineMatch ? "explicit" : baselineStatus(f, history) === "new" ? "none" : "automatic",
+                baselineMatch: f.baselineMatch ?? null,
+                incorporatedBaselines: f.baselineIncorporations ?? [],
+            })) };
     }, true);
 }
 function baselineHistory(mem, roundId) {
@@ -299,6 +309,32 @@ function baselineHistory(mem, roundId) {
 }
 export function listBaselineFindings(cwd) {
     return withCurrentRound(cwd, (mem, roundId) => baselineHistory(mem, roundId));
+}
+/** Bounded summaries by default; retrieve evidence for one exact historical ID. */
+export function queryBaselineFindings(cwd, input = {}) {
+    const opts = baselineQuerySchema.parse(input);
+    const history = listBaselineFindings(cwd);
+    const seen = new Set();
+    const entries = Object.entries(history).flatMap(([source, findings]) => findings.flatMap(f => {
+        if (seen.has(f.id))
+            return [];
+        seen.add(f.id);
+        if (opts.file && f.file !== opts.file || opts.symbol && f.rootCause?.symbol !== opts.symbol || opts.finding_id && f.id !== opts.finding_id)
+            return [];
+        return [{ source, finding: f }];
+    }));
+    const page = entries.slice(opts.offset, opts.offset + opts.limit);
+    const nextOffset = opts.offset + page.length < entries.length ? opts.offset + page.length : null;
+    return { total: entries.length, offset: opts.offset, limit: opts.limit, hasMore: nextOffset !== null, nextOffset,
+        findings: page.map(({ source, finding: f }) => opts.finding_id
+            ? { source, ...f }
+            : { source, id: f.id, baselineIdentity: f.baselineIdentity ?? f.id,
+                title: f.title, file: f.file, category: f.category, severity: f.severity, rootCause: f.rootCause }),
+    };
+}
+function baselineStatus(finding, history) {
+    return matchFinding(finding, history.previous) || matchFinding(finding, history.imported)
+        ? "persistent" : matchFinding(finding, history.historical) ? "regression" : "new";
 }
 function attachBaselineLinks(findings, groups, history) {
     const candidates = [...history.previous, ...history.historical, ...history.imported];
@@ -344,6 +380,10 @@ export function report(opts) {
         if (pending.length > 0) {
             throw new Error(`Cannot generate report: ${pending.length} candidate finding(s) still require Challenger verdicts.`);
         }
+        const reviewerRuns = mem.listReviewerRuns(round.id);
+        const running = reviewerRuns.filter(r => r.status === "started");
+        if (running.length)
+            throw new Error(`Cannot generate report: reviewers still started: ${running.map(r => r.reviewer).join(", ")}. Record completed or failed before reporting.`);
         const rejectedCount = all.filter((f) => f.status === "rejected").length;
         const stored = mem.getMeta(`reconciliation:${round.id}`);
         if (!stored)
@@ -355,17 +395,9 @@ export function report(opts) {
         const history = baselineHistory(mem, round.id);
         attachBaselineLinks(deduped, reconciliation.groups, history);
         const previous = history.previous;
-        const older = history.historical;
-        const imported = history.imported;
         const classified = deduped.map((finding) => ({
             ...finding,
-            baselineStatus: matchFinding(finding, previous)
-                ? "persistent"
-                : matchFinding(finding, imported)
-                    ? "persistent"
-                    : matchFinding(finding, older)
-                        ? "regression"
-                        : "new",
+            baselineStatus: baselineStatus(finding, history),
         }));
         const incorporatedBaselineFindings = classified.flatMap(f => (f.baselineIncorporations ?? []).map(link => ({
             ...link, file: f.file, intoFindingId: f.id,
@@ -391,7 +423,6 @@ export function report(opts) {
         const filtered = ranked
             .filter((f) => SEVERITY_ORDER[f.severity] >= SEVERITY_ORDER[floor])
             .slice(0, max);
-        const reviewerRuns = mem.listReviewerRuns(round.id);
         const reviewers = Array.from(new Set([
             ...reviewerRuns.map((r) => r.reviewer),
             ...all.map((f) => f.reviewer),

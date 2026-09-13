@@ -13,7 +13,14 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.5 alpha** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.2.6 alpha** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.2.6
+
+- Compact baseline queries: `argus baseline-list --file src/accounts.js --limit 20`.
+  Follow `nextOffset` using `--offset`; retrieve evidence with `--finding-id <id>`.
+- Reconciliation confirms the historical links actually applied to each group.
+- Report generation blocks reviewers still `started`; record completion or failure first.
 
 ## Evidence and evaluation
 
@@ -24,11 +31,10 @@ methods require a command and recorded output/artifact. These are agent-reported
 observations, not execution certificates. Legacy findings remain supported.
 The ranking no longer rewards evidence text volume or reviewer agreement.
 
-Version 0.2.1 adds Challenger-validated `rootCause` triples
-(symbol, mechanism, violated invariant) for cross-lens consolidation. Distinct
-invariants stay separate even on the same lines. In that released version,
-legacy findings fall back to title/location matching; the development contract
-below replaces current-round automatic merging with explicit reconciliation.
+Challenger-validated `rootCause` triples describe symbol, mechanism and violated
+invariant. Current-round consolidation requires explicit reconciliation, based
+on causal evidence rather than invariant labels or line proximity. Legacy
+title/location heuristics remain only for historical matching.
 
 The Challenger can submit a `correction` with revised claim-bearing content,
 a reason and a replacement evidence packet. Original content stays in the
@@ -385,7 +391,7 @@ command.
 
 ## Status
 
-### Released — v0.2.5 alpha
+### Released — v0.2.6 alpha
 
 - **Review:** four specialist lenses, adversarial Challenger, evidence packets
   and auditable claim corrections.

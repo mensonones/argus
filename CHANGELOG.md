@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6 — 2026-09-13
+
+- Compact, paginated baseline queries with file/symbol filters and exact-ID evidence retrieval.
+- Reconciliation confirms applied primary identities, match modes, baseline states and incorporations per group.
+- Reports refuse reviewers still started; complete or record failure before closing a round.
+- Updated coordinator instructions across supported hosts. No schema migration or new MCP tool.
+
 ## 0.2.5 — 2026-09-13
 
 - Explicit incorporated_baselines links retain covered historical consequences,

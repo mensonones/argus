@@ -618,9 +618,13 @@ Preserva rodadas antigas sem reescrevê-las; schema SQLite continua v4.
 ou exemplos como autoridade; semântica de NEW esclarecida e caso DSH pendente
 de adjudicação humana. Schema v4 e 14 tools MCP permanecem inalterados.
 
-**v0.2.5 (atual):** vínculos explícitos de incorporação histórica, com destino,
+**v0.2.5:** vínculos explícitos de incorporação histórica, com destino,
 justificativa e consequências cobertas; não confundem ausência com correção.
 README reorganizado; schema v4 e 14 tools MCP mantidos.
+
+**v0.2.6 (atual):** baseline compacto, filtrável e paginado; reconciliação confirma
+os vínculos efetivamente aplicados por grupo; relatório bloqueia reviewers ainda
+`started`. Schema v4 e 14 tools MCP mantidos.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

@@ -60,6 +60,10 @@ snapshot and observations can be established; never fabricate missing evidence.
 
 5. **Reconcile, then report.** List all surviving findings after the Challenger.
    Call `argus_baseline_findings` (CLI: `argus baseline-list`) to inspect canonical
+   history in compact pages (default 20, maximum 100). Filter by `file` or exact
+   `symbol`; follow `nextOffset` until `hasMore` is false. Retrieve full evidence
+   for a selected historical ID using `finding_id` (CLI: `--finding-id`).
+   A filtered or partial page is not proof that another historical entry is absent.
    previous/historical/imported findings and their evidence. For a reworded or
    reclassified instance of the same defect, include `baseline_match` in its
    group: `{"finding_id":"historical-id","reasoning":"why the same cause and violated contract persist"}`.
@@ -77,6 +81,11 @@ snapshot and observations can be established; never fabricate missing evidence.
    Correct canonical content first if needed: it must cover all retained,
    verified symptoms, without unsupported claims from duplicate candidates.
    Call `argus_reconcile` with `groups` using the contract below, even if `[]`.
+   Inspect returned `appliedGroups`: verify each primary `baselineMatch`,
+   `baselineIdentity`, `baselineStatus`, `matchMode` and `incorporatedBaselines`
+   against the intended plan. Null/empty links mean no explicit link was applied;
+   intentions or earlier failed calls are not stored relationships. Correct the
+   plan and reconcile again if necessary. Never force historical equivalence.
    Each surviving ID must occur exactly once. Choose an existing canonical ID,
    explicitly check each member's category, and justify why the members describe
    one defect. Never merge solely by title, line proximity, lens, or shared fix.
@@ -86,7 +95,9 @@ snapshot and observations can be established; never fabricate missing evidence.
    The runtime checks coverage and identity, not semantic truth. It preserves
    member IDs and reviewer provenance but does not union member claim text.
    Any later finding/verdict/correction change requires reconciliation again.
-   `argus_report` refuses missing/stale reconciliation or pending verdicts,
+   Before reporting, record every started reviewer as `completed` or `failed`
+   truthfully. `argus_report` refuses reviewers still `started`, missing/stale
+   reconciliation or pending verdicts,
    applies the explicit groups, and ranks by
    `severity × confidence × challenge × validation`, applies the severity floor,
    and writes to `.argus/exports/`.

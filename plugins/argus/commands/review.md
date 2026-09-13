@@ -89,6 +89,9 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
 
 5. **Reconcile + Report.** Read the full-review skill's reconciliation contract.
    Inspect `argus_baseline_findings` (`argus baseline-list`) before grouping.
+   Use compact pages filtered by `file`/`symbol`; follow `nextOffset` while
+   `hasMore`. Fetch full historical evidence with `finding_id` (CLI:
+   `--finding-id`). Partial pages do not establish historical absence.
    Compare previous canonical evidence to current evidence. If the same defect
    persists with changed wording/lens, add `baseline_match` with the historical
    `finding_id` and nonempty `reasoning` establishing semantic equivalence.
@@ -110,7 +113,11 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    For disputed splits, apply the causal-independence procedure in the correction
    reference. Resolve assumptions from evidence, not votes or literal examples;
    invariant names alone do not prove independent defects. Record uncertainty.
-   Then call `argus_report` (default markdown). Pending verdicts, absent plans,
+   Check `argus_reconcile.appliedGroups`: primary matches, identities, statuses,
+   match modes and incorporations must reflect the intended plan. Empty links
+   were not applied; do not describe them as stored or invent superseding history.
+   Record every started reviewer as completed or failed before reporting.
+   Then call `argus_report` (default markdown). Started reviewers, pending verdicts, absent plans,
    and finding/verdict/correction changes after reconciliation block reporting.
    If anything changes, reconcile again. Do not bypass the gate with a handwritten
    report. The runtime ranks, filters and writes `.argus/exports/`.
