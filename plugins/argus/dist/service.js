@@ -317,6 +317,20 @@ function attachBaselineLinks(findings, groups, history) {
         if (link)
             finding.baselineMatch = { findingId: candidate.id, reasoning: link.reasoning };
     }
+    for (const finding of findings) {
+        const links = groups.find(g => g.canonical_id === finding.id)?.incorporated_baselines ?? [];
+        finding.baselineIncorporations = links.map(link => {
+            const candidate = candidates.find(f => f.id === link.finding_id);
+            if (!candidate || candidate.file !== finding.file)
+                throw new Error("Incorporation must reference an existing historical finding in the same file.");
+            const identity = candidate.baselineIdentity ?? candidate.id;
+            if (used.has(identity))
+                throw new Error("An incorporated identity cannot also be matched or incorporated by another group.");
+            used.add(identity);
+            return { findingId: candidate.id, baselineIdentity: identity, title: candidate.title,
+                reasoning: link.reasoning, coveredClaims: link.covered_claims };
+        });
+    }
 }
 export function report(opts) {
     const repoRoot = repoRootSync(opts.cwd);
@@ -353,8 +367,12 @@ export function report(opts) {
                         ? "regression"
                         : "new",
         }));
+        const incorporatedBaselineFindings = classified.flatMap(f => (f.baselineIncorporations ?? []).map(link => ({
+            ...link, file: f.file, intoFindingId: f.id,
+        })));
+        const incorporatedIdentities = new Set(incorporatedBaselineFindings.map(f => f.baselineIdentity));
         const unmatchedPreviousFindings = previous
-            .filter((finding) => !matchFinding(finding, classified))
+            .filter((finding) => !incorporatedIdentities.has(finding.baselineIdentity ?? finding.id) && !matchFinding(finding, classified))
             .map(({ title, file, severity, category }) => ({ title, file, severity, category }));
         const activeSuppressions = new Set(mem.listSuppressions(true).map((item) => item.fingerprint));
         const unsuppressed = classified.filter((finding) => !activeSuppressions.has(findingFingerprint(finding)));
@@ -389,6 +407,8 @@ export function report(opts) {
             resolvedCount: 0,
             unmatchedPreviousCount: unmatchedPreviousFindings.length,
             unmatchedPreviousFindings,
+            incorporatedBaselineCount: incorporatedBaselineFindings.length,
+            incorporatedBaselineFindings,
             findings: filtered,
             reviewerStats: reviewers.map((r) => ({
                 reviewer: r,

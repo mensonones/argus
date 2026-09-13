@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.4** — see [Changelog](CHANGELOG.md).
+Current version: **0.2.5 alpha** — [Project status](#status) · [Changelog](CHANGELOG.md).
 
 ## Evidence and evaluation
 
@@ -82,7 +82,15 @@ argus_reconcile        required canonical/member IDs · reviewed categories · c
 argus_report           explicit groups · rank (severity × confidence × challenge × validation) · render
 ```
 
-## Install
+## Reconciliation and baseline
+
+Version 0.2.5: reconciliation accepts `incorporated_baselines` entries with
+historical `finding_id`, `reasoning` and nonempty `covered_claims`. Use them when
+a verified consequence formerly reported separately is preserved in current
+canonical content, not when it was fixed or discarded. Reports expose
+`incorporatedBaselineCount` and `incorporatedBaselineFindings`, with destination
+IDs, without marking that history not-redetected. Coverage must be verified
+each round; the runtime checks references/conflicts, not semantic completeness.
 
 Version 0.2.4 guidance clarifies disputed finding splits: compare causal
 preconditions, contracts and observable consequences, using targeted controls
@@ -90,7 +98,8 @@ when practical. Challenger votes, invariant names and examples are not evidence
 of independence. One root cause may have several consequences in one finding.
 `NEW` means newly identified against history, not newly introduced in code.
 The [DSH lab note](eval/observations/2026-09-12-dsh-lab.md) remains unscored and
-pending human adjudication; it does not establish a fourth ground-truth defect.
+records the subsequent maintainer-approved grouping; it does not establish a
+fourth ground-truth defect or a scored model evaluation.
 
 Version 0.2.3 baseline improvements preserve canonical groups across rounds.
 `argus_baseline_findings` / `argus baseline-list` exposes previous, historical and
@@ -115,6 +124,8 @@ Historical findings absent from a later review are labeled **not redetected**,
 not resolved: absence or a changed fingerprint is not proof of a fix. JSON exposes
 `unmatchedPreviousCount` and `unmatchedPreviousFindings`; legacy `resolvedCount`
 and `resolvedFindings` remain zero/empty until fix verification is supported.
+
+## Install
 
 This repo is a plugin **marketplace**. Whatever the host, the deterministic
 runtime (the MCP server + `argus` CLI) must be built first.
@@ -374,19 +385,34 @@ command.
 
 ## Status
 
-**v0.2.4 alpha** — CLI + MCP runtime, git diff, context, four reviewers, challenger,
-dedup + ranking, resilient/versioned SQLite memory, baseline/suppression,
-structured evidence packets, Argus Eval pilot, reports, and Claude Code / Codex /
-OpenCode Desktop / DSH packaging and diagnostics. Version 0.2.1 adds
-auditable Challenger corrections and root-cause consolidation (schema v4).
-Version 0.2.2 requires explicit reconciliation, rejects invalid categories and
-distinguishes historical findings not redetected from verified fixes.
-Version 0.2.3 preserves canonical historical snapshots and stable baseline
-identities through audited semantic matches across rounds (schema remains v4).
-Version 0.2.4 clarifies evidence-based adjudication of disputed splits and NEW
-semantics. Reinstall definitions and restart the host; no schema migration.
-Roadmap: Tests reviewer, stack-specific skills, GitHub Action, and
-broader live host validation.
+### Released — v0.2.5 alpha
+
+- **Review:** four specialist lenses, adversarial Challenger, evidence packets
+  and auditable claim corrections.
+- **Runtime:** CLI + MCP, git diff and context, explicit reconciliation,
+  ranking and Markdown/JSON/terminal reports.
+- **Memory:** versioned SQLite (schema v4), canonical history, stable baseline
+  identities and audited suppressions.
+- **Historical coverage:** incorporated findings carry explicit links, reasons
+  and covered consequences, distinct from absence or a verified fix. Original
+  historical findings remain unchanged.
+- **Integrations:** Claude Code, Codex, OpenCode Desktop and DSH; setup and
+  diagnostics are documented in [Install](#install).
+
+### Planned
+
+- Tests reviewer and stack-specific skills.
+- GitHub Action integration.
+- Broader live validation across real diffs, hosts and models.
+
+### Validation limits
+
+The [Argus Eval pilot](eval/README.md) and synthetic lab runs validate specific
+workflows, not general production review quality. Agent-reported evidence is
+not an execution certificate; semantic grouping still requires judgment.
+
+Release-by-release details live in the [Changelog](CHANGELOG.md). After upgrading,
+reinstall host definitions and restart the host to load the new instructions.
 
 ## License
 

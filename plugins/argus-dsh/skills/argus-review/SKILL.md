@@ -76,6 +76,11 @@ snapshot and observations can be established; never fabricate missing evidence.
    cannot be established, omit the link. Each historical identity can belong to
    only one distinct current group. The runtime propagates a stable
    `baselineIdentity` and retains the match justification without changing history.
+   If a previously separate finding's verified consequence is now retained in
+   canonical content, use `incorporated_baselines` with its historical ID,
+   reasoning and nonempty `covered_claims`, following the correction reference.
+   This is incorporation, not a fix or suppression. Verify coverage this round;
+   old links do not automatically prove continued coverage.
    Review every claim and explicitly partition them into distinct root causes.
    Correct canonical content first if needed: it must cover all retained,
    verified symptoms, without unsupported claims from duplicate candidates.

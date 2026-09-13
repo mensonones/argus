@@ -13,6 +13,11 @@ export const reconciliationSchema = z.array(z.object({
     reasoning: text,
     claims_reviewed: z.literal(true),
     baseline_match: z.object({ finding_id: text, reasoning: text }).strict().optional(),
+    incorporated_baselines: z.array(z.object({
+        finding_id: text,
+        reasoning: text,
+        covered_claims: z.array(text).min(1),
+    }).strict()).optional(),
 }).strict());
 /** Complete replacement of claim-bearing content, not a partial cosmetic edit. */
 export const findingCorrectionSchema = z.object({

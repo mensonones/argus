@@ -18,6 +18,11 @@ export interface ReviewResult {
   suppressedCount: number;
   resolvedCount: number;
   unmatchedPreviousCount: number;
+  incorporatedBaselineCount: number;
+  incorporatedBaselineFindings: Array<{
+    findingId: string; baselineIdentity: string; title: string; file: string;
+    intoFindingId: string; reasoning: string; coveredClaims: string[];
+  }>;
   unmatchedPreviousFindings: Array<Pick<Finding, "title" | "file" | "severity" | "category">>;
   /** Final, ranked, challenged findings after the severity floor. */
   findings: Finding[];

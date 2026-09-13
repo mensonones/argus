@@ -94,6 +94,11 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    `finding_id` and nonempty `reasoning` establishing semantic equivalence.
    Do not match by title/line proximity alone; omit uncertain links. Each historical
    identity can be assigned to only one current group. Current IDs are not history.
+   For a verified historical consequence now covered in a broader canonical
+   finding, add `incorporated_baselines` entries (`finding_id`, `reasoning`,
+   nonempty `covered_claims`) using the reference contract. Preserve the
+   consequence in canonical text/packet; incorporation is not suppression or a
+   fix, and must be verified again in each current round.
    List all survivors; review every claim and partition IDs into distinct defects.
    Correct canonical content before grouping so it contains every retained
    verified symptom and no exaggeration. Call `argus_reconcile` with `groups`:

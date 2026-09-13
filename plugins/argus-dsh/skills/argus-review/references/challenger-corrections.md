@@ -55,6 +55,24 @@ validated causes block automatic title-based matching; explicit links require
 reviewed semantic equivalence. Uncertain old entries remain not redetected,
 never verified fixed. History stores canonical groups before filtering/suppression.
 
+## Incorporating historical findings
+
+If canonical content now covers a consequence previously reported separately,
+keep `baseline_match` for its primary identity and add `incorporated_baselines`:
+`[{"finding_id":"historical-facet-id","reasoning":"why this consequence is covered, not fixed","covered_claims":["specific verified consequence retained in canonical content"]}]`.
+Inspect the historical evidence and validate the current consequence first;
+correct canonical text/packet before recording the relationship. Never use this
+as suppression, as a replacement for an ordinary same-defect baseline match,
+or to hide an unvalidated/removed claim. Unknown/current/cross-file IDs and
+reuse of an incorporated identity as another primary or incorporation fail.
+
+Reports distinguish incorporated historical findings from not-redetected or
+fixed findings, including when the destination is filtered/suppressed. The
+original snapshot and identities remain unchanged. Reassert incorporation only
+when the consequence is verified in the current round; links are not silently
+inherited as evidence. History exposes old links for inspection. The runtime
+validates identity constraints, not the truth or completeness of covered_claims.
+
 If a candidate has a real core defect but unsupported additional claims, send
 `correction` on `argus_record_challenge` with CONFIRMED or PLAUSIBLE:
 

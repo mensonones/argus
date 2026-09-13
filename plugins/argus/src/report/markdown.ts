@@ -69,6 +69,10 @@ function renderFinding(f: Finding, index: number): string {
   if (f.baselineStatus) lines.push(`**Baseline:** ${f.baselineStatus.toUpperCase()}`);
   if (f.baselineIdentity) lines.push(`**Baseline identity:** ${f.baselineIdentity}`);
   if (f.baselineMatch) lines.push(`**Historical match:** ${f.baselineMatch.findingId} — ${f.baselineMatch.reasoning}`);
+  for (const link of f.baselineIncorporations ?? []) {
+    lines.push(`**Incorporated historical finding:** ${link.findingId} (identity ${link.baselineIdentity}) — ${link.reasoning}`);
+    for (const claim of link.coveredClaims) lines.push(`- Covered consequence: ${claim}`);
+  }
   if (f.consolidation) lines.push(`**Reconciliation:** canonical ${f.consolidation.canonicalId}; members ${f.consolidation.memberIds.join(", ")} — ${f.consolidation.reasoning}`);
   if (f.categories?.length) lines.push(`**Lenses:** ${f.categories.join(", ")}`);
   lines.push("");
@@ -105,6 +109,7 @@ export function renderMarkdown(result: ReviewResult): string {
   }
   if (result.suppressedCount > 0) out.push(`- ${result.suppressedCount} suppressed finding(s)`);
   if (result.unmatchedPreviousCount > 0) out.push(`- ${result.unmatchedPreviousCount} previous findings not redetected (not verified as fixed)`);
+  if (result.incorporatedBaselineCount > 0) out.push(`- ${result.incorporatedBaselineCount} historical findings incorporated into current findings (not fixed)`);
   out.push(`- **${result.findings.length} finding(s)**`);
   out.push("");
 
@@ -124,6 +129,14 @@ export function renderMarkdown(result: ReviewResult): string {
       out.push("---");
       out.push("");
     });
+  }
+
+  if (result.incorporatedBaselineFindings.length > 0) {
+    out.push("## Historical findings incorporated — not fixed", "");
+    for (const finding of result.incorporatedBaselineFindings) {
+      out.push(`- ${finding.file} — ${finding.title} (${finding.findingId}) → ${finding.intoFindingId}: ${finding.reasoning}`);
+    }
+    out.push("");
   }
 
   if (result.unmatchedPreviousFindings.length > 0) {

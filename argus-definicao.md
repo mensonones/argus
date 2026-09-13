@@ -369,6 +369,14 @@ código. O Argus não reimplementa isso; foca no que é específico do pipeline.
 
 ## 13. Fluxo de execução
 
+Na v0.2.5, `incorporated_baselines` liga um finding histórico incorporado
+a um canônico atual, com `finding_id`, `reasoning` e `covered_claims` não vazio.
+Preservar a consequência validada no texto/pacote atual antes de registrar o
+vínculo; não é suppression, correção ou ausência. O relatório distingue esse
+estado (`incorporatedBaselineCount`/Findings), preservando snapshots originais.
+Recusar IDs inválidos/de outro arquivo e identidades já usadas como primary ou
+incorporation; revalidar cobertura a cada rodada, sem herdar prova automaticamente.
+
 Ajuste v0.2.4: divergências sobre separação de findings devem ser
 resolvidas por evidência causal (pré-condições, contratos e consequências), com
 controle/contrafactual quando viável, não por votação de Challengers ou exemplos
@@ -606,9 +614,13 @@ Schema SQLite permanece v4; reinstalar as definições e reiniciar o host.
 com vínculos semânticos auditáveis via `baseline_match` e inspeção de baseline.
 Preserva rodadas antigas sem reescrevê-las; schema SQLite continua v4.
 
-**v0.2.4 (atual):** adjudicação de splits por evidência causal, sem votação
+**v0.2.4:** adjudicação de splits por evidência causal, sem votação
 ou exemplos como autoridade; semântica de NEW esclarecida e caso DSH pendente
 de adjudicação humana. Schema v4 e 14 tools MCP permanecem inalterados.
+
+**v0.2.5 (atual):** vínculos explícitos de incorporação histórica, com destino,
+justificativa e consequências cobertas; não confundem ausência com correção.
+README reorganizado; schema v4 e 14 tools MCP mantidos.
 
 **v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
 conhecimento framework-specific.

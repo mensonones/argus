@@ -34,6 +34,79 @@ function reconcileSingles(cwd) {
   })));
 }
 
+test("incorporation covers an old facet without marking it missing or fixed and preserves history", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const costCause = { symbol: "loadAccounts", mechanism: "per-id-io", invariant: "one-trip" };
+  const portCause = { symbol: "loadAccounts", mechanism: "undeclared-get", invariant: "declared-storage-surface" };
+  const original = [costCause, portCause].map((rootCause, i) => {
+    const id = recordFinding(cwd, finding({ title: `loadAccounts facet ${i}`, rootCause })).id;
+    recordChallenge(cwd, id, "CONFIRMED", "Fixture witness", undefined, undefined, rootCause);
+    return id;
+  });
+  reconcileSingles(cwd); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const before = listBaselineFindings(cwd).previous;
+  const id = recordFinding(cwd, finding({ title: "loadAccounts API regression", rootCause: costCause,
+    evidence: ["N calls with a both-methods adapter; getMany-only adapter throws on nonempty input"],
+    description: "Batch operation replaced by individual calls; includes conditional interface failure." })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Both consequences preserved", undefined, undefined, costCause);
+  const link = { finding_id: original[1], reasoning: "Maintainer-approved grouping: interface symptom remains in canonical content, not fixed.",
+    covered_claims: ["Nonempty getMany-only adapter throws TypeError because get is missing."] };
+  const group = { canonical_id: id, members: [{ finding_id: id, category: "performance" }], rootCause: costCause,
+    reasoning: "One API regression with two retained consequences", claims_reviewed: true,
+    baseline_match: { finding_id: original[0], reasoning: "Same round-trip defect" }, incorporated_baselines: [link] };
+  for (const bad of ["unknown", id, original[0]]) {
+    assert.throws(() => reconcileFindings(cwd, [{ ...group, incorporated_baselines: [{ ...link, finding_id: bad }] }]));
+  }
+  assert.throws(() => reconcileFindings(cwd, [{ ...group, incorporated_baselines: [link, link] }]), /incorporated identity/);
+  const other = recordFinding(cwd, finding({ rootCause: portCause })).id;
+  recordChallenge(cwd, other, "CONFIRMED", "Separate current facet fixture", undefined, undefined, portCause);
+  const otherGroup = { canonical_id: other, members: [{ finding_id: other, category: "correctness" }],
+    rootCause: portCause, reasoning: "Separate primary fixture", claims_reviewed: true,
+    baseline_match: { finding_id: original[1], reasoning: "Same port facet" } };
+  assert.throws(() => reconcileFindings(cwd, [group, otherGroup]), /incorporated identity/);
+  recordChallenge(cwd, other, "REJECTED", "Fixture removed before valid consolidation");
+  for (const invalid of [{ ...link, reasoning: " " }, { ...link, covered_claims: [] }]) {
+    assert.throws(() => reconcileFindings(cwd, [{ ...group, incorporated_baselines: [invalid] }]));
+  }
+  reconcileFindings(cwd, [group]);
+  const out = report({ cwd, format: "json", minSeverity: "critical", write: false, promoteGlobal: false });
+  assert.equal(out.result.findings.length, 0); // Filtering does not erase the canonical link.
+  assert.equal(out.result.incorporatedBaselineCount, 1);
+  assert.equal(out.result.unmatchedPreviousCount, 0);
+  assert.equal(out.result.resolvedCount, 0);
+  assert.equal(out.result.incorporatedBaselineFindings[0].intoFindingId, id);
+  assert.deepEqual(JSON.parse(out.rendered).incorporatedBaselineFindings[0].coveredClaims, link.covered_claims);
+  const history = listBaselineFindings(cwd);
+  assert.deepEqual(history.previous, before); // Original two-finding snapshot is untouched.
+  assert.match(report({ cwd, format: "markdown", write: false, promoteGlobal: false }).rendered, /Historical findings incorporated — not fixed/);
+  assert.match(report({ cwd, format: "terminal", write: false, promoteGlobal: false }).rendered, /incorporated — not fixed/);
+  await initReview({ cwd });
+  const canonical = listBaselineFindings(cwd).previous[0];
+  assert.equal(canonical.baselineIncorporations[0].findingId, original[1]);
+  assert.equal(canonical.baselineIdentity, original[0]);
+  const next = recordFinding(cwd, finding({ rootCause: costCause })).id;
+  recordChallenge(cwd, next, "CONFIRMED", "Current primary defect verified", undefined, undefined, costCause);
+  reconcileSingles(cwd);
+  const result = report({ cwd, write: false, promoteGlobal: false }).result;
+  assert.equal(result.findings[0].baselineStatus, "persistent");
+  assert.equal(result.incorporatedBaselineCount, 0); // Never silently claim the old symptom was revalidated.
+});
+
+test("incorporation refuses cross-file references", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const a = recordFinding(cwd, finding({ file: "a.js" })).id;
+  const b = recordFinding(cwd, finding({ file: "b.js" })).id;
+  [a, b].forEach(id => recordChallenge(cwd, id, "CONFIRMED", "Verified"));
+  reconcileSingles(cwd); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const id = recordFinding(cwd, finding({ file: "a.js" })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Verified");
+  const group = { canonical_id: id, members: [{ finding_id: id, category: "security" }], rootCause: ownerCause,
+    reasoning: "Fixture", claims_reviewed: true, incorporated_baselines: [{ finding_id: b, reasoning: "Fixture", covered_claims: ["claim"] }] };
+  assert.throws(() => reconcileFindings(cwd, [group]), /same file/);
+});
+
 test("canonical history and explicit links preserve three identities across changed prose and lenses", async () => {
   const cwd = repo(); await initReview({ cwd });
   const pairs = [0, 1, 2].map(i => [0, 1].map(j => recordFinding(cwd, finding({ title: `first-${i}-${j}` })).id));

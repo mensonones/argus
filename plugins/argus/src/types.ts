@@ -78,6 +78,10 @@ export interface Finding {
   consolidation?: { canonicalId: string; memberIds: string[]; reasoning: string };
   baselineIdentity?: string;
   baselineMatch?: { findingId: string; reasoning: string };
+  baselineIncorporations?: Array<{
+    findingId: string; baselineIdentity: string; title: string;
+    reasoning: string; coveredClaims: string[];
+  }>;
   severity: Severity;
   confidence: Confidence;
   file: string;

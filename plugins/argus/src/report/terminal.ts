@@ -90,6 +90,8 @@ export function renderTerminal(result: ReviewResult): string {
     if (f.baselineStatus) out.push(block("Baseline", `  ${f.baselineStatus.toUpperCase()}`));
     if (f.baselineIdentity) out.push(block("Baseline identity", f.baselineIdentity));
     if (f.baselineMatch) out.push(block("Historical match", `${f.baselineMatch.findingId}: ${f.baselineMatch.reasoning}`));
+    for (const link of f.baselineIncorporations ?? []) out.push(block("Incorporated historical finding (not fixed)",
+      `${link.findingId} (identity ${link.baselineIdentity}): ${link.reasoning}\nCovered: ${link.coveredClaims.join("; ")}`));
     if (f.recommendation) {
       out.push(block("Recommendation", f.recommendation));
     }
@@ -103,6 +105,12 @@ export function renderTerminal(result: ReviewResult): string {
           (f.challenge ? ` · challenger: ${f.challenge.result}` : ""),
       ),
     );
+  }
+
+  if (result.incorporatedBaselineFindings.length > 0) {
+    out.push("", color.bold("Historical findings incorporated — not fixed"));
+    for (const finding of result.incorporatedBaselineFindings) out.push(
+      `  ${finding.file} — ${finding.title} (${finding.findingId}) → ${finding.intoFindingId}: ${finding.reasoning}`);
   }
 
   if (result.unmatchedPreviousFindings.length > 0) {

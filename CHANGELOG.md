@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.5 — 2026-09-13
+
+- Explicit incorporated_baselines links retain covered historical consequences,
+  rationale and destination canonical IDs without claiming a fix or absence.
+- Reports/JSON distinguish incorporated history from unmatched findings; links
+  survive filtering in canonical snapshots, without silently asserting coverage
+  in later rounds. Identity conflicts and unknown/cross-file references fail.
+- Maintainer accepted one loadAccounts finding with two verified consequences
+  for this lab diff; original artifacts and pilot labels remain unchanged.
+- Reorganized README status into released capabilities, plans and validation limits.
+
+SQLite schema remains v4 and MCP tool count remains 14. Incorporation is optional;
+each current round must validate and explicitly record covered consequences.
+Reinstall host definitions and restart the host before using this workflow.
+
 ## 0.2.4 — 2026-09-13
 
 - Reconciliation guidance uses causal evidence and targeted controls for disputed

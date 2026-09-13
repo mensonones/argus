@@ -19,6 +19,8 @@ export function renderJson(result: ReviewResult): string {
       resolvedFindings: result.resolvedFindings,
       unmatchedPreviousCount: result.unmatchedPreviousCount,
       unmatchedPreviousFindings: result.unmatchedPreviousFindings,
+      incorporatedBaselineCount: result.incorporatedBaselineCount,
+      incorporatedBaselineFindings: result.incorporatedBaselineFindings,
       skippedReason: result.skippedReason,
     },
     null,

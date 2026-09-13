@@ -61,7 +61,7 @@ export async function startServer(): Promise<void> {
 
   server.registerTool("argus_reconcile", {
     title: "Reconcile challenged findings before reporting",
-    description: "Required coordinator step: cover every surviving finding exactly once with canonical IDs, member categories, root cause and reasoning. Review all claims and correct canonical content before grouping. Do not merge distinct defects by line proximity or lens. Use [] for zero findings. Later finding or verdict changes invalidate reconciliation.",
+    description: "Required coordinator step: cover every surviving finding exactly once with canonical IDs, member categories, root cause and reasoning. Review all claims and correct canonical content before grouping. Use incorporated_baselines only for historical consequences verified and retained in current canonical content: supply historical IDs, reasoning and covered_claims. Incorporation is not a fix or suppression; links cannot claim the same identity twice. Do not merge distinct defects by line proximity or lens. Use [] for zero findings. Later finding or verdict changes invalidate reconciliation.",
     inputSchema: { groups: reconciliationSchema },
   }, async args => {
     try { return text(reconcileFindings(targetCwd(), args.groups)); }
