@@ -40,6 +40,16 @@ include stack detection or stack-specific skills.
 
 ## Evidence and evaluation
 
+In development: `argus_init.stack` exposes declared framework, test-runner and
+package-manager hints from the root and affected JS/TS package manifests. Each
+signal names its source file and field; these are not verified runtime usage.
+Inspection is limited to 64 affected directories and 1 MiB per manifest, with
+warnings/truncation disclosed. Sibling packages and dependency trees are not
+scanned. Stack-specific skills and broader ecosystem detection remain planned.
+
+The [Codex Tests Reviewer lab observation](eval/observations/2026-09-17-codex-tests-lab.md)
+validates one synthetic workflow, not general review quality.
+
 Findings and Challenger verdicts optionally carry an `evidencePackage` v1:
 revision, working-tree state, validation method, execution path, preconditions,
 expected/observed behavior, limitations and optional negative control. Executed

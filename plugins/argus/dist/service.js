@@ -78,6 +78,7 @@ export async function initReview(opts) {
             roundId: round.id,
             baseRef: diff.baseRef,
             overview: context.overview,
+            stack: context.metadata.stack,
             changedFiles,
             reviewableFiles,
             ignoredFiles,

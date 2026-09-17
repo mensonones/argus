@@ -68,6 +68,7 @@ export interface InitResult {
   roundId: string;
   baseRef: string;
   overview: string;
+  stack: import("./context/stack.js").StackDetection;
   changedFiles: {
     path: string;
     status: string;
@@ -134,6 +135,7 @@ export async function initReview(opts: InitOptions): Promise<InitResult> {
       roundId: round.id,
       baseRef: diff.baseRef,
       overview: context.overview,
+      stack: context.metadata.stack,
       changedFiles,
       reviewableFiles,
       ignoredFiles,

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Structured JS/TS stack hints in argus_init and reviewer context, with manifest provenance and declared test runners/package managers.
+- Root and changed-path ancestor manifests support affected monorepo packages, with bounded inspection, malformed-manifest warnings and external-target exclusion.
+- Recorded the first Codex Tests Reviewer synthetic workflow observation; broader stack ecosystems and stack-specific skills remain pending.
+
 ## 0.3.0-alpha.1 — 2026-09-17
 
 - Opt-in Tests Reviewer and tests-review skill for concrete test reliability defects.

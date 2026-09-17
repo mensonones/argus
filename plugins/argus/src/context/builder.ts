@@ -1,12 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { RepoDiff } from "../git.js";
+import { detectStack, type StackDetection } from "./stack.js";
 
 export interface ProjectMetadata {
   languages: string[];
   frameworks: string[];
   packageManager?: string;
   summary: string;
+  stack: StackDetection;
 }
 
 export interface ReviewContext {
@@ -23,14 +25,6 @@ async function exists(p: string): Promise<boolean> {
     return true;
   } catch {
     return false;
-  }
-}
-
-async function readJson(p: string): Promise<Record<string, unknown> | null> {
-  try {
-    return JSON.parse(await fs.readFile(p, "utf8"));
-  } catch {
-    return null;
   }
 }
 
@@ -53,19 +47,6 @@ const EXT_LANG: Record<string, string> = {
   ".sql": "SQL",
 };
 
-/** Detect frameworks from JS/TS dependency names. */
-const JS_FRAMEWORK_HINTS: Record<string, string> = {
-  react: "React",
-  "react-native": "React Native",
-  next: "Next.js",
-  express: "Express",
-  "@nestjs/core": "NestJS",
-  fastify: "Fastify",
-  vue: "Vue",
-  "@angular/core": "Angular",
-  svelte: "Svelte",
-};
-
 export async function buildContext(
   repoRoot: string,
   diff: RepoDiff,
@@ -81,6 +62,8 @@ async function detectMetadata(
 ): Promise<ProjectMetadata> {
   const languages = new Set<string>();
   const frameworks = new Set<string>();
+  const stack = await detectStack(repoRoot, diff.files.map(f => f.path));
+  for (const signal of stack.signals) if (signal.kind === "framework") frameworks.add(signal.name);
   let packageManager: string | undefined;
 
   // Languages from changed-file extensions.
@@ -90,22 +73,15 @@ async function detectMetadata(
   }
 
   // JS/TS ecosystem.
-  const pkg = await readJson(path.join(repoRoot, "package.json"));
-  if (pkg) {
+  if (stack.manifests.includes("package.json")) {
     // Language comes from file extensions; only add a baseline if none matched.
     if (languages.size === 0) languages.add("JavaScript");
-    const deps = {
-      ...(pkg.dependencies as Record<string, string> | undefined),
-      ...(pkg.devDependencies as Record<string, string> | undefined),
-    };
-    for (const [dep, label] of Object.entries(JS_FRAMEWORK_HINTS)) {
-      if (deps[dep]) frameworks.add(label);
-    }
-    if (await exists(path.join(repoRoot, "pnpm-lock.yaml")))
+    packageManager = stack.signals.find(s => s.kind === "package-manager" && s.manifest === "package.json")?.name;
+    if (!packageManager && await exists(path.join(repoRoot, "pnpm-lock.yaml")))
       packageManager = "pnpm";
-    else if (await exists(path.join(repoRoot, "yarn.lock")))
+    else if (!packageManager && await exists(path.join(repoRoot, "yarn.lock")))
       packageManager = "yarn";
-    else if (await exists(path.join(repoRoot, "package-lock.json")))
+    else if (!packageManager && await exists(path.join(repoRoot, "package-lock.json")))
       packageManager = "npm";
   }
 
@@ -126,7 +102,7 @@ async function detectMetadata(
     (await exists(path.join(repoRoot, "build.gradle")))
   ) {
     languages.add("Java");
-    if (await exists(path.join(repoRoot, "pom.xml"))) frameworks.add("Maven");
+    if (await exists(path.join(repoRoot, "pom.xml"))) packageManager ??= "Maven";
   }
   if (await exists(path.join(repoRoot, "Cargo.toml"))) {
     languages.add("Rust");
@@ -148,6 +124,7 @@ async function detectMetadata(
     languages: [...languages],
     frameworks: [...frameworks],
     packageManager,
+    stack,
     summary: summaryParts.join(" · ") || "Unknown project type",
   };
 }
@@ -161,6 +138,9 @@ function renderOverview(diff: RepoDiff, metadata: ProjectMetadata): string {
     .join("\n");
   return [
     `Project: ${metadata.summary}`,
+    ...metadata.stack.signals.map(s => `Stack hint (declaration, not verified usage): ${s.kind} ${s.name} — ${s.manifest}: ${s.evidence}`),
+    ...metadata.stack.warnings.map(w => `Stack detection limitation: ${w}`),
+    ...(metadata.stack.truncated ? ["Stack detection limit: only 64 affected directories inspected; hints are incomplete."] : []),
     `Base: ${diff.baseRef}`,
     `Changed files (${diff.files.length}):`,
     fileLines,

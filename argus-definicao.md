@@ -635,6 +635,11 @@ hosts, diagnósticos e teste do fluxo completo. Schema v4 e 14 tools MCP mantido
 **v0.3 (restante)** — skills stack-specific; detecção de stack;
 conhecimento framework-specific.
 
+Em desenvolvimento após alpha.1: detecção JS/TS estruturada em `argus_init.stack`,
+com manifests da raiz e ancestrais dos arquivos alterados, origem de cada sinal,
+runners declarados e limites explícitos. Não executa scripts nem certifica uso
+real da dependência. Outros ecossistemas e skills stack-specific seguem pendentes.
+
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
 compartilháveis por equipe.
 
