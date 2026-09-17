@@ -1,6 +1,7 @@
 import type { Finding, Severity } from "../types.js";
 import type { ReviewResult } from "./result.js";
 import { color } from "../logger.js";
+import { personaLabel, PERSONAS } from "../personas.js";
 
 function severityTag(sev: Severity): string {
   const label = sev.toUpperCase().padEnd(8);
@@ -35,7 +36,7 @@ export function renderTerminal(result: ReviewResult): string {
   out.push("");
   out.push(
     `${result.reviewersRun.length} reviewers executed` +
-      color.dim(`  (${result.reviewersRun.join(", ") || "none"})`),
+      color.dim(`  (${result.reviewersRun.map(personaLabel).join(", ") || "none"})`),
   );
   out.push(`${result.candidateCount} candidate findings`);
   out.push(`${result.rejectedCount} rejected by Challenger`);
@@ -97,12 +98,12 @@ export function renderTerminal(result: ReviewResult): string {
     }
     const detected =
       f.detectedBy && f.detectedBy.length > 1
-        ? f.detectedBy.join(", ")
-        : f.reviewer;
+        ? f.detectedBy.map(personaLabel).join(", ")
+        : personaLabel(f.reviewer);
     out.push(
       color.dim(
         `detected by ${detected}` +
-          (f.challenge ? ` · challenger: ${f.challenge.result}` : ""),
+          (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}` : ""),
       ),
     );
   }

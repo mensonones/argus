@@ -1,0 +1,9 @@
+{
+    "coordinator": { "name": "Argus", "agent": null },
+    "correctness": { "name": "Atena", "agent": "argus-correctness" },
+    "security": { "name": "Cerbero", "agent": "argus-security" },
+    "performance": { "name": "Hermes", "agent": "argus-performance" },
+    "architecture": { "name": "Dedalo", "agent": "argus-architecture" },
+    "tests": { "name": "Temis", "agent": "argus-tests" },
+    "challenger": { "name": "Momo", "agent": "argus-challenger" }
+}

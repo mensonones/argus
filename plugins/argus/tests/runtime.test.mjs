@@ -9,6 +9,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { loadConfig, enabledReviewers } from "../dist/config.js";
 import { ARGUS_VERSION } from "../dist/version.js";
+import { PERSONAS, personaLabel } from "../dist/personas.js";
 import { GlobalMemory, Memory } from "../dist/db.js";
 import { deduplicate, scoreFinding } from "../dist/dedup.js";
 import { buildDiff } from "../dist/git.js";
@@ -43,6 +44,8 @@ test("tests reviewer is opt-in and its challenged finding survives the full pipe
   fs.writeFileSync(path.join(cwd, "contract.test.js"), "import assert from 'node:assert/strict';\nconst actual = 99;\nassert.equal(actual, actual);\n");
   const initialized = await initReview({ cwd });
   assert.ok(initialized.enabledReviewers.includes("tests"));
+  assert.equal(initialized.personas.tests.name, "Temis");
+  assert.equal(initialized.personas.challenger.agent, "argus-challenger");
   assert.ok(initialized.reviewableFiles.includes("contract.test.js"));
   assert.equal(initialized.stackSkills.find(s => s.skill === "node-test-review").files[0], "contract.test.js");
   const ineffective = spawnSync(process.execPath, ["--input-type=module", "-e", "import assert from 'node:assert/strict'; const actual=99; assert.equal(actual,actual);"], { encoding: "utf8" });
@@ -59,6 +62,31 @@ test("tests reviewer is opt-in and its challenged finding survives the full pipe
   const result = report({ cwd, write: false, promoteGlobal: false }).result;
   assert.equal(result.findings.length, 1); assert.equal(result.findings[0].category, "tests");
   assert.ok(result.reviewersRun.includes("tests"));
+  const markdown = report({ cwd, format: "markdown", write: false, promoteGlobal: false }).rendered;
+  const terminal = report({ cwd, format: "terminal", write: false, promoteGlobal: false }).rendered;
+  assert.match(markdown, /Temis \(tests\)/); assert.match(markdown, /Challenger: Momo/);
+  assert.match(terminal, /Temis \(tests\)/);
+  const json = JSON.parse(report({ cwd, format: "json", write: false, promoteGlobal: false }).rendered);
+  assert.ok(json.reviewers.includes("tests"));
+  assert.equal(json.findings[0].reviewer, "tests");
+  assert.equal(json.findings[0].category, "tests");
+});
+
+test("display personas preserve technical agent handles across generated hosts", () => {
+  assert.equal(personaLabel("legacy-custom-reviewer"), "legacy-custom-reviewer");
+  assert.equal(personaLabel("__proto__"), "__proto__");
+  const root = fileURLToPath(new URL("../../..", import.meta.url));
+  for (const persona of Object.values(PERSONAS)) {
+    if (!persona.agent) continue;
+    const canonical = fs.readFileSync(path.join(root, "plugins/argus/agents", `${persona.agent}.md`), "utf8");
+    const codex = fs.readFileSync(path.join(root, ".codex/agents", `${persona.agent}.toml`), "utf8");
+    const opencode = fs.readFileSync(path.join(root, ".opencode/agents", `${persona.agent}.md`), "utf8");
+    assert.ok(canonical.includes(`name: ${persona.agent}\n`));
+    assert.ok(canonical.includes(`**${persona.name}**`));
+    assert.ok(codex.includes(`name = "${persona.agent}"`));
+    assert.ok(codex.includes(`description = "${persona.name} — `));
+    assert.ok(opencode.includes(`description: ${persona.name} — `));
+  }
 });
 
 test("baseline query is compact, paginated, filtered and retrieves exact evidence", async () => {

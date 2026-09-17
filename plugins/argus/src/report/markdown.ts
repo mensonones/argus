@@ -1,5 +1,6 @@
 import type { Finding, Severity } from "../types.js";
 import type { ReviewResult } from "./result.js";
+import { personaLabel, PERSONAS } from "../personas.js";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   info: "INFO",
@@ -83,10 +84,10 @@ function renderFinding(f: Finding, index: number): string {
     lines.push("");
   }
   const detected = f.detectedBy && f.detectedBy.length > 1
-    ? f.detectedBy.join(", ")
-    : f.reviewer;
+    ? f.detectedBy.map(personaLabel).join(", ")
+    : personaLabel(f.reviewer);
   const challenge = f.challenge
-    ? ` · Challenger: ${f.challenge.result}`
+    ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}`
     : "";
   lines.push(`_Detected by: ${detected}${challenge}_`);
   return lines.join("\n");
@@ -100,7 +101,7 @@ export function renderMarkdown(result: ReviewResult): string {
   out.push("");
   out.push(`- Base: \`${result.baseRef}\``);
   out.push(
-    `- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.join(", ") || "none"}`,
+    `- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.map(personaLabel).join(", ") || "none"}`,
   );
   out.push(`- ${result.candidateCount} candidate finding(s)`);
   out.push(`- ${result.rejectedCount} rejected by Challenger`);

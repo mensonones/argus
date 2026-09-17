@@ -483,6 +483,12 @@ Muito melhor do que: `Consider adding idempotency here.`
 
 ## 16. Skills e conhecimento stack-specific
 
+Personas (nomes de apresentação): Argus coordena; Atena revisa correctness,
+Cerbero security, Hermes performance, Dedalo architecture, Temis tests e Momo
+atua como Challenger. Os IDs técnicos não mudam. Nomes de instância atribuídos
+pelo host podem diferir; carregar instruções e skills da persona continua
+necessário. Catálogo em `argus_init.personas`, independente das lentes habilitadas.
+
 Skills fornecem conhecimento especializado que os reviewers carregam:
 
 ```text
@@ -638,13 +644,18 @@ hosts, diagnósticos e teste do fluxo completo. Schema v4 e 14 tools MCP mantido
 **v0.3 (restante)** — mais ecossistemas e skills stack-specific;
 validação real do conhecimento framework-specific.
 
-**v0.3.0-alpha.2 (atual):** detecção JS/TS estruturada em `argus_init.stack`,
+**v0.3.0-alpha.2:** detecção JS/TS estruturada em `argus_init.stack`,
 com manifests da raiz e ancestrais dos arquivos alterados, origem de cada sinal,
 runners declarados e limites explícitos. Não executa scripts nem certifica uso
 real da dependência. Sugestões `stackSkills` respeitam pacote mais próximo,
 arquivos revisáveis e lentes habilitadas. Primeiros complementos React/node:test
 incluídos na release; outros ecossistemas e skills seguem pendentes. Schema v4
 e 14 tools MCP mantidos; qualidade de review React ainda não validada em uso real.
+
+**v0.3.0-alpha.3 (atual):** personas nomeadas nos agentes, delegações e relatórios
+legíveis; catálogo em `argus_init.personas`. IDs técnicos, schema v4 e 14 tools
+MCP preservados. Nomes automáticos de instâncias continuam sob controle do host.
+Reinstalar definições e iniciar nova sessão após atualizar.
 
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
 compartilháveis por equipe.

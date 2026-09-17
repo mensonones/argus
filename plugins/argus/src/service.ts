@@ -11,6 +11,7 @@ import {
 } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
+import { PERSONAS } from "./personas.js";
 import { suggestStackSkills, type StackSkillSuggestion } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
@@ -82,6 +83,8 @@ export interface InitResult {
   ignoredFiles: string[];
   /** Reviewers enabled by argus.yaml, in priority order. */
   enabledReviewers: string[];
+  /** Display personas, not additional enabled reviewer IDs. */
+  personas: typeof PERSONAS;
   /** Architecture rules declared in argus.yaml (for argus-architecture). */
   architectureRules: string[];
   /** Report defaults derived from argus.yaml. */
@@ -143,6 +146,7 @@ export async function initReview(opts: InitOptions): Promise<InitResult> {
       reviewableFiles,
       ignoredFiles,
       enabledReviewers: reviewers,
+      personas: PERSONAS,
       architectureRules: config.architecture.rules,
       reportDefaults: {
         minSeverity: config.severity.minimum,

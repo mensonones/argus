@@ -13,7 +13,13 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.2** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.3** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.3
+
+Named specialist personas now appear in delegations and readable reports;
+technical agent IDs remain stable. See [Personas](#personas). Reinstall your host
+definitions and start a new session to load the updated instructions.
 
 ### New in v0.2.6
 
@@ -83,6 +89,27 @@ The eight-case synthetic pilot tests the evaluation workflow; it does **not**
 establish production review quality. No model API or API key is introduced.
 
 ## How it works
+
+### Personas
+
+Argus coordinates the named personas below. These display names appear in
+delegation instructions and readable reports; runtime IDs remain unchanged.
+
+| Persona | Role | Technical agent ID |
+| --- | --- | --- |
+| Atena | Correctness | `argus-correctness` |
+| Cerbero | Security | `argus-security` |
+| Hermes | Performance | `argus-performance` |
+| Dedalo | Architecture | `argus-architecture` |
+| Temis | Tests | `argus-tests` |
+| Momo | Challenger | `argus-challenger` |
+
+`argus_init.personas` exposes the display catalog, independently of enabled
+lenses. JSON/SQLite keep technical reviewer IDs. A host can still assign an
+instance a different name, such as Cicero; Argus does not control that label.
+A persona name alone is not evidence that its agent instructions were loaded.
+These personas ship in v0.3.0-alpha.3; reinstall host definitions and start a
+new session after upgrading.
 
 Argus is **not** a standalone bot with its own API key. It is a plugin for AI
 coding assistants (**Claude Code**, **Codex**, **OpenCode**, **DeepSeek
@@ -425,7 +452,9 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.2
+### Released — v0.3.0-alpha.3
+
+- **Personas:** named specialists and Challenger, with stable technical IDs.
 
 - **Review:** four specialist lenses, adversarial Challenger, evidence packets
   and auditable claim corrections.

@@ -5,6 +5,7 @@ import { repoRootSync, exportsDir } from "./paths.js";
 import { findingFingerprint, GlobalMemory, Memory, } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
+import { PERSONAS } from "./personas.js";
 import { suggestStackSkills } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
@@ -85,6 +86,7 @@ export async function initReview(opts) {
             reviewableFiles,
             ignoredFiles,
             enabledReviewers: reviewers,
+            personas: PERSONAS,
             architectureRules: config.architecture.rules,
             reportDefaults: {
                 minSeverity: config.severity.minimum,

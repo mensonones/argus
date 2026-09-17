@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0-alpha.3 — 2026-09-17
+
+- Named personas: Argus, Atena, Cerbero, Hermes, Dedalo, Temis and Momo.
+- Init exposes the display catalog; agent prompts, generated descriptions and readable reports use persona names while technical IDs and JSON/SQLite provenance remain stable.
+- Host-assigned instance names are not controlled by Argus; delegation must load the actual persona instructions and skills.
+
+Validated with 52 automated tests and an installed-package MCP handshake (14 tools).
+SQLite schema remains v4. Reinstall host definitions and start a new session.
+
 ## 0.3.0-alpha.2 — 2026-09-17
 
 - React and node:test supplements enrich existing reviewers without adding categories or enabling lenses.

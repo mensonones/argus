@@ -1,3 +1,4 @@
+import { personaLabel, PERSONAS } from "../personas.js";
 const SEVERITY_LABEL = {
     info: "INFO",
     low: "LOW",
@@ -91,10 +92,10 @@ function renderFinding(f, index) {
         lines.push("");
     }
     const detected = f.detectedBy && f.detectedBy.length > 1
-        ? f.detectedBy.join(", ")
-        : f.reviewer;
+        ? f.detectedBy.map(personaLabel).join(", ")
+        : personaLabel(f.reviewer);
     const challenge = f.challenge
-        ? ` · Challenger: ${f.challenge.result}`
+        ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}`
         : "";
     lines.push(`_Detected by: ${detected}${challenge}_`);
     return lines.join("\n");
@@ -106,7 +107,7 @@ export function renderMarkdown(result) {
     out.push(result.projectSummary);
     out.push("");
     out.push(`- Base: \`${result.baseRef}\``);
-    out.push(`- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.join(", ") || "none"}`);
+    out.push(`- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.map(personaLabel).join(", ") || "none"}`);
     out.push(`- ${result.candidateCount} candidate finding(s)`);
     out.push(`- ${result.rejectedCount} rejected by Challenger`);
     if (result.duplicatesRemoved > 0) {

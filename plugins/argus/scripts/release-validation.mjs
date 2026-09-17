@@ -26,6 +26,7 @@ try {
     "dist/bin/argus-mcp.js",
     "dist/sqlite.js",
     "dist/version.js",
+    "dist/personas.json",
     "skills/full-review/SKILL.md",
     "skills/react-review/SKILL.md",
     "skills/node-test-review/SKILL.md",

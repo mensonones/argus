@@ -3,14 +3,14 @@
   "owner": {
     "name": "Argus"
   },
-  "version": "0.3.0-alpha.2",
+  "version": "0.3.0-alpha.3",
   "description": "Argus plugins for Claude Code, Codex, OpenCode, and the DeepSeek Harness — agentic multi-perspective code review with an adversarial challenger.",
   "plugins": [
     {
       "name": "argus",
       "source": "./plugins/argus",
       "description": "A plugin for Claude Code, Codex, OpenCode, and the DeepSeek Harness (DSH) that reviews a code change from multiple specialist perspectives and validates every finding adversarially before reporting it.",
-      "version": "0.3.0-alpha.2",
+      "version": "0.3.0-alpha.3",
       "author": {
         "name": "mensonones"
       },

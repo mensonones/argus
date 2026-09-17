@@ -19,6 +19,14 @@ change reviewed.
 
 ## The pipeline
 
+The coordinator's persona is Argus. Init returns a `personas` display catalog:
+Atena (correctness), Cerbero (security), Hermes (performance), Dedalo
+(architecture), Temis (tests), Momo (challenger). Use these names in delegation
+titles/prompts and readable summaries, while recording technical reviewer IDs.
+Provide the selected agent's actual persona instructions and relevant skills;
+a display name alone does not load them. Host-assigned instance names may differ;
+do not claim that Argus can rename them. The catalog does not enable any lens.
+
 ```
 Init → Select reviewers → Review (delegate) → Challenge → Consolidate → Report
 ```

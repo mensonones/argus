@@ -1,4 +1,5 @@
 import { color } from "../logger.js";
+import { personaLabel, PERSONAS } from "../personas.js";
 function severityTag(sev) {
     const label = sev.toUpperCase().padEnd(8);
     switch (sev) {
@@ -29,7 +30,7 @@ export function renderTerminal(result) {
     out.push(color.dim(result.projectSummary.split("\n")[0]));
     out.push("");
     out.push(`${result.reviewersRun.length} reviewers executed` +
-        color.dim(`  (${result.reviewersRun.join(", ") || "none"})`));
+        color.dim(`  (${result.reviewersRun.map(personaLabel).join(", ") || "none"})`));
     out.push(`${result.candidateCount} candidate findings`);
     out.push(`${result.rejectedCount} rejected by Challenger`);
     if (result.duplicatesRemoved > 0) {
@@ -98,10 +99,10 @@ export function renderTerminal(result) {
             out.push(block("Recommendation", f.recommendation));
         }
         const detected = f.detectedBy && f.detectedBy.length > 1
-            ? f.detectedBy.join(", ")
-            : f.reviewer;
+            ? f.detectedBy.map(personaLabel).join(", ")
+            : personaLabel(f.reviewer);
         out.push(color.dim(`detected by ${detected}` +
-            (f.challenge ? ` · challenger: ${f.challenge.result}` : "")));
+            (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}` : "")));
     }
     if (result.incorporatedBaselineFindings.length > 0) {
         out.push("", color.bold("Historical findings incorporated — not fixed"));

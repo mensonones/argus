@@ -53,11 +53,14 @@ function tomlEscape(s) {
 const agentsDir = path.join(pluginDir, "agents");
 const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.endsWith(".md"));
 const agentNames = [];
+const personaCatalog = JSON.parse(read(path.join(pluginDir, "src", "personas.json")));
 
 for (const file of agentFiles) {
   const { data, body } = parseFrontmatter(read(path.join(agentsDir, file)));
   const name = data.name ?? path.basename(file, ".md");
-  const description = data.description ?? "";
+  const persona = Object.values(personaCatalog).find(p => p.agent === name);
+  if (!persona) throw new Error(`No display persona for agent ${name}`);
+  const description = `${persona.name} — ${data.description ?? ""}`;
   agentNames.push(name);
 
   // Codex TOML
