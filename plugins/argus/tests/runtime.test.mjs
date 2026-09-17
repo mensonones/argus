@@ -794,6 +794,48 @@ test("isolated MCP workers share candidates and verdicts without replacing coord
   } finally { await Promise.all(clients.map(client => client.close())); }
 });
 
+test("MCP: a child cannot open a parallel round while one is active; only an audited abandon unblocks", async () => {
+  const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+  const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
+  const clients = [];
+  async function worker() {
+    const client = new Client({ name: "round-guard-test", version: "1" });
+    clients.push(client);
+    await client.connect(new StdioClientTransport({ command: process.execPath,
+      args: [path.resolve(import.meta.dirname, "../dist/bin/argus-mcp.js")],
+      cwd: path.resolve(import.meta.dirname, ".."), stderr: "pipe" }));
+    return client;
+  }
+  const call = async (c, name, args) => {
+    const r = await c.callTool({ name, arguments: args });
+    assert.ok(!r.isError, JSON.stringify(r));
+    try { return JSON.parse(r.content[0].text); } catch { return r.content[0].text; }
+  };
+  const cwd = repo();
+  try {
+    const coordinator = await worker(), child = await worker();
+    const initialized = await call(coordinator, "argus_init", { repo_path: cwd, base: "main" });
+    const ctx = { repo_path: initialized.repoRoot, round_id: initialized.roundId };
+
+    // A child running ordinary init (no round_id) must NOT open a parallel round.
+    const parallel = await child.callTool({ name: "argus_init", arguments: { repo_path: cwd, base: "main" } });
+    assert.equal(parallel.isError, true);
+    assert.match(parallel.content[0].text, /active round already exists/i);
+
+    // The coordinator's round is untouched, and the child can still attach.
+    const memory = Memory.open(cwd); assert.equal(memory.activeRound().id, ctx.round_id); memory.close();
+    assert.equal((await call(child, "argus_init", ctx)).attached, true);
+
+    // Abandon is guarded: an empty reason is rejected.
+    assert.equal((await child.callTool({ name: "argus_abandon_round", arguments: { ...ctx, reason: "" } })).isError, true);
+
+    // Explicit, audited abandon then frees a fresh round.
+    assert.equal((await call(coordinator, "argus_abandon_round", { ...ctx, reason: "context unrecoverable" })).abandoned, ctx.round_id);
+    const second = await call(coordinator, "argus_init", { repo_path: cwd, base: "main" });
+    assert.notEqual(second.roundId, ctx.round_id);
+  } finally { await Promise.all(clients.map(c => c.close())); }
+});
+
 test("MCP init accepts an explicit target repository path", () => {
   const cwd = repo();
   fs.writeFileSync(path.join(cwd, "app.js"), "export const value = 3;\n");
