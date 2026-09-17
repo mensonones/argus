@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Formalized release scope, RC/stable completion gates, host/stack validation and real-diff evaluation requirements in ROADMAP.md. CI reasoning-engine choice is an explicit prerequisite; future alpha numbers/dates are not promised.
+
 ## 0.3.0-alpha.5 — 2026-09-17
 
 - MCP calls accept explicit shared repo_path + round_id; fresh child instances can record candidates and verdicts in the coordinator round without initializing a separate review.

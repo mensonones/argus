@@ -511,9 +511,16 @@ command.
 
 ### Planned
 
-- Broader stack ecosystems and additional stack-specific skills.
-- GitHub Action integration.
-- Broader live validation across real diffs, hosts and models.
+- **0.3:** stabilize shared-round delegation and validate React/node:test across
+  hosts, repeated baselines and human-adjudicated real diffs; additional stacks
+  are conditional on their own evidence and controls.
+- **0.4:** GitHub Action, optional PR publication and team baseline/suppression
+  policies, after an explicit decision about the reasoning engine in CI.
+- **0.5:** auditable repository context memory.
+- **1.0:** stable contracts, maintained host matrix and expanded real-world evaluation.
+
+See the [formal roadmap and completion gates](ROADMAP.md). Future alpha numbers
+and dates are not promised; RC/stable depend on recorded validation.
 
 ### Validation limits
 

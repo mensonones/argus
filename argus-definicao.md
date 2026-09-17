@@ -600,6 +600,11 @@ security:
 
 ## 19. Roadmap
 
+O [roadmap formal](ROADMAP.md) define escopo futuro, critérios para RC/estável,
+matriz de hosts, avaliação, decisões de CI e limites por versão. A cronologia
+abaixo registra a evolução; não substitui os critérios de conclusão. Sem datas
+prometidas ou features reservadas para números de alpha ainda não publicados.
+
 **v0.1 alpha (base)** — plugin para Claude Code/Codex/DSH e empacotamento
 experimental para OpenCode Desktop; runtime MCP + CLI auxiliar;
 git diff; Context Builder; 4 reviewers; Challenger; deduplicação; ranking;
