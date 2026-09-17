@@ -53,6 +53,10 @@ the finding's text alone.
 - **REJECTED** — a gate fails. State exactly which protection or fact refutes it.
 
 Record via `mcp__argus__argus_record_challenge` with `finding_id`, `verdict`, and `reasoning`
+and `execution` describing the actual mode: delegated child with host `agentId`,
+or coordinator fallback with its reason in `detail`. Never invent a child ID or
+describe the coordinator as an independent subagent. This is reported provenance,
+not runtime-certified independence.
 grounded in the specific code you inspected. Rejecting a weak finding is a
 success, not a failure — it is the whole point of Argus.
 

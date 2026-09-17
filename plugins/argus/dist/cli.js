@@ -164,13 +164,13 @@ export async function main(argv) {
                 const { values } = parseArgs({
                     args: rest.slice(2),
                     options: { reason: { type: "string" }, "evidence-package": { type: "string" },
-                        correction: { type: "string" }, "root-cause": { type: "string" } },
+                        correction: { type: "string" }, "root-cause": { type: "string" }, execution: { type: "string" } },
                 });
                 if (!id || !["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(verdict)) {
                     console.error("Usage: argus challenge <id> <CONFIRMED|PLAUSIBLE|REJECTED> --reason <text>");
                     return 1;
                 }
-                const ok = recordChallenge(cwd, id, verdict, values.reason ?? "", values["evidence-package"] ? JSON.parse(values["evidence-package"]) : undefined, values.correction ? JSON.parse(values.correction) : undefined, values["root-cause"] ? JSON.parse(values["root-cause"]) : undefined);
+                const ok = recordChallenge(cwd, id, verdict, values.reason ?? "", values["evidence-package"] ? JSON.parse(values["evidence-package"]) : undefined, values.correction ? JSON.parse(values.correction) : undefined, values["root-cause"] ? JSON.parse(values["root-cause"]) : undefined, values.execution ? JSON.parse(values.execution) : undefined);
                 console.log(ok ? `Recorded ${verdict} for ${id}.` : `No finding ${id}.`);
                 return ok ? 0 : 1;
             }

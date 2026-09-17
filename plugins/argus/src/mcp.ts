@@ -19,7 +19,7 @@ import {
 } from "./service.js";
 import type { Severity } from "./types.js";
 import { ARGUS_VERSION } from "./version.js";
-import { evidencePackageSchema } from "./evidence.js";
+import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
 import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
 
 const SERVER_CWD = process.cwd();
@@ -179,6 +179,7 @@ export async function startServer(): Promise<void> {
       inputSchema: {
         finding_id: z.string(),
         verdict: z.enum(["CONFIRMED", "PLAUSIBLE", "REJECTED"]),
+        execution: challengeExecutionSchema.optional(),
         reasoning: z.string().trim().min(1),
         evidencePackage: evidencePackageSchema.optional(),
         rootCause: rootCauseSchema.optional(),
@@ -187,7 +188,7 @@ export async function startServer(): Promise<void> {
     },
     async (args) => {
       try {
-        const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage, args.correction, args.rootCause);
+        const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage, args.correction, args.rootCause, args.execution);
         return text(
           ok
             ? `Recorded ${args.verdict} for ${args.finding_id}.`

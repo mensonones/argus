@@ -191,7 +191,7 @@ export async function main(argv: string[]): Promise<number> {
         const { values } = parseArgs({
           args: rest.slice(2),
           options: { reason: { type: "string" }, "evidence-package": { type: "string" },
-            correction: {type:"string"}, "root-cause": {type:"string"} },
+            correction: {type:"string"}, "root-cause": {type:"string"}, execution: {type:"string"} },
         });
         if (!id || !["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(verdict)) {
           console.error("Usage: argus challenge <id> <CONFIRMED|PLAUSIBLE|REJECTED> --reason <text>");
@@ -205,6 +205,7 @@ export async function main(argv: string[]): Promise<number> {
           values["evidence-package"] ? JSON.parse(values["evidence-package"]) as EvidencePackage : undefined,
           values.correction ? JSON.parse(values.correction) as FindingCorrection : undefined,
           values["root-cause"] ? JSON.parse(values["root-cause"]) as RootCause : undefined,
+          values.execution ? JSON.parse(values.execution) : undefined,
         );
         console.log(ok ? `Recorded ${verdict} for ${id}.` : `No finding ${id}.`);
         return ok ? 0 : 1;

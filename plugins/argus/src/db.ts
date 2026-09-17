@@ -14,6 +14,7 @@ import { reconciliationSchema } from "./validation.js";
 import type {
   Category,
   ChallengeResult,
+  ChallengeExecution,
   Confidence,
   Finding,
   EvidencePackage,
@@ -283,6 +284,7 @@ export class Memory {
     evidencePackage?: EvidencePackage,
     correction?: FindingCorrection,
     rootCause?: RootCause,
+    execution?: ChallengeExecution,
   ): boolean {
     return this.db.transaction(() => {
       const row = this.db.prepare("SELECT * FROM findings WHERE id=? AND round_id=?")
@@ -304,7 +306,7 @@ export class Memory {
           corrections:[...(original.corrections ?? []), {reason:correction.reason, original:content}]};
       }
       const cause = rootCause ?? original.rootCause;
-      const data = {rootCause:cause, rootCauseValidated:!!cause && result !== "REJECTED", corrections:revised.corrections};
+      const data = {rootCause:cause, rootCauseValidated:!!cause && result !== "REJECTED", corrections:revised.corrections, challengeExecution:execution};
       this.db.prepare(`UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?,
         evidence_package=COALESCE(?, evidence_package), review_data=?, title=?, description=?,
         evidence=?, impact=?, scenario=?, recommendation=?, severity=?, confidence=?
@@ -587,11 +589,12 @@ function migrateGlobal(db: ResilientDatabase): void {
 
 function rowToFinding(row: Record<string, unknown>): Finding {
   const review = typeof row.review_data === "string" ? JSON.parse(row.review_data) as
-    Pick<Finding, "rootCause" | "rootCauseValidated" | "corrections"> : {};
+    Pick<Finding, "rootCause" | "rootCauseValidated" | "corrections"> & { challengeExecution?: ChallengeExecution } : {};
+  const { challengeExecution, ...contentReview } = review;
   const start = row.start_line as number | null;
   const end = row.end_line as number | null;
   return {
-    ...review,
+    ...contentReview,
     id: row.id as string,
     title: row.title as string,
     category: row.category as Category,
@@ -613,6 +616,7 @@ function rowToFinding(row: Record<string, unknown>): Finding {
       ? {
           result: row.challenge_result as ChallengeResult,
           reasoning: (row.challenge_reasoning as string) ?? "",
+          execution: challengeExecution,
         }
       : undefined,
     detectedBy: safeJsonArray(row.detected_by),

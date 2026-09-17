@@ -652,10 +652,16 @@ arquivos revisáveis e lentes habilitadas. Primeiros complementos React/node:tes
 incluídos na release; outros ecossistemas e skills seguem pendentes. Schema v4
 e 14 tools MCP mantidos; qualidade de review React ainda não validada em uso real.
 
-**v0.3.0-alpha.3 (atual):** personas nomeadas nos agentes, delegações e relatórios
+**v0.3.0-alpha.3:** personas nomeadas nos agentes, delegações e relatórios
 legíveis; catálogo em `argus_init.personas`. IDs técnicos, schema v4 e 14 tools
 MCP preservados. Nomes automáticos de instâncias continuam sob controle do host.
 Reinstalar definições e iniciar nova sessão após atualizar.
+
+**v0.3.0-alpha.4 (atual):** instruções exigem delegação real ao Challenger quando
+disponível; fallback pelo coordenador deve declarar o motivo. Veredictos registram
+proveniência de execução e relatórios distinguem delegado, coordenador e não
+informado. Metadados são declarados pelos agentes, não prova de independência.
+Schema v4 e 14 tools MCP mantidos; reinstalar e abrir nova sessão após atualizar.
 
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
 compartilháveis por equipe.

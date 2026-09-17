@@ -1,4 +1,5 @@
 import { personaLabel, PERSONAS } from "../personas.js";
+import { challengeExecutionLabel } from "./challenge.js";
 const SEVERITY_LABEL = {
     info: "INFO",
     low: "LOW",
@@ -95,7 +96,7 @@ function renderFinding(f, index) {
         ? f.detectedBy.map(personaLabel).join(", ")
         : personaLabel(f.reviewer);
     const challenge = f.challenge
-        ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}`
+        ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result} · ${challengeExecutionLabel(f.challenge)}`
         : "";
     lines.push(`_Detected by: ${detected}${challenge}_`);
     return lines.join("\n");

@@ -36,6 +36,30 @@ function reconcileSingles(cwd) {
   })));
 }
 
+test("Challenger execution provenance survives storage and reports without certifying independence", async () => {
+  for (const execution of [undefined,
+    { mode: "coordinator", detail: "Host dispatch unavailable; instructions loaded" },
+    { mode: "delegated", agentId: "child-123", detail: "Child completed with Challenger instructions and gates" }]) {
+    const cwd = repo();
+    await initReview({ cwd });
+    const id = recordFinding(cwd, finding()).id;
+    assert.throws(() => recordChallenge(cwd, id, "CONFIRMED", "Checked", undefined, undefined, undefined,
+      { mode: "delegated", detail: "missing ID" }), /host agent/);
+    assert.throws(() => recordChallenge(cwd, id, "CONFIRMED", "Checked", undefined, undefined, undefined,
+      { mode: "coordinator", detail: "fallback", agentId: "fake" }), /cannot claim/);
+    recordChallenge(cwd, id, "CONFIRMED", "Inspected concrete path", undefined, undefined, undefined, execution);
+    assert.deepEqual(listFindings(cwd)[0].challenge.execution, execution);
+    reconcileSingles(cwd);
+    const md = report({ cwd, write: false, promoteGlobal: false }).rendered;
+    const terminal = report({ cwd, format: "terminal", write: false, promoteGlobal: false }).rendered;
+    const json = JSON.parse(report({ cwd, format: "json", write: false, promoteGlobal: false }).rendered);
+    assert.deepEqual(json.findings[0].challenge.execution, execution);
+    const expected = !execution ? /execution unspecified/ : execution.mode === "coordinator"
+      ? /not an independent subagent/ : /child-123.*not host-verified/;
+    assert.match(md, expected); assert.match(terminal, expected);
+  }
+});
+
 test("tests reviewer is opt-in and its challenged finding survives the full pipeline", async () => {
   const cwd = repo();
   assert.ok(!enabledReviewers(loadConfig(cwd).config).includes("tests"));

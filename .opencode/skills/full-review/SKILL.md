@@ -68,7 +68,20 @@ snapshot and observations can be established; never fabricate missing evidence.
    matching review skills sequentially in the coordinator instead.
 
 4. **Challenge.** For every candidate (`argus_list_findings status=candidate`),
-   dispatch `argus-challenger` to try to refute it and record CONFIRMED /
+   use the host's actual subagent dispatch capability when available. Launch
+   Momo with the `argus-challenger` persona instructions, `challenger-validation`,
+   evidence/correction contracts and relevant stack supplement; a name or role
+   string alone is insufficient. Supply candidate IDs, workspace and permission
+   boundaries. Wait for the child to finish and verify every verdict is recorded.
+   The coordinator must not validate candidates itself merely for convenience.
+   If dispatch is unavailable, prohibited or fails, disclose the specific reason
+   and load those instructions before sequential coordinator validation. Do not
+   claim an independent Challenger was run in this fallback.
+   Record `execution` on each verdict: `mode=delegated`, actual host `agentId`
+   and `detail` describing loaded instructions/delegation, or `mode=coordinator`
+   with `detail` explaining the fallback. Never invent an ID. This metadata is
+   agent-reported provenance, not host verification or proof of independence.
+   Have the Challenger try to refute it and record CONFIRMED /
    PLAUSIBLE / REJECTED via `argus_record_challenge`. High/critical candidates
    should include a reproduction or negative control when practical. Never skip
    this. A coordinator must never suppress a finding on its own; suppression is
@@ -131,8 +144,12 @@ snapshot and observations can be established; never fabricate missing evidence.
    correctness, security, performance, architecture, tests. Missing or invalid
    values fail instead of silently becoming correctness.
 
-6. **Present.** Lead with the top findings. Each: `severity · category ·
-   file:line`, the problem, the evidence, the concrete impact, the fix. Report
+6. **Present.** Lead with the top findings.
+   Disclose whether Challenger validation was delegated, performed by the
+   coordinator, mixed or unspecified. Only claim delegated execution when an
+   actual child was dispatched and completed; distinguish recorded metadata
+   from host-visible execution evidence.
+   Each: `severity · category · file:line`, the problem, the evidence, the concrete impact, the fix. Report
    the funnel: N candidates → M rejected by challenger → K duplicates merged →
    final findings. Include baseline state (`new`, `persistent`, `regression`) and
    previous findings not redetected when present (never claim fixed without

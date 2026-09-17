@@ -2,6 +2,7 @@ import type { Finding, Severity } from "../types.js";
 import type { ReviewResult } from "./result.js";
 import { color } from "../logger.js";
 import { personaLabel, PERSONAS } from "../personas.js";
+import { challengeExecutionLabel } from "./challenge.js";
 
 function severityTag(sev: Severity): string {
   const label = sev.toUpperCase().padEnd(8);
@@ -103,7 +104,7 @@ export function renderTerminal(result: ReviewResult): string {
     out.push(
       color.dim(
         `detected by ${detected}` +
-          (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}` : ""),
+          (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result} · ${challengeExecutionLabel(f.challenge)}` : ""),
       ),
     );
   }

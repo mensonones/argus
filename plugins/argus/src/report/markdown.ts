@@ -1,6 +1,7 @@
 import type { Finding, Severity } from "../types.js";
 import type { ReviewResult } from "./result.js";
 import { personaLabel, PERSONAS } from "../personas.js";
+import { challengeExecutionLabel } from "./challenge.js";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   info: "INFO",
@@ -87,7 +88,7 @@ function renderFinding(f: Finding, index: number): string {
     ? f.detectedBy.map(personaLabel).join(", ")
     : personaLabel(f.reviewer);
   const challenge = f.challenge
-    ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}`
+    ? ` · Challenger: ${PERSONAS.challenger.name} — ${f.challenge.result} · ${challengeExecutionLabel(f.challenge)}`
     : "";
   lines.push(`_Detected by: ${detected}${challenge}_`);
   return lines.join("\n");

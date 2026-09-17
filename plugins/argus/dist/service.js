@@ -12,7 +12,7 @@ import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
-import { evidencePackageSchema } from "./evidence.js";
+import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
 import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
 import { consolidateReconciled, findingsSignature } from "./reconciliation.js";
 import { ALL_CATEGORIES, SEVERITY_ORDER, } from "./types.js";
@@ -180,16 +180,17 @@ export function recordFinding(cwd, input) {
         return { id: finding.id, similar };
     }, true);
 }
-export function recordChallenge(cwd, findingId, result, reasoning, evidencePackage, correction, rootCause) {
+export function recordChallenge(cwd, findingId, result, reasoning, evidencePackage, correction, rootCause, execution) {
     if (!["CONFIRMED", "PLAUSIBLE", "REJECTED"].includes(result) || !reasoning.trim()) {
         throw new Error("Challenge requires a valid verdict and non-empty reasoning.");
     }
     const packet = evidencePackage === undefined ? undefined : evidencePackageSchema.parse(evidencePackage);
     const corrected = correction === undefined ? undefined : findingCorrectionSchema.parse(correction);
     const cause = rootCause === undefined ? undefined : rootCauseSchema.parse(rootCause);
+    const run = execution === undefined ? undefined : challengeExecutionSchema.parse(execution);
     if (corrected && result === "REJECTED")
         throw new Error("Correct surviving findings; reject invalid ones without a correction.");
-    return withCurrentRound(cwd, (mem, roundId) => mem.updateChallenge(roundId, findingId, result, reasoning, packet, corrected, cause), true);
+    return withCurrentRound(cwd, (mem, roundId) => mem.updateChallenge(roundId, findingId, result, reasoning, packet, corrected, cause, run), true);
 }
 export function recordReviewerRun(cwd, reviewer, status, detail) {
     withCurrentRound(cwd, (mem, roundId) => {

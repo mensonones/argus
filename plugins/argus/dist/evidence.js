@@ -1,5 +1,17 @@
 import { z } from "zod";
 const text = z.string().trim().min(1);
+export const challengeExecutionSchema = z.object({
+    mode: z.enum(["delegated", "coordinator"]),
+    detail: text,
+    agentId: text.optional(),
+}).strict().superRefine((value, ctx) => {
+    if (value.mode === "delegated" && !value.agentId) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Delegated validation requires a host agent/task ID." });
+    }
+    if (value.mode === "coordinator" && value.agentId) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Coordinator validation cannot claim a delegated agent ID." });
+    }
+});
 export const evidencePackageSchema = z.object({
     schemaVersion: z.literal(1),
     revision: text,

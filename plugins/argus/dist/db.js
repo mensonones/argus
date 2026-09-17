@@ -182,7 +182,7 @@ export class Memory {
             .run(f.id, roundId, f.reviewer, f.category, f.severity, f.confidence, f.title, f.file, f.lines?.start ?? null, f.lines?.end ?? null, f.description, JSON.stringify(f.evidence ?? []), f.impact, f.scenario ?? null, f.recommendation ?? null, f.status, f.challenge?.result ?? null, f.challenge?.reasoning ?? null, JSON.stringify(f.detectedBy ?? [f.reviewer]), f.score ?? null, createdAt, f.evidencePackage ? JSON.stringify(f.evidencePackage) : null, JSON.stringify({ rootCause: f.rootCause, rootCauseValidated: f.rootCauseValidated, corrections: f.corrections }));
         return { ...f, roundId, createdAt };
     }
-    updateChallenge(roundId, findingId, result, reasoning, evidencePackage, correction, rootCause) {
+    updateChallenge(roundId, findingId, result, reasoning, evidencePackage, correction, rootCause, execution) {
         return this.db.transaction(() => {
             const row = this.db.prepare("SELECT * FROM findings WHERE id=? AND round_id=?")
                 .get(findingId, roundId);
@@ -204,7 +204,7 @@ export class Memory {
                     corrections: [...(original.corrections ?? []), { reason: correction.reason, original: content }] };
             }
             const cause = rootCause ?? original.rootCause;
-            const data = { rootCause: cause, rootCauseValidated: !!cause && result !== "REJECTED", corrections: revised.corrections };
+            const data = { rootCause: cause, rootCauseValidated: !!cause && result !== "REJECTED", corrections: revised.corrections, challengeExecution: execution };
             this.db.prepare(`UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?,
         evidence_package=COALESCE(?, evidence_package), review_data=?, title=?, description=?,
         evidence=?, impact=?, scenario=?, recommendation=?, severity=?, confidence=?
@@ -419,10 +419,11 @@ function migrateGlobal(db) {
 }
 function rowToFinding(row) {
     const review = typeof row.review_data === "string" ? JSON.parse(row.review_data) : {};
+    const { challengeExecution, ...contentReview } = review;
     const start = row.start_line;
     const end = row.end_line;
     return {
-        ...review,
+        ...contentReview,
         id: row.id,
         title: row.title,
         category: row.category,
@@ -443,6 +444,7 @@ function rowToFinding(row) {
             ? {
                 result: row.challenge_result,
                 reasoning: row.challenge_reasoning ?? "",
+                execution: challengeExecution,
             }
             : undefined,
         detectedBy: safeJsonArray(row.detected_by),

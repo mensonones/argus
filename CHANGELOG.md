@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0-alpha.4 — 2026-09-17
+
+- Challenger dispatch is required when host delegation is available; coordinator fallback must disclose why delegation could not run and load the validation instructions.
+- Verdicts accept execution provenance (delegated child ID or coordinator fallback), retained in SQLite/JSON and disclosed in readable reports. Legacy verdicts remain unspecified; metadata is agent-reported, not proof of independent execution. Schema v4 and 14 MCP tools remain unchanged.
+
+Validated with 53 automated tests and an installed-package MCP handshake.
+Reinstall host definitions and start a new session before repeating validation.
+
 ## 0.3.0-alpha.3 — 2026-09-17
 
 - Named personas: Argus, Atena, Cerbero, Hermes, Dedalo, Temis and Momo.

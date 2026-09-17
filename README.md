@@ -13,7 +13,14 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.3** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.4** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.4
+
+Challenger instructions require real delegation when available and explicit
+coordinator fallback otherwise. Verdicts record execution provenance, disclosed
+in readable reports; older verdicts are unspecified. These records do not
+certify independence. Reinstall host definitions and start a fresh session.
 
 ### New in v0.3.0-alpha.3
 
@@ -108,6 +115,12 @@ delegation instructions and readable reports; runtime IDs remain unchanged.
 lenses. JSON/SQLite keep technical reviewer IDs. A host can still assign an
 instance a different name, such as Cicero; Argus does not control that label.
 A persona name alone is not evidence that its agent instructions were loaded.
+Since v0.3.0-alpha.4, instructions require actual Challenger delegation when available and
+disclosure of any coordinator fallback. Verdict execution metadata records a
+host child ID or fallback reason; readable reports disclose unspecified legacy
+execution. These are agent-reported records, not host-certified independence.
+CLI: `argus challenge <id> CONFIRMED --reason "..." --execution
+'{"mode":"coordinator","detail":"Host delegation unavailable; validation instructions loaded"}'`.
 These personas ship in v0.3.0-alpha.3; reinstall host definitions and start a
 new session after upgrading.
 
@@ -452,7 +465,10 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.3
+### Released — v0.3.0-alpha.4
+
+- **Challenger execution:** disclosed delegated/coordinator/unspecified modes,
+  with agent-reported provenance rather than runtime-certified independence.
 
 - **Personas:** named specialists and Challenger, with stable technical IDs.
 

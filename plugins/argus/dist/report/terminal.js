@@ -1,5 +1,6 @@
 import { color } from "../logger.js";
 import { personaLabel, PERSONAS } from "../personas.js";
+import { challengeExecutionLabel } from "./challenge.js";
 function severityTag(sev) {
     const label = sev.toUpperCase().padEnd(8);
     switch (sev) {
@@ -102,7 +103,7 @@ export function renderTerminal(result) {
             ? f.detectedBy.map(personaLabel).join(", ")
             : personaLabel(f.reviewer);
         out.push(color.dim(`detected by ${detected}` +
-            (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result}` : "")));
+            (f.challenge ? ` · challenger: ${PERSONAS.challenger.name} — ${f.challenge.result} · ${challengeExecutionLabel(f.challenge)}` : "")));
     }
     if (result.incorporatedBaselineFindings.length > 0) {
         out.push("", color.bold("Historical findings incorporated — not fixed"));

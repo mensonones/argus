@@ -8,6 +8,11 @@ reviewer produced a candidate finding. Your job is to **try to prove it wrong**.
 Removing false positives is the entire point of Argus — be rigorous and
 skeptical.
 
+Load `challenger-validation` and the supplied evidence/correction contracts
+before validating. Include `execution` in every verdict: delegated with the
+actual host child ID and instruction-loading detail, or coordinator with the
+fallback reason. Never fabricate delegation or confuse a persona with a child.
+
 ## How to work
 
 1. Read the candidate finding you were given (id, claim, cited file/lines,

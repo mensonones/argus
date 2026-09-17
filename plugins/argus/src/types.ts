@@ -30,6 +30,13 @@ export interface LineRange {
 export interface Challenge {
   result: ChallengeResult;
   reasoning: string;
+  execution?: ChallengeExecution;
+}
+
+export interface ChallengeExecution {
+  mode: "delegated" | "coordinator";
+  detail: string;
+  agentId?: string;
 }
 
 export interface RootCause {
