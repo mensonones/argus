@@ -101,7 +101,11 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    Missing/invalid categories fail; never substitute correctness for another lens.
    Never tell a subagent to
    "review the repo" — assign concrete files and its single lens. Run
-   independent specialists in parallel when possible.
+   independent specialists in parallel when possible. Where the host cannot
+   select a custom agent by name from a tool-backed session (Codex `spawn_agent`,
+   openai/codex#15250), inject the reviewer's persona instructions into a generic
+   worker and disclose it as such — a persona name in the prompt is not a
+   host-loaded role.
    Read `skills/full-review/references/evidence-package.md` and provide its
    contract to each specialist and the Challenger. Record `evidencePackage`
    when the snapshot and observations can be established; never invent them.

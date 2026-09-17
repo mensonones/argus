@@ -328,9 +328,24 @@ The Codex marketplace manifest lives at `.agents/plugins/marketplace.json`.
 The plugin declares its skills and MCP server in
 `plugins/argus/.codex-plugin/plugin.json`.
 
-For a manual development setup, use the generated `.codex/agents/*.toml` at
-project scope or copy them to `~/.codex/agents/`. If the host cannot launch
-subagents, `full-review` applies the same lenses sequentially in the coordinator.
+**Custom agents.** Install the reviewer/challenger personas as Codex custom
+agents (TOML) in your personal `~/.codex/agents/`, then verify:
+
+```bash
+npm run install:codex     # writes ~/.codex/agents/argus-*.toml
+npm run doctor:codex      # verifies the files and plugin registration
+```
+
+> **Named dispatch is host-limited.** Codex custom agents follow the
+> [subagents spec](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+> (`name`, `description`, `developer_instructions`, `model_reasoning_effort`,
+> `sandbox_mode`). You can invoke them **by name in interactive Codex**. But in a
+> **tool-backed session**, `spawn_agent` cannot select a custom agent by name
+> ([openai/codex#15250](https://github.com/openai/codex/issues/15250)); the Argus
+> coordinator uses the documented workaround — it reads each agent's
+> `developer_instructions` and injects them into a generic worker, and discloses
+> the run as a generic worker with injected instructions, never a host-loaded
+> role. A persona name in the prompt is not a loaded role.
 
 As an MCP-only fallback, register the runtime in `~/.codex/config.toml`:
 
@@ -340,10 +355,10 @@ command = "node"
 args = ["/absolute/path/to/argus/plugins/argus/scripts/argus-mcp.cjs"]
 ```
 
-**Start** — from within a git repo, invoke a reviewer agent (`@argus-correctness`,
-`@argus-security`, …) or ask Codex to *"run an Argus review of the current
-change"*. The agents record findings through the `argus_*` MCP tools and you get
-the report via `argus_report`.
+**Start** — from within a git repo, invoke a reviewer by name in interactive
+Codex (`@argus-correctness`, `@argus-security`, …) or ask Codex to *"run an Argus
+review of the current change"*. Findings are recorded through the `argus_*` MCP
+tools; the report comes from `argus_report`.
 
 ---
 

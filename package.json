@@ -10,6 +10,8 @@
     "doctor:opencode-desktop": "npm --prefix plugins/argus run doctor:opencode-desktop",
     "install:dsh": "npm --prefix plugins/argus install && npm run gen-hosts && node plugins/argus/scripts/install-dsh.mjs",
     "doctor:dsh": "node plugins/argus/scripts/doctor-dsh.mjs",
+    "install:codex": "node plugins/argus/scripts/install-codex.mjs",
+    "doctor:codex": "node plugins/argus/scripts/doctor-codex.mjs",
     "release:validate": "npm --prefix plugins/argus run release:validate",
     "typecheck": "npm --prefix plugins/argus run typecheck",
     "test": "npm --prefix plugins/argus test",

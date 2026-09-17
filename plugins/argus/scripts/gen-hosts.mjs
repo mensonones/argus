@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildCodexAgentToml } from "./lib/codex-agents.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pluginDir = path.resolve(here, "..");
@@ -63,13 +64,10 @@ for (const file of agentFiles) {
   const description = `${persona.name} — ${data.description ?? ""}`;
   agentNames.push(name);
 
-  // Codex TOML
-  const toml =
-    `name = "${name}"\n` +
-    `description = "${description.replace(/"/g, '\\"')}"\n` +
-    `reasoning_effort = "high"\n` +
-    `sandbox_mode = "read-only"\n\n` +
-    `instructions = """\n${tomlEscape(body)}\n"""\n`;
+  // Codex custom-agent TOML. Field names per the Codex subagents spec
+  // (learn.chatgpt.com/docs/agent-configuration/subagents): the instruction
+  // body is `developer_instructions` and effort is `model_reasoning_effort`.
+  const toml = buildCodexAgentToml({ name, description, body });
   write(path.join(repoRoot, ".codex", "agents", `${name}.toml`), toml);
 
   // OpenCode agent markdown (subagent, read-only tools)

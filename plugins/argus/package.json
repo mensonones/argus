@@ -24,6 +24,8 @@
     "doctor:opencode-desktop": "node scripts/doctor-opencode-desktop.mjs",
     "install:dsh": "npm run build && node scripts/install-dsh.mjs",
     "doctor:dsh": "node scripts/doctor-dsh.mjs",
+    "install:codex": "node scripts/install-codex.mjs",
+    "doctor:codex": "node scripts/doctor-codex.mjs",
     "release:validate": "npm test && node scripts/release-validation.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",

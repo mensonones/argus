@@ -111,6 +111,14 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    when each reviewer returns. If the host cannot launch subagents, apply the
    matching review skills sequentially in the coordinator instead.
 
+   Host note: some hosts cannot select a custom agent by name from a tool-backed
+   session — Codex `spawn_agent` only takes a generic type plus overrides
+   (openai/codex#15250). There, load the reviewer's persona instructions (its
+   `argus-<lens>` agent definition / `~/.codex/agents/<name>.toml`
+   `developer_instructions`) and inject them into a generic worker; disclose the
+   run as a generic worker with injected instructions, and never claim a
+   host-loaded custom role. A persona name in the prompt is not a loaded role.
+
 4. **Challenge.** For every candidate (`argus_list_findings status=candidate`),
    use the host's actual subagent dispatch capability when available. Launch
    Momo with the `argus-challenger` persona instructions, `challenger-validation`,

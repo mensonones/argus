@@ -527,6 +527,18 @@ test("init refuses to replace an active round; only an explicit audited abandon 
   assert.notEqual(second.roundId, first.roundId);
 });
 
+test("Codex custom-agent TOML uses the documented subagents schema", async () => {
+  const { buildCodexAgentToml } = await import("../scripts/lib/codex-agents.mjs");
+  const toml = buildCodexAgentToml({ name: "argus-x", description: "Persona — desc", body: "You are X." });
+  assert.match(toml, /^name = "argus-x"$/m);
+  assert.match(toml, /^model_reasoning_effort = "high"$/m);
+  assert.match(toml, /^sandbox_mode = "read-only"$/m);
+  assert.match(toml, /developer_instructions = """/);
+  // The pre-spec field names must never come back.
+  assert.doesNotMatch(toml, /^reasoning_effort =/m);
+  assert.doesNotMatch(toml, /^instructions =/m);
+});
+
 function repo() {
   const cwd = tempDir();
   git(cwd, "init", "-q", "-b", "main");
