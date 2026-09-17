@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0-alpha.1 — 2026-09-17
+
+- Opt-in Tests Reviewer and tests-review skill for concrete test reliability defects.
+- Coordinator selection, generated Codex/OpenCode/DSH agents and installation diagnostics cover the new lens.
+- Default tests reviewer remains disabled; existing SQLite schema and MCP tools are unchanged.
+
+First v0.3 prerelease: stack detection and stack-specific skills remain planned.
+Reinstall host definitions and restart in a new session before using the new reviewer.
+
 ## 0.2.6 — 2026-09-13
 
 - Compact, paginated baseline queries with file/symbol filters and exact-ID evidence retrieval.

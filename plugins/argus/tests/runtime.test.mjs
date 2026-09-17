@@ -7,7 +7,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 
-import { loadConfig } from "../dist/config.js";
+import { loadConfig, enabledReviewers } from "../dist/config.js";
 import { ARGUS_VERSION } from "../dist/version.js";
 import { GlobalMemory, Memory } from "../dist/db.js";
 import { deduplicate, scoreFinding } from "../dist/dedup.js";
@@ -34,6 +34,30 @@ function reconcileSingles(cwd) {
     reasoning: "Test fixture: one independently validated defect.", claims_reviewed: true,
   })));
 }
+
+test("tests reviewer is opt-in and its challenged finding survives the full pipeline", async () => {
+  const cwd = repo();
+  assert.ok(!enabledReviewers(loadConfig(cwd).config).includes("tests"));
+  fs.writeFileSync(path.join(cwd, "argus.yaml"), "reviewers:\n  tests: true\n");
+  fs.writeFileSync(path.join(cwd, "contract.test.js"), "import assert from 'node:assert/strict';\nconst actual = 99;\nassert.equal(actual, actual);\n");
+  const initialized = await initReview({ cwd });
+  assert.ok(initialized.enabledReviewers.includes("tests"));
+  assert.ok(initialized.reviewableFiles.includes("contract.test.js"));
+  const ineffective = spawnSync(process.execPath, ["--input-type=module", "-e", "import assert from 'node:assert/strict'; const actual=99; assert.equal(actual,actual);"], { encoding: "utf8" });
+  const control = spawnSync(process.execPath, ["--input-type=module", "-e", "import assert from 'node:assert/strict'; const actual=99; assert.equal(actual,1);"], { encoding: "utf8" });
+  assert.equal(ineffective.status, 0); assert.notEqual(control.status, 0);
+  recordReviewerRun(cwd, "tests", "started");
+  const rootCause = { symbol: "contract assertion", mechanism: "self-comparison", invariant: "reject-wrong-result" };
+  const id = recordFinding(cwd, finding({ reviewer: "tests", category: "tests", file: "contract.test.js",
+    title: "Self-comparison accepts an incorrect result", evidence: ["actual=99 passes against itself but fails against expected=1"], rootCause })).id;
+  recordChallenge(cwd, id, "CONFIRMED", "Isolated wrong-result probe and assertion control", undefined, undefined, rootCause);
+  reconcileSingles(cwd);
+  assert.throws(() => report({ cwd, write: false, promoteGlobal: false }), /reviewers still started/);
+  recordReviewerRun(cwd, "tests", "completed");
+  const result = report({ cwd, write: false, promoteGlobal: false }).result;
+  assert.equal(result.findings.length, 1); assert.equal(result.findings[0].category, "tests");
+  assert.ok(result.reviewersRun.includes("tests"));
+});
 
 test("baseline query is compact, paginated, filtered and retrieves exact evidence", async () => {
   const cwd = repo(); await initReview({ cwd });
@@ -741,6 +765,8 @@ test("OpenCode Desktop installer preserves JSONC settings and is idempotent", ()
   assert.equal((installed.match(/instructions\/argus\.md/g) ?? []).length, 1);
   assert.ok(fs.existsSync(path.join(configDir, "commands", "argus.md")));
   assert.ok(fs.existsSync(path.join(configDir, "skills", "full-review", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(configDir, "agents", "argus-tests.md")));
+  assert.ok(fs.existsSync(path.join(configDir, "skills", "tests-review", "SKILL.md")));
   assert.equal(
     fs.readdirSync(configDir).filter((name) => name.includes(".argus-backup-")).length,
     1,
@@ -815,6 +841,7 @@ fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({
     0,
   );
   assert.ok(fs.existsSync(path.join(dshHome, "skills", "argus-review", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(dshHome, "skills", "tests-review", "SKILL.md")));
   assert.equal(fs.existsSync(stale), false);
 
   const diagnosis = spawnSync(process.execPath, [doctor, "--dsh-bin", fakeDsh], {
@@ -827,5 +854,5 @@ fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({
   assert.equal(result.checks.find((check) => check.name === "mcp:handshake")?.ok, true);
   assert.equal(result.checks.find((check) => check.name === "bundle:registered")?.ok, true);
   assert.equal(result.checks.find((check) => check.name === "skills:no-stale")?.ok, true);
-  assert.equal(result.checks.filter((check) => check.name.startsWith("skill:")).length, 6);
+  assert.equal(result.checks.filter((check) => check.name.startsWith("skill:")).length, 7);
 });

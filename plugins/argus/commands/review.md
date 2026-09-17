@@ -55,6 +55,8 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    - `argus-performance` — DB access, loops, network, hot paths, algorithms.
    - `argus-architecture` — boundaries, coupling, responsibilities, layering.
      Pass any `architectureRules` from init into its assignment.
+   - `argus-tests` — changed tests/setup or concrete test-reliability concerns;
+     opt-in with `reviewers.tests: true`. Load `tests-review` for its boundaries.
    Never review `ignoredFiles`. Briefly note which reviewers you picked and why.
 
 3. **Review (delegate).** Before each lens, record `started` with

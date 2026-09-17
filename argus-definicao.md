@@ -223,9 +223,12 @@ infraestrutura, service fazendo papel de repository), abstrações desnecessári
 duplicação estrutural. Distingue "eu faria diferente" de "isto cria um problema
 concreto".
 
-### Tests (roadmap)
-Ausência de teste para regressão, branch importante não coberto, mocks
-excessivos, teste que nunca falharia, assertion insuficiente.
+### Tests (v0.3.0-alpha.1)
+Opt-in com `reviewers.tests: true`. Assertions que aceitam um resultado errado,
+falhas assíncronas não observadas, mocks que desviam do contrato exercitado e
+isolamento quebrado. Ausência de cobertura ou quantidade de mocks, sozinhas,
+não são findings; exigir comportamento concreto e evidência. Agente e skill
+compartilhados pelos quatro hosts, com Challenger e reconciliação obrigatórios.
 
 ---
 
@@ -622,11 +625,14 @@ de adjudicação humana. Schema v4 e 14 tools MCP permanecem inalterados.
 justificativa e consequências cobertas; não confundem ausência com correção.
 README reorganizado; schema v4 e 14 tools MCP mantidos.
 
-**v0.2.6 (atual):** baseline compacto, filtrável e paginado; reconciliação confirma
+**v0.2.6:** baseline compacto, filtrável e paginado; reconciliação confirma
 os vínculos efetivamente aplicados por grupo; relatório bloqueia reviewers ainda
 `started`. Schema v4 e 14 tools MCP mantidos.
 
-**v0.3** — Tests Reviewer; skills stack-specific; detecção de stack;
+**v0.3.0-alpha.1 (atual):** Tests Reviewer opt-in, agente e skill nos quatro
+hosts, diagnósticos e teste do fluxo completo. Schema v4 e 14 tools MCP mantidos.
+
+**v0.3 (restante)** — skills stack-specific; detecção de stack;
 conhecimento framework-specific.
 
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression

@@ -37,11 +37,13 @@ snapshot and observations can be established; never fabricate missing evidence.
    - security: input handling, auth, IO, crypto, serialization, secrets;
    - performance: DB/query code, loops, network, hot paths, algorithms;
    - architecture: new modules, cross-layer calls, growing responsibilities.
+   - tests: changed tests/setup or concrete test-reliability concerns; opt-in
+     with `reviewers.tests: true`. Honor `enabledReviewers` from init for all lenses.
 
 3. **Review.** Record each selected reviewer as `started` with
    `argus_record_reviewer_run`, then dispatch the matching specialist subagents
    (`argus-correctness`, `argus-security`, `argus-performance`,
-   `argus-architecture`), each over concrete files, each recording findings via
+   `argus-architecture`, `argus-tests`), each over concrete files, each recording findings via
    `argus_record_finding`. Run independent ones in parallel. Never assign
    "review the repo" — one lens, specific files. Record `completed` or `failed`
    when each reviewer returns. If the host cannot launch subagents, apply the
@@ -124,5 +126,5 @@ snapshot and observations can be established; never fabricate missing evidence.
 ## Related skills
 
 Load `correctness-review`, `security-review`, `performance-review`,
-`architecture-review` for each lens's heuristics, and `challenger-validation`
+`architecture-review`, `tests-review` for each lens's heuristics, and `challenger-validation`
 for the refutation gates.

@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.2.6 alpha** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.1** — [Project status](#status) · [Changelog](CHANGELOG.md).
 
 ### New in v0.2.6
 
@@ -21,6 +21,22 @@ Current version: **0.2.6 alpha** — [Project status](#status) · [Changelog](CH
   Follow `nextOffset` using `--offset`; retrieve evidence with `--finding-id <id>`.
 - Reconciliation confirms the historical links actually applied to each group.
 - Report generation blocks reviewers still `started`; record completion or failure first.
+
+### New in v0.3.0-alpha.1
+
+Tests Reviewer is available for all four hosts, opt-in:
+
+```yaml
+reviewers:
+  tests: true
+```
+
+The coordinator selects `argus-tests` for changed tests/setup or concrete
+reliability concerns. It checks assertions, async failure observation, mocks and
+isolation; missing coverage alone is not a finding. Candidates still require
+Challenger validation and reconciliation. Reinstall your host definitions and
+restart in a new session to load it. This first v0.3 prerelease does not yet
+include stack detection or stack-specific skills.
 
 ## Evidence and evaluation
 
@@ -391,10 +407,11 @@ command.
 
 ## Status
 
-### Released — v0.2.6 alpha
+### Versioned — v0.3.0-alpha.1
 
 - **Review:** four specialist lenses, adversarial Challenger, evidence packets
   and auditable claim corrections.
+- **Tests:** a fifth, opt-in specialist for concrete test-reliability defects.
 - **Runtime:** CLI + MCP, git diff and context, explicit reconciliation,
   ranking and Markdown/JSON/terminal reports.
 - **Memory:** versioned SQLite (schema v4), canonical history, stable baseline
@@ -407,7 +424,7 @@ command.
 
 ### Planned
 
-- Tests reviewer and stack-specific skills.
+- Stack detection and stack-specific skills (remaining v0.3 work).
 - GitHub Action integration.
 - Broader live validation across real diffs, hosts and models.
 

@@ -103,12 +103,12 @@ function doctor() {
   });
   checkFile(checks, "command:/argus", path.join(root, "commands", "argus.md"));
   checkFile(checks, "instructions:argus", instruction);
-  for (const agent of ["correctness", "security", "performance", "architecture", "challenger"]) {
+  for (const agent of ["correctness", "security", "performance", "architecture", "tests", "challenger"]) {
     checkFile(checks, `agent:${agent}`, path.join(root, "agents", `argus-${agent}.md`));
   }
   for (const skill of [
     "full-review", "correctness-review", "security-review", "performance-review",
-    "architecture-review", "challenger-validation",
+    "architecture-review", "tests-review", "challenger-validation",
   ]) {
     checkFile(checks, `skill:${skill}`, path.join(root, "skills", skill, "SKILL.md"));
   }

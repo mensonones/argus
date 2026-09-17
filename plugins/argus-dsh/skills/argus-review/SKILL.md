@@ -9,7 +9,7 @@ description: Orchestrates a complete multi-perspective Argus code review of a ch
 > through MCP, so every Argus tool is namespaced `mcp__argus__<tool>`
 > (for example `mcp__argus__argus_init`). The specialist reviewers and
 > the adversary are model-facing tools that carry their own reviewer persona:
-> `argus_architecture`, `argus_challenger`, `argus_correctness`, `argus_performance`, `argus_security`. Call them as tools —
+> `argus_architecture`, `argus_challenger`, `argus_correctness`, `argus_performance`, `argus_security`, `argus_tests`. Call them as tools —
 > they replace the named subagents of the other hosts and inherit the Argus
 > skills and MCP tools.
 
@@ -45,11 +45,13 @@ snapshot and observations can be established; never fabricate missing evidence.
    - security: input handling, auth, IO, crypto, serialization, secrets;
    - performance: DB/query code, loops, network, hot paths, algorithms;
    - architecture: new modules, cross-layer calls, growing responsibilities.
+   - tests: changed tests/setup or concrete test-reliability concerns; opt-in
+     with `reviewers.tests: true`. Honor `enabledReviewers` from init for all lenses.
 
 3. **Review.** Record each selected reviewer as `started` with
    `mcp__argus__argus_record_reviewer_run`, then dispatch the matching specialist reviewer tools
    (`argus_correctness`, `argus_security`, `argus_performance`,
-   `argus_architecture`), each over concrete files, each recording findings via
+   `argus_architecture`, `argus_tests`), each over concrete files, each recording findings via
    `mcp__argus__argus_record_finding`. Run independent ones in parallel. Never assign
    "review the repo" — one lens, specific files. Record `completed` or `failed`
    when each reviewer returns. If these reviewer tools are unavailable, apply the
@@ -132,5 +134,5 @@ snapshot and observations can be established; never fabricate missing evidence.
 ## Related skills
 
 Load `correctness-review`, `security-review`, `performance-review`,
-`architecture-review` for each lens's heuristics, and `challenger-validation`
+`architecture-review`, `tests-review` for each lens's heuristics, and `challenger-validation`
 for the refutation gates.

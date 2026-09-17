@@ -9,7 +9,7 @@ description: Heuristics and a checklist for the Argus Architecture Reviewer — 
 > through MCP, so every Argus tool is namespaced `mcp__argus__<tool>`
 > (for example `mcp__argus__argus_init`). The specialist reviewers and
 > the adversary are model-facing tools that carry their own reviewer persona:
-> `argus_architecture`, `argus_challenger`, `argus_correctness`, `argus_performance`, `argus_security`. Call them as tools —
+> `argus_architecture`, `argus_challenger`, `argus_correctness`, `argus_performance`, `argus_security`, `argus_tests`. Call them as tools —
 > they replace the named subagents of the other hosts and inherit the Argus
 > skills and MCP tools.
 

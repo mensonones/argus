@@ -30,6 +30,7 @@ const EXPECTED_TOOLS = [
   "argus_security",
   "argus_performance",
   "argus_architecture",
+  "argus_tests",
   "argus_challenger",
 ];
 
