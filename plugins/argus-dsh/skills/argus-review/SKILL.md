@@ -48,6 +48,17 @@ snapshot and observations can be established; never fabricate missing evidence.
    overview and `reviewableFiles`. If nothing reviewable changed (only
    docs/config/assets), stop and say the change needs no review.
 
+   Keep returned `repoRoot` and `roundId` as the shared context. Include
+   `repo_path=repoRoot` and `round_id=roundId` in each child assignment and every
+   child's MCP call. A child may attach with `mcp__argus__argus_init` using ONLY this pair;
+   this never creates a round or recomputes the diff. Never have a child call
+   ordinary init: it starts a new round and abandons the coordinator's round.
+   Pass overview, scope, enabled lenses and stack suggestions too; attach returns
+   identity, not a fresh review plan. Verify returned candidate IDs in the
+   coordinator's list before dispatching Momo. On context errors, stop and verify
+   the pair and shared database; never recreate candidates to hide persistence
+   failures. Explicit context neither bypasses permissions nor copies databases.
+
 2. **Select reviewers.** Do not reflexively run every lens — pick by what changed:
    - correctness: almost always (logic, state, concurrency, edge cases);
    - security: input handling, auth, IO, crypto, serialization, secrets;

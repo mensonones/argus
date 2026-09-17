@@ -616,6 +616,59 @@ test("report requires challenge and records reviewers with zero findings", async
   assert.equal(out.result.findings.length, 1);
 });
 
+test("isolated MCP workers share candidates and verdicts without replacing coordinator round", async () => {
+  const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+  const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
+  const clients = [];
+  async function worker() {
+    const client = new Client({ name: "isolated-worker-test", version: "1" });
+    clients.push(client);
+    await client.connect(new StdioClientTransport({ command: process.execPath,
+      args: [path.resolve(import.meta.dirname, "../dist/bin/argus-mcp.js")],
+      cwd: path.resolve(import.meta.dirname, ".."), stderr: "pipe" }));
+    return client;
+  }
+  async function call(client, name, args) {
+    const result = await client.callTool({ name, arguments: args });
+    assert.ok(!result.isError, JSON.stringify(result));
+    const body = result.content[0].text;
+    try { return JSON.parse(body); } catch { return body; }
+  }
+  const cwd = repo();
+  try {
+    const coordinator = await worker(), specialist = await worker(), challenger = await worker();
+    const initialized = await call(coordinator, "argus_init", { repo_path: cwd, base: "main" });
+    const context = { repo_path: initialized.repoRoot, round_id: initialized.roundId };
+    const attach = await call(specialist, "argus_init", context);
+    assert.equal(attach.roundId, context.round_id); assert.equal(attach.attached, true);
+    const recorded = await call(specialist, "argus_record_finding", { ...finding(), ...context });
+    const candidates = await call(challenger, "argus_list_findings", { ...context, status: "candidate" });
+    assert.equal(candidates[0].id, recorded.id);
+    await call(challenger, "argus_record_challenge", { ...context, finding_id: recorded.id,
+      verdict: "CONFIRMED", reasoning: "Inspected shared candidate", execution: {
+        mode: "delegated", agentId: "test-child", detail: "Isolated MCP process fixture" } });
+    const observed = await call(coordinator, "argus_list_findings", context);
+    assert.equal(observed.length, 1); assert.equal(observed[0].id, recorded.id);
+    assert.equal(observed[0].challenge.execution.agentId, "test-child");
+    const foreign = repo(); await initReview({ cwd: foreign });
+    for (const bad of [{ round_id: context.round_id }, { repo_path: cwd },
+      { repo_path: foreign, round_id: context.round_id }, { ...context, round_id: "missing" }]) {
+      assert.equal((await challenger.callTool({ name: "argus_list_findings", arguments: bad })).isError, true);
+    }
+    assert.equal((await specialist.callTool({ name: "argus_init", arguments: { ...context, base: "other" } })).isError, true);
+    const memory = Memory.open(cwd);
+    assert.equal(memory.activeRound().id, context.round_id); memory.close();
+    reconcileSingles(cwd);
+    assert.match(await call(coordinator, "argus_report", { ...context, format: "json" }), /test-child/);
+    assert.equal((await specialist.callTool({ name: "argus_record_finding", arguments: { ...finding(), ...context } })).isError, true);
+    await initReview({ cwd });
+    const stale = await specialist.callTool({ name: "argus_record_finding", arguments: { ...finding(), ...context } });
+    assert.equal(stale.isError, true); assert.match(stale.content[0].text, /Stale round/);
+    assert.equal((await specialist.callTool({ name: "argus_list_findings", arguments: {} })).isError, true);
+    assert.equal(listFindings(cwd).length, 0);
+  } finally { await Promise.all(clients.map(client => client.close())); }
+});
+
 test("MCP init accepts an explicit target repository path", () => {
   const cwd = repo();
   fs.writeFileSync(path.join(cwd, "app.js"), "export const value = 3;\n");

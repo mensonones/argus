@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0-alpha.5 — 2026-09-17
+
+- MCP calls accept explicit shared repo_path + round_id; fresh child instances can record candidates and verdicts in the coordinator round without initializing a separate review.
+- argus_init can attach to an existing round without changing scope or creating/abandoning rounds. Stale, wrong-repository and incomplete context is rejected; implicitly attached instances stay pinned.
+- Coordinator/Challenger instructions prohibit recreating candidates to conceal failed persistence. Schema v4 and 14 MCP tools are unchanged; an isolated three-process MCP regression test exercises shared IDs and rejected contexts.
+
+Validated with 54 automated tests and an installed-package MCP handshake.
+Reinstall all host definitions and start a fresh session. Shared context requires
+access to the same repository database; it does not bypass host isolation.
+
 ## 0.3.0-alpha.4 — 2026-09-17
 
 - Challenger dispatch is required when host delegation is available; coordinator fallback must disclose why delegation could not run and load the validation instructions.

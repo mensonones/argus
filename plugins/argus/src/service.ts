@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { repoRootSync, exportsDir } from "./paths.js";
+import { repoRootSync, exportsDir, targetDbPath } from "./paths.js";
 import {
   findingFingerprint,
   GlobalMemory,
@@ -229,6 +229,22 @@ function coerce(input: FindingInput): Finding {
     status: "candidate",
     detectedBy: [input.reviewer],
   };
+}
+
+/** Resolve an existing coordinator round without creating or switching rounds. */
+export function reviewContext(cwd: string, roundId: string) {
+  if (!path.isAbsolute(cwd)) throw new Error("repo_path must be absolute.");
+  const repoRoot = repoRootSync(cwd);
+  if (!fs.existsSync(targetDbPath(repoRoot))) throw new Error("No Argus database in this repository; attach cannot initialize one.");
+  const mem = Memory.open(repoRoot);
+  try {
+    const round = mem.getRound(roundId);
+    if (!round) throw new Error("Unknown round_id in this repository.");
+    if (mem.activeRound()?.id !== roundId || round.status === "abandoned") {
+      throw new Error("Stale round_id; the coordinator round was superseded. Do not create a replacement round.");
+    }
+    return { repoRoot, roundId: round.id, baseRef: round.baseRef, overview: round.projectSummary, status: round.status, attached: true };
+  } finally { mem.close(); }
 }
 
 function withCurrentRound<T>(

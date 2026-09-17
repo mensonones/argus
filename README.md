@@ -13,7 +13,14 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.4** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.5** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.5
+
+Subagents share the coordinator's repository and round explicitly with
+`repo_path` + `round_id`. Attach without creating another round; wrong or stale
+context fails rather than silently changing targets. See [Sharing a round with
+subagents](#sharing-a-round-with-subagents). Reinstall and start a fresh session.
 
 ### New in v0.3.0-alpha.4
 
@@ -96,6 +103,18 @@ The eight-case synthetic pilot tests the evaluation workflow; it does **not**
 establish production review quality. No model API or API key is introduced.
 
 ## How it works
+
+### Sharing a round with subagents
+
+Only the coordinator creates a review with `argus_init`. Pass its returned
+`repoRoot` and `roundId` to all specialists and the Challenger as `repo_path`
+and `round_id` on every MCP call. A fresh MCP instance can operate with this
+explicit pair, or attach via `argus_init` using only the pair (no diff options).
+Attach does not create a round. Wrong, abandoned or superseded rounds fail
+rather than silently changing targets. A completed round is readable but does
+not accept new findings/verdicts. Children must share access to the same `.argus`
+database; this does not bridge filesystem isolation or bypass host permissions.
+Stop on context errors; do not reconstruct candidates to conceal failed writes.
 
 ### Personas
 
@@ -465,7 +484,10 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.4
+### Released — v0.3.0-alpha.5
+
+- **Shared round:** explicit MCP repository/round context and non-creating child
+  attachment, tested across three separate MCP processes.
 
 - **Challenger execution:** disclosed delegated/coordinator/unspecified modes,
   with agent-reported provenance rather than runtime-certified independence.

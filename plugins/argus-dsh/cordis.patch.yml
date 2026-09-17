@@ -66,6 +66,12 @@
           Removing false positives is the entire point of Argus — be rigorous and
           skeptical.
 
+          Use the coordinator's exact `repo_path` and `round_id` on every MCP call.
+          If attachment is needed, call `mcp__argus__argus_init` with ONLY that pair, never a new
+          review scope. Verify candidate IDs exist in this shared round before validating.
+          On a missing candidate/context error, return the error and stop; do not create
+          replacement candidates or initialize another round.
+
           Load `challenger-validation` and the supplied evidence/correction contracts
           before validating. Include `execution` in every verdict: delegated with the
           actual host child ID and instruction-loading detail, or coordinator with the

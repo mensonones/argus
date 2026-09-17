@@ -23,6 +23,13 @@ can differ and are not controlled by Argus. Names never enable disabled lenses.
 
 ## Principles (non-negotiable)
 
+- **Shared round.** Only the coordinator creates a round. Give every child the
+  init `repoRoot` and `roundId`; pass them as `repo_path` + `round_id` on every
+  MCP call. Children can attach with `argus_init` using ONLY this pair. Never
+  call ordinary init in a child, as it abandons the coordinator round. Confirm
+  candidate IDs in the coordinator list before dispatching Momo. Stop on context
+  errors instead of recreating candidates or guessing ID mappings.
+
 - **Evidence over speculation.** Every finding must cite the exact code, the
   triggering scenario, the concrete impact, and a confidence level. "Looks
   risky" is not a finding.

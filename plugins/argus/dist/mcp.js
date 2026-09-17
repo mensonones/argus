@@ -1,17 +1,31 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { initReview, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
+import path from "node:path";
+import { initReview, reviewContext, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
 import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
 const SERVER_CWD = process.cwd();
 let activeCwd;
-function targetCwd() {
-    if (!activeCwd) {
-        throw new Error("Call argus_init before using review-round tools.");
+let activeRoundId;
+const roundContextSchema = {
+    repo_path: z.string().refine(path.isAbsolute, "repo_path must be absolute").optional()
+        .describe("Coordinator repository path; pass together with round_id from init"),
+    round_id: z.string().min(1).optional()
+        .describe("Existing coordinator round ID; never initialize another round in a child"),
+};
+function targetCwd(args = {}) {
+    const explicit = args.repo_path !== undefined || args.round_id !== undefined;
+    if (explicit && (!args.repo_path || !args.round_id)) {
+        throw new Error("Pass repo_path and round_id together for shared round operations.");
     }
-    return activeCwd;
+    const cwd = explicit ? args.repo_path : activeCwd;
+    const roundId = explicit ? args.round_id : activeRoundId;
+    if (!cwd || !roundId) {
+        throw new Error("Pass coordinator repo_path + round_id, or attach with argus_init using both; do not create a new child round.");
+    }
+    return reviewContext(cwd, roundId).repoRoot;
 }
 function text(value) {
     const body = typeof value === "string" ? value : JSON.stringify(value, null, 2);
@@ -30,10 +44,10 @@ export async function startServer() {
     server.registerTool("argus_baseline_findings", {
         title: "Inspect canonical findings from previous reviews",
         description: "Inspect compact historical summaries (default 20, maximum 100), filtered by exact file or root-cause symbol. Follow nextOffset while hasMore; a partial page is not historical absence. Supply finding_id to retrieve one historical finding with full evidence. Use an existing ID in baseline_match only for reviewed semantic equivalence. Current candidates are excluded.",
-        inputSchema: baselineQuerySchema.shape,
+        inputSchema: { ...baselineQuerySchema.shape, ...roundContextSchema },
     }, async (args) => {
         try {
-            return text(queryBaselineFindings(targetCwd(), args));
+            return text(queryBaselineFindings(targetCwd(args), (({ repo_path, round_id, ...query }) => query)(args)));
         }
         catch (err) {
             return errorText(err);
@@ -42,10 +56,10 @@ export async function startServer() {
     server.registerTool("argus_reconcile", {
         title: "Reconcile challenged findings before reporting",
         description: "Required coordinator step: cover every surviving finding exactly once with canonical IDs, member categories, root cause and reasoning. Review all claims and correct canonical content before grouping. Use incorporated_baselines only for historical consequences verified and retained in current canonical content: supply historical IDs, reasoning and covered_claims. Incorporation is not a fix or suppression; links cannot claim the same identity twice. Do not merge distinct defects by line proximity or lens. Use [] for zero findings. Later finding or verdict changes invalidate reconciliation.",
-        inputSchema: { groups: reconciliationSchema },
+        inputSchema: { ...roundContextSchema, groups: reconciliationSchema },
     }, async (args) => {
         try {
-            return text(reconcileFindings(targetCwd(), args.groups));
+            return text(reconcileFindings(targetCwd(args), args.groups));
         }
         catch (err) {
             return errorText(err);
@@ -55,12 +69,13 @@ export async function startServer() {
         title: "Initialize a review round",
         description: "Detect the git repository, compute the diff (vs a base branch, a " +
             "commit, or specific paths), build project context, and open a review " +
-            "round in memory. Call this first. Returns changed files, which are " +
+            "round in memory. Only the coordinator creates a round. Children attach with repo_path + round_id; attach never creates a round. Returns changed files, which are " +
             "reviewable (code vs docs/assets), and a project overview to hand to " +
             "the specialist reviewers.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             repo_path: z
                 .string()
+                .refine(path.isAbsolute, "repo_path must be absolute")
                 .optional()
                 .describe("Absolute path of the git repository being reviewed"),
             base: z.string().optional().describe("Base ref to diff against"),
@@ -73,9 +88,20 @@ export async function startServer() {
         },
     }, async (args) => {
         try {
-            const { repo_path, ...options } = args;
+            const { repo_path, round_id, ...options } = args;
+            if (round_id) {
+                if (!repo_path)
+                    throw new Error("Attaching requires coordinator repo_path.");
+                if (Object.values(options).some(value => value !== undefined))
+                    throw new Error("Attach cannot change review scope or diff options.");
+                const context = reviewContext(repo_path, round_id);
+                activeCwd = context.repoRoot;
+                activeRoundId = context.roundId;
+                return text(context);
+            }
             const result = await initReview({ cwd: repo_path ?? SERVER_CWD, ...options });
             activeCwd = result.repoRoot;
+            activeRoundId = result.roundId;
             return text(result);
         }
         catch (err) {
@@ -86,14 +112,14 @@ export async function startServer() {
         title: "Record reviewer execution",
         description: "Record that a specialist reviewer started, completed, or failed. " +
             "The final report uses this for truthful coverage even when a reviewer finds nothing.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             reviewer: z.string(),
             status: z.enum(["started", "completed", "failed"]),
             detail: z.string().optional(),
         },
     }, async (args) => {
         try {
-            recordReviewerRun(targetCwd(), args.reviewer, args.status, args.detail);
+            recordReviewerRun(targetCwd(args), args.reviewer, args.status, args.detail);
             return text(`Recorded ${args.reviewer}: ${args.status}.`);
         }
         catch (err) {
@@ -106,7 +132,7 @@ export async function startServer() {
             "round. Returns the finding id and any similar existing findings " +
             "(same file, similar title) so you can avoid duplicates. Only report " +
             "evidence-backed findings, never speculation or style nits.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             reviewer: z
                 .string().min(1)
                 .describe("Reviewer id: correctness|security|performance|architecture"),
@@ -128,7 +154,7 @@ export async function startServer() {
         },
     }, async (args) => {
         try {
-            return text(recordFinding(targetCwd(), args));
+            return text(recordFinding(targetCwd(args), args));
         }
         catch (err) {
             return errorText(err);
@@ -141,7 +167,7 @@ export async function startServer() {
             "removes it from the report. Validate/reuse rootCause for the same defect. " +
             "Use correction to replace unsupported claim-bearing content; replace " +
             "the existing evidencePackage too. Originals remain in the audit history.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             finding_id: z.string(),
             verdict: z.enum(["CONFIRMED", "PLAUSIBLE", "REJECTED"]),
             execution: challengeExecutionSchema.optional(),
@@ -152,7 +178,7 @@ export async function startServer() {
         },
     }, async (args) => {
         try {
-            const ok = recordChallenge(targetCwd(), args.finding_id, args.verdict, args.reasoning, args.evidencePackage, args.correction, args.rootCause, args.execution);
+            const ok = recordChallenge(targetCwd(args), args.finding_id, args.verdict, args.reasoning, args.evidencePackage, args.correction, args.rootCause, args.execution);
             return text(ok
                 ? `Recorded ${args.verdict} for ${args.finding_id}.`
                 : `No finding with id ${args.finding_id}.`);
@@ -166,12 +192,12 @@ export async function startServer() {
         description: "List findings recorded so far, optionally filtered by status " +
             "(candidate|confirmed|rejected). Use to coordinate reviewers and see " +
             "what still needs challenging.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             status: z.enum(["candidate", "confirmed", "rejected"]).optional(),
         },
     }, async (args) => {
         try {
-            return text(listFindings(targetCwd(), args.status));
+            return text(listFindings(targetCwd(args), args.status));
         }
         catch (err) {
             return errorText(err);
@@ -181,13 +207,13 @@ export async function startServer() {
         title: "Find similar existing findings",
         description: "Before recording, check whether a similar finding already exists " +
             "(dedupe). Match by file and/or title.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             title: z.string().optional(),
             file: z.string().optional(),
         },
     }, async (args) => {
         try {
-            return text(querySimilar(targetCwd(), args));
+            return text(querySimilar(targetCwd(args), args));
         }
         catch (err) {
             return errorText(err);
@@ -197,13 +223,13 @@ export async function startServer() {
         title: "Search past findings (memory)",
         description: "Broad text search across all findings ever recorded for this target, " +
             "including previous rounds. Use to recall prior work and avoid repeats.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             query: z.string(),
             limit: z.number().optional(),
         },
     }, async (args) => {
         try {
-            return text(memorySearch(targetCwd(), args.query, args.limit));
+            return text(memorySearch(targetCwd(args), args.query, args.limit));
         }
         catch (err) {
             return errorText(err);
@@ -213,10 +239,10 @@ export async function startServer() {
         title: "Import a previous Argus report as baseline",
         description: "Import an Argus JSON report stored inside the repository. Future reports " +
             "classify matching findings as persistent instead of new.",
-        inputSchema: { source: z.string().min(1) },
+        inputSchema: { ...roundContextSchema, source: z.string().min(1) },
     }, async (args) => {
         try {
-            return text(importBaseline(targetCwd(), args.source));
+            return text(importBaseline(targetCwd(args), args.source));
         }
         catch (err) {
             return errorText(err);
@@ -226,7 +252,7 @@ export async function startServer() {
         title: "Activate or retire a global-memory finding",
         description: "Maintain the cross-project memory lifecycle. Retired entries stop " +
             "appearing in normal memory searches but remain auditable in SQLite.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
             status: z.enum(["active", "retired"]),
             note: z.string().optional(),
@@ -243,14 +269,14 @@ export async function startServer() {
         title: "Suppress a known finding",
         description: "Suppress a finding by stable fingerprint with a required audit reason " +
             "and optional ISO expiry. Matching findings are omitted from later reports.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             finding_id: z.string().min(1),
             reason: z.string().min(1),
             expires_at: z.string().optional(),
         },
     }, async (args) => {
         try {
-            return text(suppressFinding(targetCwd(), args.finding_id, args.reason, args.expires_at));
+            return text(suppressFinding(targetCwd(args), args.finding_id, args.reason, args.expires_at));
         }
         catch (err) {
             return errorText(err);
@@ -259,10 +285,10 @@ export async function startServer() {
     server.registerTool("argus_list_suppressions", {
         title: "List finding suppressions",
         description: "List active suppressions, or include expired entries for audit.",
-        inputSchema: { include_expired: z.boolean().optional() },
+        inputSchema: { ...roundContextSchema, include_expired: z.boolean().optional() },
     }, async (args) => {
         try {
-            return text(listSuppressions(targetCwd(), !args.include_expired));
+            return text(listSuppressions(targetCwd(args), !args.include_expired));
         }
         catch (err) {
             return errorText(err);
@@ -273,7 +299,7 @@ export async function startServer() {
         description: "Consolidate duplicate findings, rank them (severity × confidence × " +
             "evidence × agreement), apply the severity floor and max-findings cap, " +
             "render the report, and write it to .argus/exports/. Call this last.",
-        inputSchema: {
+        inputSchema: { ...roundContextSchema,
             format: z.enum(["markdown", "json", "terminal"]).optional(),
             min_severity: z
                 .enum(["info", "low", "medium", "high", "critical"])
@@ -283,7 +309,7 @@ export async function startServer() {
     }, async (args) => {
         try {
             const out = report({
-                cwd: targetCwd(),
+                cwd: targetCwd(args),
                 format: args.format,
                 minSeverity: args.min_severity,
                 maxFindings: args.max_findings,
