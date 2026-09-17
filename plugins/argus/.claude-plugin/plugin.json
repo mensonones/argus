@@ -1,6 +1,6 @@
 {
   "name": "argus",
-  "version": "0.3.0-alpha.1",
+  "version": "0.3.0-alpha.2",
   "description": "Agentic multi-perspective code review with an adversarial challenger. Many eyes, fewer false positives.",
   "author": {
     "name": "mensonones"

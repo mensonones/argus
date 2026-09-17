@@ -495,8 +495,11 @@ skills/
   challenger-validation/  (os gates)
 ```
 
-No futuro, skills stack-specific enriquecem os reviewers gerais (não os
-substituem). Exemplo:
+Em desenvolvimento: `react-review` e `node-test-review` enriquecem os reviewers
+gerais sem substituí-los, criar categorias ou habilitar lentes. `stackSkills`
+em `argus_init` informa pacote, arquivos, reviewers habilitados e evidências;
+confirmar uso real no código antes de carregar. Outros stacks seguem no roadmap.
+Exemplo futuro:
 
 ```text
 argus-security + react-native-skill
@@ -629,16 +632,19 @@ README reorganizado; schema v4 e 14 tools MCP mantidos.
 os vínculos efetivamente aplicados por grupo; relatório bloqueia reviewers ainda
 `started`. Schema v4 e 14 tools MCP mantidos.
 
-**v0.3.0-alpha.1 (atual):** Tests Reviewer opt-in, agente e skill nos quatro
+**v0.3.0-alpha.1:** Tests Reviewer opt-in, agente e skill nos quatro
 hosts, diagnósticos e teste do fluxo completo. Schema v4 e 14 tools MCP mantidos.
 
-**v0.3 (restante)** — skills stack-specific; detecção de stack;
-conhecimento framework-specific.
+**v0.3 (restante)** — mais ecossistemas e skills stack-specific;
+validação real do conhecimento framework-specific.
 
-Em desenvolvimento após alpha.1: detecção JS/TS estruturada em `argus_init.stack`,
+**v0.3.0-alpha.2 (atual):** detecção JS/TS estruturada em `argus_init.stack`,
 com manifests da raiz e ancestrais dos arquivos alterados, origem de cada sinal,
 runners declarados e limites explícitos. Não executa scripts nem certifica uso
-real da dependência. Outros ecossistemas e skills stack-specific seguem pendentes.
+real da dependência. Sugestões `stackSkills` respeitam pacote mais próximo,
+arquivos revisáveis e lentes habilitadas. Primeiros complementos React/node:test
+incluídos na release; outros ecossistemas e skills seguem pendentes. Schema v4
+e 14 tools MCP mantidos; qualidade de review React ainda não validada em uso real.
 
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
 compartilháveis por equipe.

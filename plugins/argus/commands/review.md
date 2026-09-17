@@ -58,6 +58,12 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    - `argus-tests` — changed tests/setup or concrete test-reliability concerns;
      opt-in with `reviewers.tests: true`. Load `tests-review` for its boundaries.
    Never review `ignoredFiles`. Briefly note which reviewers you picked and why.
+   Inspect `stackSkills`: optional supplements `react-review` and
+   `node-test-review` carry package scope, files and eligible enabled reviewers.
+   Confirm usage in assigned code/runner before loading; pass only relevant
+   supplements to reviewers and the Challenger. These are hints, not findings
+   or new lenses; never override `enabledReviewers`. Absence is not proof that
+   the stack is unused when detection was incomplete.
 
 3. **Review (delegate).** Before each lens, record `started` with
    `argus_record_reviewer_run`; after it finishes, record `completed` (or

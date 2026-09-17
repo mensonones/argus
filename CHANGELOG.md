@@ -1,10 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.3.0-alpha.2 — 2026-09-17
+
+- React and node:test supplements enrich existing reviewers without adding categories or enabling lenses.
+- argus_init.stackSkills suggests supplements only within the nearest inspected package, for reviewable files and enabled reviewers, with code confirmation required.
+- Routing, async assertion controls, packaged skills and host installation diagnostics are tested; live React review quality is not yet evaluated.
 
 - Structured JS/TS stack hints in argus_init and reviewer context, with manifest provenance and declared test runners/package managers.
 - Root and changed-path ancestor manifests support affected monorepo packages, with bounded inspection, malformed-manifest warnings and external-target exclusion.
-- Recorded the first Codex Tests Reviewer synthetic workflow observation; broader stack ecosystems and stack-specific skills remain pending.
+- Recorded the first Codex Tests Reviewer synthetic workflow observation; broader stack ecosystems and additional stack skills remain pending.
+
+SQLite schema remains v4 and MCP tool count remains 14. Reinstall host
+definitions and start a new session to load stack hints and the two supplements.
 
 ## 0.3.0-alpha.1 — 2026-09-17
 

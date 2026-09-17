@@ -27,6 +27,8 @@ try {
     "dist/sqlite.js",
     "dist/version.js",
     "skills/full-review/SKILL.md",
+    "skills/react-review/SKILL.md",
+    "skills/node-test-review/SKILL.md",
   ]) {
     if (!names.has(required)) throw new Error(`Package is missing ${required}`);
   }

@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.1** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.2** — [Project status](#status) · [Changelog](CHANGELOG.md).
 
 ### New in v0.2.6
 
@@ -35,17 +35,25 @@ The coordinator selects `argus-tests` for changed tests/setup or concrete
 reliability concerns. It checks assertions, async failure observation, mocks and
 isolation; missing coverage alone is not a finding. Candidates still require
 Challenger validation and reconciliation. Reinstall your host definitions and
-restart in a new session to load it. This first v0.3 prerelease does not yet
-include stack detection or stack-specific skills.
+restart in a new session to load it. Version alpha.2 adds JS/TS stack detection
+and the first two stack supplements described below.
 
 ## Evidence and evaluation
 
-In development: `argus_init.stack` exposes declared framework, test-runner and
+Since v0.3.0-alpha.2, `argus_init.stack` exposes declared framework, test-runner and
 package-manager hints from the root and affected JS/TS package manifests. Each
 signal names its source file and field; these are not verified runtime usage.
 Inspection is limited to 64 affected directories and 1 MiB per manifest, with
 warnings/truncation disclosed. Sibling packages and dependency trees are not
-scanned. Stack-specific skills and broader ecosystem detection remain planned.
+scanned. Broader ecosystem detection remains planned.
+
+The first stack supplements are `react-review` (state/effects)
+and `node-test-review` (Node runner assertion observation and isolation).
+`argus_init.stackSkills` suggests them for the nearest inspected package and
+enabled lenses only. Confirm actual code/runner usage before loading; a manifest
+declaration is not enough. They preserve the specialist category and Challenger
+workflow, and do not enable reviewers. Reinstall host definitions and start a
+new session after upgrading. Live React review quality remains unvalidated.
 
 The [Codex Tests Reviewer lab observation](eval/observations/2026-09-17-codex-tests-lab.md)
 validates one synthetic workflow, not general review quality.
@@ -417,11 +425,13 @@ command.
 
 ## Status
 
-### Versioned — v0.3.0-alpha.1
+### Released — v0.3.0-alpha.2
 
 - **Review:** four specialist lenses, adversarial Challenger, evidence packets
   and auditable claim corrections.
 - **Tests:** a fifth, opt-in specialist for concrete test-reliability defects.
+- **Stack:** declared JS/TS hints with package provenance and scoped optional
+  React/node:test supplements; actual usage must be confirmed in code.
 - **Runtime:** CLI + MCP, git diff and context, explicit reconciliation,
   ranking and Markdown/JSON/terminal reports.
 - **Memory:** versioned SQLite (schema v4), canonical history, stable baseline
@@ -434,7 +444,7 @@ command.
 
 ### Planned
 
-- Stack detection and stack-specific skills (remaining v0.3 work).
+- Broader stack ecosystems and additional stack-specific skills.
 - GitHub Action integration.
 - Broader live validation across real diffs, hosts and models.
 

@@ -5,6 +5,7 @@ import { repoRootSync, exportsDir } from "./paths.js";
 import { findingFingerprint, GlobalMemory, Memory, } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
+import { suggestStackSkills } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
@@ -79,6 +80,7 @@ export async function initReview(opts) {
             baseRef: diff.baseRef,
             overview: context.overview,
             stack: context.metadata.stack,
+            stackSkills: suggestStackSkills(context.metadata.stack, reviewableFiles, reviewers),
             changedFiles,
             reviewableFiles,
             ignoredFiles,

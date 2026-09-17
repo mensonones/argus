@@ -40,13 +40,23 @@ snapshot and observations can be established; never fabricate missing evidence.
    overview and `reviewableFiles`. If nothing reviewable changed (only
    docs/config/assets), stop and say the change needs no review.
 
-2. **Select reviewers.** Do not reflexively run all four — pick by what changed:
+2. **Select reviewers.** Do not reflexively run every lens — pick by what changed:
    - correctness: almost always (logic, state, concurrency, edge cases);
    - security: input handling, auth, IO, crypto, serialization, secrets;
    - performance: DB/query code, loops, network, hot paths, algorithms;
    - architecture: new modules, cross-layer calls, growing responsibilities.
    - tests: changed tests/setup or concrete test-reliability concerns; opt-in
      with `reviewers.tests: true`. Honor `enabledReviewers` from init for all lenses.
+
+   Inspect `stackSkills` from init for optional `react-review` and
+   `node-test-review` supplements. Each suggestion names the package manifest,
+   relevant files, eligible enabled reviewers and declaration evidence.
+   Confirm actual usage in the assigned code/runner before loading it, then
+   provide it only to the relevant specialist (and Challenger if needed).
+   Suggestions are not findings, version guarantees or new lenses. Preserve
+   config restrictions; do not load all detected stacks into every assignment.
+   Missing suggestions do not rule out a stack, especially with truncated or
+   invalid manifests; inspected code can justify loading a supplement manually.
 
 3. **Review.** Record each selected reviewer as `started` with
    `mcp__argus__argus_record_reviewer_run`, then dispatch the matching specialist reviewer tools
@@ -74,7 +84,7 @@ snapshot and observations can be established; never fabricate missing evidence.
    `symbol`; follow `nextOffset` until `hasMore` is false. Retrieve full evidence
    for a selected historical ID using `finding_id` (CLI: `--finding-id`).
    A filtered or partial page is not proof that another historical entry is absent.
-   previous/historical/imported findings and their evidence. For a reworded or
+   Compare previous/historical/imported findings and their evidence. For a reworded or
    reclassified instance of the same defect, include `baseline_match` in its
    group: `{"finding_id":"historical-id","reasoning":"why the same cause and violated contract persist"}`.
    Reference an actual historical ID, not a current candidate. Do not infer

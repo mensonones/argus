@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { detectStack } from '../dist/context/stack.js';
 import { buildContext } from '../dist/context/builder.js';
+import { suggestStackSkills } from '../dist/context/stack-skills.js';
+import { spawnSync } from 'node:child_process';
 
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-stack-'));
@@ -55,4 +57,40 @@ test('stack bounds affected-directory inspection and discloses incompleteness', 
   const result = await detectStack(root, Array.from({ length: 100 }, (_, i) => `packages/p${i}/a.js`));
   assert.equal(result.truncated, true);
   assert.deepEqual(result.signals, []);
+});
+
+test('stack supplements remain inside nearest package and enabled lenses', async t => {
+  const root = fixture(t);
+  write(root, 'package.json', { dependencies: { react: '19' }, scripts: { test: 'node --test' } });
+  write(root, 'packages/plain/package.json', { dependencies: { express: '5' } });
+  write(root, 'packages/web/package.json', { dependencies: { react: '19' }, scripts: { test: 'node --test' } });
+  const files = ['src/App.jsx', 'test/async.test.js', 'packages/plain/index.js', 'packages/plain/test/one.test.js', 'packages/web/src/App.tsx', 'packages/web/test/one.test.js'];
+  const stack = await detectStack(root, files);
+  assert.deepEqual(suggestStackSkills(stack, files, []), []);
+  const correctness = suggestStackSkills(stack, files, ['correctness']);
+  assert.ok(correctness.every(s => s.skill === 'react-review' && s.reviewers.join() === 'correctness'));
+  const suggestions = suggestStackSkills(stack, files, ['tests', 'correctness']);
+  assert.equal(suggestions.length, 4);
+  assert.ok(suggestions.every(s => s.requiresCodeConfirmation && s.evidence.length));
+  assert.ok(suggestions.every(s => !s.files.some(f => f.startsWith('packages/plain/'))));
+  assert.deepEqual(suggestions.find(s => s.skill === 'node-test-review' && s.manifest === 'package.json').files, ['test/async.test.js']);
+  assert.ok(!suggestStackSkills(stack, ['README.md', '../other/test/a.js', 'node_modules/fake/test/a.js'], ['tests']).length);
+  assert.deepEqual(suggestStackSkills(stack, [...files].reverse(), ['tests', 'correctness']), suggestions);
+});
+
+test('unsupported stacks and Node production files do not suggest a tests supplement', async t => {
+  const root = fixture(t);
+  write(root, 'package.json', { dependencies: { vue: '3' }, scripts: { test: 'node --test' } });
+  const stack = await detectStack(root, ['src/index.js']);
+  assert.deepEqual(suggestStackSkills(stack, ['src/index.js'], ['tests', 'correctness']), []);
+  write(root, 'package.json', { devDependencies: { vitest: '3' } });
+  assert.deepEqual(suggestStackSkills(await detectStack(root, ['test/a.test.js']), ['test/a.test.js'], ['tests']), []);
+});
+
+test('Node runner observes unhandled assertion rejection but swallowed errors can pass', () => {
+  const prefix = "import test from 'node:test'; import assert from 'node:assert/strict'; const verify = () => assert.rejects(async () => 42, /Unavailable/);";
+  for (const [body, expected] of [['verify();', 1], ['verify().catch(() => {});', 0], ['return verify();', 1]]) {
+    const run = spawnSync(process.execPath, ['--input-type=module', '-e', `${prefix} test('wrong behavior control', () => { ${body} });`], { encoding: 'utf8', timeout: 10000 });
+    assert.equal(run.status, expected, run.stdout + run.stderr);
+  }
 });

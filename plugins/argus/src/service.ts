@@ -11,6 +11,7 @@ import {
 } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
+import { suggestStackSkills, type StackSkillSuggestion } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
 import { renderJson } from "./report/json.js";
@@ -69,6 +70,7 @@ export interface InitResult {
   baseRef: string;
   overview: string;
   stack: import("./context/stack.js").StackDetection;
+  stackSkills: StackSkillSuggestion[];
   changedFiles: {
     path: string;
     status: string;
@@ -136,6 +138,7 @@ export async function initReview(opts: InitOptions): Promise<InitResult> {
       baseRef: diff.baseRef,
       overview: context.overview,
       stack: context.metadata.stack,
+      stackSkills: suggestStackSkills(context.metadata.stack, reviewableFiles, reviewers),
       changedFiles,
       reviewableFiles,
       ignoredFiles,

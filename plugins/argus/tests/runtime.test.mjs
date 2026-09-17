@@ -39,10 +39,12 @@ test("tests reviewer is opt-in and its challenged finding survives the full pipe
   const cwd = repo();
   assert.ok(!enabledReviewers(loadConfig(cwd).config).includes("tests"));
   fs.writeFileSync(path.join(cwd, "argus.yaml"), "reviewers:\n  tests: true\n");
+  fs.writeFileSync(path.join(cwd, "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
   fs.writeFileSync(path.join(cwd, "contract.test.js"), "import assert from 'node:assert/strict';\nconst actual = 99;\nassert.equal(actual, actual);\n");
   const initialized = await initReview({ cwd });
   assert.ok(initialized.enabledReviewers.includes("tests"));
   assert.ok(initialized.reviewableFiles.includes("contract.test.js"));
+  assert.equal(initialized.stackSkills.find(s => s.skill === "node-test-review").files[0], "contract.test.js");
   const ineffective = spawnSync(process.execPath, ["--input-type=module", "-e", "import assert from 'node:assert/strict'; const actual=99; assert.equal(actual,actual);"], { encoding: "utf8" });
   const control = spawnSync(process.execPath, ["--input-type=module", "-e", "import assert from 'node:assert/strict'; const actual=99; assert.equal(actual,1);"], { encoding: "utf8" });
   assert.equal(ineffective.status, 0); assert.notEqual(control.status, 0);
@@ -83,6 +85,18 @@ test("baseline query is compact, paginated, filtered and retrieves exact evidenc
   for (const options of [{ limit: 101 }, { limit: 0 }, { offset: -1 }, { offset: NaN }, { symbol: " " }]) {
     assert.throws(() => queryBaselineFindings(cwd, options));
   }
+});
+
+test("init stack supplements exclude ignored files and disabled reviewers", async () => {
+  const cwd = repo();
+  fs.writeFileSync(path.join(cwd, "package.json"), JSON.stringify({ dependencies: { react: "19" }, scripts: { test: "node --test" } }));
+  fs.writeFileSync(path.join(cwd, "argus.yaml"), "reviewers:\n  tests: false\nignore:\n  - ignored.test.js\n");
+  for (const file of ["allowed.test.js", "ignored.test.js", "App.jsx"]) fs.writeFileSync(path.join(cwd, file), "export const value = 1;\n");
+  const initialized = await initReview({ cwd });
+  assert.ok(initialized.ignoredFiles.includes("ignored.test.js"));
+  assert.ok(initialized.stackSkills.some(s => s.skill === "react-review" && s.files.includes("App.jsx")));
+  assert.ok(initialized.stackSkills.every(s => !s.files.includes("ignored.test.js") && !s.reviewers.includes("tests")));
+  assert.ok(!initialized.stackSkills.some(s => s.skill === "node-test-review"));
 });
 
 test("report refuses started reviewers without closing the round or writing an export", async () => {
@@ -767,6 +781,7 @@ test("OpenCode Desktop installer preserves JSONC settings and is idempotent", ()
   assert.ok(fs.existsSync(path.join(configDir, "skills", "full-review", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(configDir, "agents", "argus-tests.md")));
   assert.ok(fs.existsSync(path.join(configDir, "skills", "tests-review", "SKILL.md")));
+  for (const skill of ["react-review", "node-test-review"]) assert.ok(fs.existsSync(path.join(configDir, "skills", skill, "SKILL.md")));
   assert.equal(
     fs.readdirSync(configDir).filter((name) => name.includes(".argus-backup-")).length,
     1,
@@ -842,6 +857,7 @@ fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({
   );
   assert.ok(fs.existsSync(path.join(dshHome, "skills", "argus-review", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(dshHome, "skills", "tests-review", "SKILL.md")));
+  for (const skill of ["react-review", "node-test-review"]) assert.ok(fs.existsSync(path.join(dshHome, "skills", skill, "SKILL.md")));
   assert.equal(fs.existsSync(stale), false);
 
   const diagnosis = spawnSync(process.execPath, [doctor, "--dsh-bin", fakeDsh], {
@@ -854,5 +870,5 @@ fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({
   assert.equal(result.checks.find((check) => check.name === "mcp:handshake")?.ok, true);
   assert.equal(result.checks.find((check) => check.name === "bundle:registered")?.ok, true);
   assert.equal(result.checks.find((check) => check.name === "skills:no-stale")?.ok, true);
-  assert.equal(result.checks.filter((check) => check.name.startsWith("skill:")).length, 7);
+  assert.equal(result.checks.filter((check) => check.name.startsWith("skill:")).length, 9);
 });

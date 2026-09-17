@@ -108,7 +108,7 @@ function doctor() {
   }
   for (const skill of [
     "full-review", "correctness-review", "security-review", "performance-review",
-    "architecture-review", "tests-review", "challenger-validation",
+    "architecture-review", "tests-review", "react-review", "node-test-review", "challenger-validation",
   ]) {
     checkFile(checks, `skill:${skill}`, path.join(root, "skills", skill, "SKILL.md"));
   }
