@@ -46,9 +46,11 @@ the finding's text alone.
 
 Record via `argus_record_challenge` with `finding_id`, `verdict`, and `reasoning`
 and `execution` describing the actual mode: delegated child with host `agentId`,
-or coordinator fallback with its reason in `detail`. Never invent a child ID or
-describe the coordinator as an independent subagent. This is reported provenance,
-not runtime-certified independence.
+or coordinator fallback with its reason in `detail`. When delegated, the
+`agentId` is your own dispatched child id — the one your coordinator supplied in
+this assignment — never the coordinator's thread or conversation id. Never invent
+a child ID or describe the coordinator as an independent subagent. This is
+reported provenance, not runtime-certified independence.
 grounded in the specific code you inspected. Rejecting a weak finding is a
 success, not a failure — it is the whole point of Argus.
 

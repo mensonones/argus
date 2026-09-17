@@ -100,6 +100,14 @@ snapshot and observations can be established; never fabricate missing evidence.
    and `detail` describing loaded instructions/delegation, or `mode=coordinator`
    with `detail` explaining the fallback. Never invent an ID. This metadata is
    agent-reported provenance, not host verification or proof of independence.
+   The `agentId` must be the child's own dispatched id from the host, never the
+   coordinator's thread id. After verdicts are recorded, inspect each and confirm
+   every `mode=delegated` verdict carries its child's dispatched id and none
+   carries the coordinator's own id; if any is wrong, have that child re-record
+   the corrected `execution` now, while the round is still `active`. Provenance
+   cannot be repaired later: a `reported` round refuses further verdict or
+   metadata changes, so never call `mcp__argus__argus_report` with a delegated verdict that
+   still carries the coordinator's id.
    Have the Challenger try to refute it and record CONFIRMED /
    PLAUSIBLE / REJECTED via `mcp__argus__argus_record_challenge`. High/critical candidates
    should include a reproduction or negative control when practical. Never skip
@@ -148,8 +156,12 @@ snapshot and observations can be established; never fabricate missing evidence.
    member IDs and reviewer provenance but does not union member claim text.
    Any later finding/verdict/correction change requires reconciliation again.
    Before reporting, record every started reviewer as `completed` or `failed`
-   truthfully. `mcp__argus__argus_report` refuses reviewers still `started`, missing/stale
-   reconciliation or pending verdicts,
+   truthfully, and settle delegated-verdict provenance: confirm every
+   `mode=delegated` verdict carries its child's real dispatched `agentId` and
+   none carries the coordinator's own id. Fix any wrong `execution` now, while
+   the round is still `active` — a `reported` round refuses later verdict or
+   metadata corrections. `mcp__argus__argus_report` refuses reviewers still `started`,
+   missing/stale reconciliation or pending verdicts,
    applies the explicit groups, and ranks by
    `severity × confidence × challenge × validation`, applies the severity floor,
    and writes to `.argus/exports/`.

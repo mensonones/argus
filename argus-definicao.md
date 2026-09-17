@@ -668,12 +668,19 @@ proveniência de execução e relatórios distinguem delegado, coordenador e nã
 informado. Metadados são declarados pelos agentes, não prova de independência.
 Schema v4 e 14 tools MCP mantidos; reinstalar e abrir nova sessão após atualizar.
 
-**v0.3.0-alpha.5 (atual):** contexto compartilhado explícito `repo_path` +
+**v0.3.0-alpha.5:** contexto compartilhado explícito `repo_path` +
 `round_id` nas chamadas MCP; filhos podem anexar à rodada sem criar outra.
 Contextos incorretos ou substituídos são rejeitados. Teste com três processos
 MCP separados preserva os mesmos IDs de candidato e veredicto. Exige acesso ao
 mesmo banco `.argus`, sem contornar isolamento do host. Schema v4 e 14 tools
 MCP mantidos; reinstalar definições e iniciar nova sessão após atualizar.
+
+**v0.3.0-alpha.6 (atual):** o coordenador precisa acertar a proveniência do
+Challenger delegado **antes** do relatório — todo veredicto `mode=delegated` deve
+carregar o `agentId` real do filho despachado (nunca o id da thread coordenadora),
+e um `execution` errado é corrigido enquanto a rodada ainda está `active`, pois
+rodada `reported` recusa correção posterior. Mudança só de instruções; reinstalar
+definições e iniciar nova sessão. Schema v4 e 14 tools MCP mantidos.
 
 **v0.4** — GitHub Action; comentários em PR; políticas de baseline/suppression
 compartilháveis por equipe.

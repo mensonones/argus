@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.0-alpha.6 — 2026-09-17
 
+- Coordinator and Challenger instructions require settling delegated-verdict provenance before reporting: each mode=delegated verdict must carry the child's real dispatched agentId, never the coordinator's thread id, and any wrong execution is corrected while the round is still active. A reported round refuses later verdict/metadata corrections, so provenance is checked before argus_report.
 - Formalized release scope, RC/stable completion gates, host/stack validation and real-diff evaluation requirements in ROADMAP.md. CI reasoning-engine choice is an explicit prerequisite; future alpha numbers/dates are not promised.
+
+Validated with 54 automated tests and an installed-package MCP handshake (14 tools).
+This release changes plugin instructions only; SQLite schema v4 and the 14 MCP
+tools are unchanged. Reinstall all host definitions and start a fresh session.
 
 ## 0.3.0-alpha.5 — 2026-09-17
 

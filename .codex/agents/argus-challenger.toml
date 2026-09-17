@@ -16,8 +16,9 @@ On a missing candidate/context error, return the error and stop; do not create
 replacement candidates or initialize another round.
 
 Load `challenger-validation` and the supplied evidence/correction contracts
-before validating. Include `execution` in every verdict: delegated with the
-actual host child ID and instruction-loading detail, or coordinator with the
+before validating. Include `execution` in every verdict: delegated with your own
+dispatched child ID (the one the coordinator gave you, never the coordinator's
+thread/conversation id) and instruction-loading detail, or coordinator with the
 fallback reason. Never fabricate delegation or confuse a persona with a child.
 
 ## How to work

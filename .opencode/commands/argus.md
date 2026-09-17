@@ -107,7 +107,12 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    REJECTED). For high/critical candidates, require a reproduction or negative
    control when practical. This step is what makes Argus trustworthy — do not
    skip it. Never suppress a finding automatically; suppression requires an
-   explicit maintainer decision and an audit reason.
+   explicit maintainer decision and an audit reason. Record each verdict's
+   `execution`: `mode=delegated` with the child's own dispatched `agentId` (never
+   the coordinator's thread id), or `mode=coordinator` for a disclosed fallback.
+   After recording, verify no delegated verdict carries the coordinator's own id;
+   fix any wrong `execution` while the round is still `active`, since a reported
+   round refuses later corrections.
 
 5. **Reconcile + Report.** Read the full-review skill's reconciliation contract.
    Inspect `argus_baseline_findings` (`argus baseline-list`) before grouping.
@@ -138,7 +143,9 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    Check `argus_reconcile.appliedGroups`: primary matches, identities, statuses,
    match modes and incorporations must reflect the intended plan. Empty links
    were not applied; do not describe them as stored or invent superseding history.
-   Record every started reviewer as completed or failed before reporting.
+   Record every started reviewer as completed or failed, and confirm every
+   delegated verdict carries its child's real `agentId` (not the coordinator's),
+   before reporting — a reported round refuses later verdict/metadata fixes.
    Then call `argus_report` (default markdown). Started reviewers, pending verdicts, absent plans,
    and finding/verdict/correction changes after reconciliation block reporting.
    If anything changes, reconcile again. Do not bypass the gate with a handwritten

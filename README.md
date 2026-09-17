@@ -13,7 +13,16 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.5** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.6** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.6
+
+The coordinator must settle delegated Challenger provenance before reporting:
+every `mode=delegated` verdict has to carry the child's real dispatched
+`agentId` (never the coordinator's thread id), and any wrong `execution` is
+corrected while the round is still active — a reported round refuses later
+fixes. Instruction-only change; reinstall host definitions and start a fresh
+session.
 
 ### New in v0.3.0-alpha.5
 
@@ -484,7 +493,11 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.5
+### Released — v0.3.0-alpha.6
+
+- **Provenance gate:** delegated Challenger verdicts must carry the child's real
+  dispatched `agentId` (never the coordinator's), verified and corrected before
+  reporting while the round is still active.
 
 - **Shared round:** explicit MCP repository/round context and non-creating child
   attachment, tested across three separate MCP processes.
