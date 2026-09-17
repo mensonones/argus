@@ -681,13 +681,26 @@ MCP separados preserva os mesmos IDs de candidato e veredicto. Exige acesso ao
 mesmo banco `.argus`, sem contornar isolamento do host. Schema v4 e 14 tools
 MCP mantidos; reinstalar definições e iniciar nova sessão após atualizar.
 
-**v0.3.0-alpha.7 (atual):** o runtime bloqueia o relatório quando IDs delegados
+**v0.3.0-alpha.7:** o runtime bloqueia o relatório quando IDs delegados
 não correspondem à proveniência explícita do despacho. Init/anexo/relatórios
 expõem escopo Git com revisões fixadas e política de merges. Novos grupos com
 múltiplos candidatos exigem análise causal e cobertura das alegações no canônico.
 Validação: 57 testes e handshake do pacote com 14 tools MCP; schema v4 mantido.
 São verificações estruturais, não certificação de execução ou completude semântica.
 Reinstalar definições e iniciar nova sessão.
+
+**v0.3.0-alpha.8 (atual):** integridade de rodada — `argus_init` recusa abrir
+rodada com uma ativa (não substitui em silêncio); nova tool `argus_abandon_round`
+encerra a ativa de forma explícita e auditada (com razão), removendo a
+"recuperação" por rodada paralela. O contrato de rodada compartilhada passa a ser
+entregue a todos os especialistas, não só ao Challenger. Codex custom agents no
+schema documentado (`developer_instructions`, `model_reasoning_effort`) com
+`install:codex`/`doctor:codex`; onde o host tool-backed não seleciona agente por
+nome (openai/codex#15250), o coordenador injeta as instruções num worker genérico
+e declara isso — sem fingir papel carregado. Removido o scaffold de credenciais de
+participação (adiado: guardrail de confusão de papel, não barreira de segurança).
+Validação: 60 testes e handshake com 15 tools MCP; schema v4 mantido.
+Reinstalar definições (inclui `npm run install:codex`) e iniciar nova sessão.
 
 **v0.3.0-alpha.6:** o coordenador precisa acertar a proveniência do
 Challenger delegado **antes** do relatório — todo veredicto `mode=delegated` deve

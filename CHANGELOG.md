@@ -4,6 +4,17 @@
 
 No unreleased changes.
 
+## 0.3.0-alpha.8 — 2026-09-17
+
+- Active-round protection: `argus_init` no longer silently replaces an active round; opening a round while one is active is refused. New `argus_abandon_round` MCP tool ends the active round explicitly and audibly (records a reason) so the coordinator recovers without opening a parallel round. The server now exposes 15 MCP tools; SQLite schema v4 is unchanged.
+- The shared round contract (use repo_path+round_id on every call, never init a new round, attach with only that pair, stop on context errors) is delivered to every specialist reviewer, not just the Challenger.
+- Codex custom agents are generated with the documented subagents schema (`developer_instructions`, `model_reasoning_effort`, `sandbox_mode`); new `install:codex`/`doctor:codex` install and verify them in `~/.codex/agents/`. Coordinator instructions: where a tool-backed host cannot select a custom agent by name (openai/codex#15250), inject the reviewer's `developer_instructions` into a generic worker and disclose it as such — never claim a host-loaded role.
+- Added an MCP-level adversarial test for the parallel-round wrong path; removed the unwired participation-credential scaffold (deferred — a role-confusion guardrail, not a security barrier).
+
+Validated with 60 automated tests and the release-validation MCP handshake (15 tools).
+This release changes plugin instructions and runtime round handling; reinstall
+all host definitions (including `npm run install:codex`) and start a fresh session.
+
 ## 0.3.0-alpha.7 — 2026-09-17
 
 - Report closure now checks delegated verdict IDs against explicit coordinator-supplied dispatch provenance, including rejected candidates, before writing exports. Environment session IDs must not substitute for actual child dispatch IDs.

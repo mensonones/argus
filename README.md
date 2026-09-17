@@ -13,7 +13,19 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.7** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.8** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.8
+
+`argus_init` no longer silently replaces an active round; the new
+`argus_abandon_round` tool ends one explicitly with an audited reason (15 MCP
+tools now). Every specialist reviewer carries the shared round contract. Codex
+custom agents use the documented schema (`developer_instructions`,
+`model_reasoning_effort`) with `install:codex`/`doctor:codex`; where a
+tool-backed host cannot select a custom agent by name
+([openai/codex#15250](https://github.com/openai/codex/issues/15250)) the
+coordinator injects instructions into a generic worker and discloses it as such.
+Reinstall host definitions (`npm run install:codex`) and start a fresh session.
 
 ### New in v0.3.0-alpha.7
 
@@ -539,7 +551,15 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.7
+### Released — v0.3.0-alpha.8
+
+- **Round integrity:** `argus_init` refuses to replace an active round; explicit
+  audited `argus_abandon_round` is the only unblock. Every reviewer carries the
+  shared round contract.
+
+- **Codex done right:** custom agents use the documented schema with
+  `install:codex`/`doctor:codex`; tool-backed delegation injects instructions
+  into a generic worker and discloses it honestly (openai/codex#15250).
 
 - **Provenance gate:** delegated Challenger verdicts must carry the child's real
   dispatched `agentId` (never the coordinator's), verified and corrected before
