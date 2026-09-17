@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import path from "node:path";
-import { initReview, reviewContext, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
+import { initReview, reviewContext, recordFinding, recordChallenge, recordReviewerRun, abandonRound, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
 import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema, provenanceSchema } from "./validation.js";
@@ -318,6 +318,32 @@ export async function startServer() {
             });
             const suffix = out.exportPath ? `\n\n(written to ${out.exportPath})` : "";
             return text(out.rendered + suffix);
+        }
+        catch (err) {
+            return errorText(err);
+        }
+    });
+    server.registerTool("argus_abandon_round", {
+        title: "Explicitly abandon the active review round",
+        description: "Coordinator-only audited operation to end the current active round " +
+            "(e.g. after an unrecoverable context failure) so a new review can " +
+            "start. Requires the exact active round_id and a reason. argus_init " +
+            "never silently replaces an active round; a child must never abandon " +
+            "or recreate rounds — on a context error it stops and reports.",
+        inputSchema: {
+            ...roundContextSchema,
+            reason: z.string().min(1).describe("Audited reason for abandoning the round"),
+        },
+    }, async (args) => {
+        try {
+            const repoRoot = targetCwd(args);
+            const roundId = args.round_id ?? activeRoundId;
+            const out = abandonRound(repoRoot, roundId, args.reason);
+            if (activeRoundId === roundId) {
+                activeRoundId = undefined;
+                activeCwd = undefined;
+            }
+            return text(out);
         }
         catch (err) {
             return errorText(err);

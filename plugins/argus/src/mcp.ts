@@ -8,6 +8,7 @@ import {
   recordFinding,
   recordChallenge,
   recordReviewerRun,
+  abandonRound,
   listFindings,
   querySimilar,
   memorySearch,
@@ -395,6 +396,37 @@ export async function startServer(): Promise<void> {
         });
         const suffix = out.exportPath ? `\n\n(written to ${out.exportPath})` : "";
         return text(out.rendered + suffix);
+      } catch (err) {
+        return errorText(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    "argus_abandon_round",
+    {
+      title: "Explicitly abandon the active review round",
+      description:
+        "Coordinator-only audited operation to end the current active round " +
+        "(e.g. after an unrecoverable context failure) so a new review can " +
+        "start. Requires the exact active round_id and a reason. argus_init " +
+        "never silently replaces an active round; a child must never abandon " +
+        "or recreate rounds — on a context error it stops and reports.",
+      inputSchema: {
+        ...roundContextSchema,
+        reason: z.string().min(1).describe("Audited reason for abandoning the round"),
+      },
+    },
+    async (args) => {
+      try {
+        const repoRoot = targetCwd(args);
+        const roundId = args.round_id ?? activeRoundId!;
+        const out = abandonRound(repoRoot, roundId, args.reason);
+        if (activeRoundId === roundId) {
+          activeRoundId = undefined;
+          activeCwd = undefined;
+        }
+        return text(out);
       } catch (err) {
         return errorText(err);
       }

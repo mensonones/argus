@@ -162,7 +162,9 @@ export class Memory {
     const id = randomUUID();
     const createdAt = nowIso();
     this.db.transaction(() => {
-      this.db.prepare("UPDATE rounds SET status='abandoned' WHERE status='active'").run();
+      if (this.db.prepare("SELECT id FROM rounds WHERE status='active' LIMIT 1").get()) {
+        throw new Error("An active round already exists. Attach to it; only an explicit audited abandonment may precede a new round.");
+      }
       this.db
         .prepare(
           "INSERT INTO rounds(id,base_ref,status,project_summary,created_at) " +
@@ -172,6 +174,17 @@ export class Memory {
       this.setMeta("active_round", id);
     });
     return { id, baseRef, status: "active", projectSummary, createdAt };
+  }
+
+  abandonRound(id: string, reason: string): void {
+    if (!reason.trim()) throw new Error("Abandonment requires a reason.");
+    this.db.transaction(() => {
+      if (this.activeRound()?.id !== id || this.getRound(id)?.status !== "active") {
+        throw new Error("Only the exact active round can be abandoned.");
+      }
+      this.db.prepare("UPDATE rounds SET status='abandoned' WHERE id=?").run(id);
+      this.setMeta(`abandonment:${id}`, JSON.stringify({ reason: reason.trim(), at: nowIso() }));
+    });
   }
 
   activeRound(): Round | undefined {

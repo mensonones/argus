@@ -73,12 +73,16 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    `repo_path=repoRoot` and `round_id=roundId` in each child assignment and every
    child's MCP call. A child may attach with `argus_init` using ONLY this pair;
    this never creates a round or recomputes the diff. Never have a child call
-   ordinary init: it starts a new round and abandons the coordinator's round.
-   Pass overview, scope, enabled lenses and stack suggestions too; attach returns
-   identity, not a fresh review plan. Verify returned candidate IDs in the
-   coordinator's list before dispatching Momo. On context errors, stop and verify
-   the pair and shared database; never recreate candidates to hide persistence
-   failures. Explicit context neither bypasses permissions nor copies databases.
+   ordinary init: `argus_init` now refuses to open a round while one is active
+   (it does not silently replace it). Pass overview, scope, enabled lenses and
+   stack suggestions too; attach returns identity, not a fresh review plan.
+   Verify returned candidate IDs in the coordinator's list before dispatching
+   Momo. On context errors, stop and verify the pair and shared database; never
+   recreate candidates to hide persistence failures. If — and only if — the round
+   is genuinely unrecoverable, the coordinator (never a child) ends it explicitly
+   with `argus_abandon_round` (round_id + audited reason), then opens a fresh
+   round; do not start a parallel round to "recover" a review. Explicit context
+   neither bypasses permissions nor copies databases.
 
 2. **Select reviewers.** Do not reflexively run every lens — pick by what changed:
    - correctness: almost always (logic, state, concurrency, edge cases);

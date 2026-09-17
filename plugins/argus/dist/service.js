@@ -175,6 +175,25 @@ export function reviewContext(cwd, roundId) {
         mem.close();
     }
 }
+/**
+ * Explicit, audited abandonment of the active round. This is the ONLY sanctioned
+ * way to end an active review so a new one can start — `argus_init` no longer
+ * silently replaces an active round. Coordinator operation; a child must never
+ * abandon or recreate rounds.
+ */
+export function abandonRound(cwd, roundId, reason) {
+    if (!path.isAbsolute(cwd))
+        throw new Error("repo_path must be absolute.");
+    const repoRoot = repoRootSync(cwd);
+    const mem = Memory.open(repoRoot);
+    try {
+        mem.abandonRound(roundId, reason);
+        return { abandoned: roundId, reason: reason.trim() };
+    }
+    finally {
+        mem.close();
+    }
+}
 function withCurrentRound(cwd, fn, requireActive = false) {
     const repoRoot = repoRootSync(cwd);
     const mem = Memory.open(repoRoot);

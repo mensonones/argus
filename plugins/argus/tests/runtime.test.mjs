@@ -15,6 +15,7 @@ import { deduplicate, scoreFinding } from "../dist/dedup.js";
 import { buildDiff } from "../dist/git.js";
 import {
   initReview,
+  abandonRound,
   importBaseline,
   listSuppressions,
   recordChallenge,
@@ -496,6 +497,35 @@ test("corrections and new findings invalidate reconciliation without restoring d
 function git(cwd, ...args) {
   return execFileSync("git", args, { cwd, encoding: "utf8" });
 }
+
+test("init refuses to replace an active round; only an explicit audited abandon unblocks a new one", async () => {
+  const cwd = repo();
+  const first = await initReview({ cwd });
+
+  // A second real init must NOT silently abandon the active round.
+  await assert.rejects(() => initReview({ cwd }), /active round already exists/i);
+  let mem = Memory.open(cwd);
+  assert.equal(mem.getRound(first.roundId).status, "active");
+  mem.close();
+
+  // Abandonment is guarded: needs a reason, and only the exact active round.
+  assert.throws(() => abandonRound(cwd, first.roundId, "   "), /reason/i);
+  assert.throws(() => abandonRound(cwd, "not-the-active-round", "x"), /exact active round/i);
+
+  // Explicit, audited abandon records the reason and frees a new round.
+  const out = abandonRound(cwd, first.roundId, "context unrecoverable");
+  assert.equal(out.abandoned, first.roundId);
+  mem = Memory.open(cwd);
+  assert.equal(mem.getRound(first.roundId).status, "abandoned");
+  assert.equal(
+    JSON.parse(mem.getMeta(`abandonment:${first.roundId}`)).reason,
+    "context unrecoverable",
+  );
+  mem.close();
+
+  const second = await initReview({ cwd });
+  assert.notEqual(second.roundId, first.roundId);
+});
 
 function repo() {
   const cwd = tempDir();

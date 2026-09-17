@@ -34,9 +34,13 @@ can differ and are not controlled by Argus. Names never enable disabled lenses.
 - **Shared round.** Only the coordinator creates a round. Give every child the
   init `repoRoot` and `roundId`; pass them as `repo_path` + `round_id` on every
   MCP call. Children can attach with `argus_init` using ONLY this pair. Never
-  call ordinary init in a child, as it abandons the coordinator round. Confirm
-  candidate IDs in the coordinator list before dispatching Momo. Stop on context
-  errors instead of recreating candidates or guessing ID mappings.
+  call ordinary init in a child; `argus_init` now refuses to open a round while
+  one is active (it does not silently replace it). Confirm candidate IDs in the
+  coordinator list before dispatching Momo. Stop on context errors instead of
+  recreating candidates or guessing ID mappings. If a round is truly
+  unrecoverable, the coordinator (never a child) ends it with
+  `argus_abandon_round` (round_id + reason) before opening a new one — never run
+  a parallel round to recover.
 
 - **Evidence over speculation.** Every finding must cite the exact code, the
   triggering scenario, the concrete impact, and a confidence level. "Looks

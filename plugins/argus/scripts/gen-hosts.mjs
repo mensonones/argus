@@ -176,6 +176,7 @@ const DSH_MCP_PREFIX = "mcp__argus__";
 // Must stay in sync with the MCP server's tools/list. `doctor-dsh.mjs` checks it.
 const DSH_MCP_TOOLS = [
   "argus_init",
+  "argus_abandon_round",
   "argus_record_reviewer_run",
   "argus_record_finding",
   "argus_record_challenge",
