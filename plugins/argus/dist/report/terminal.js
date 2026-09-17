@@ -27,6 +27,9 @@ function block(title, body) {
 }
 export function renderTerminal(result) {
     const out = [];
+    out.push(`Scope: ${result.scope ? `${result.scope.mode} ${result.scope.baseRevision} → ${result.scope.headRevision}; working tree included: ${result.scope.includeWorkingTree}; ${result.scope.mergePolicy}; paths: ${JSON.stringify(result.scope.paths)}` : "legacy / unspecified"}`);
+    if (result.provenanceCheck)
+        out.push("Challenger IDs matched coordinator-supplied dispatch IDs (not host-certified).");
     out.push(color.bold(color.cyan("\nArgus Review")));
     out.push(color.dim(result.projectSummary.split("\n")[0]));
     out.push("");

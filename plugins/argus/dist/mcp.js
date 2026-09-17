@@ -5,7 +5,7 @@ import path from "node:path";
 import { initReview, reviewContext, recordFinding, recordChallenge, recordReviewerRun, listFindings, querySimilar, memorySearch, importBaseline, suppressFinding, listSuppressions, updateGlobalMemory, report, reconcileFindings, queryBaselineFindings, } from "./service.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema, provenanceSchema } from "./validation.js";
 const SERVER_CWD = process.cwd();
 let activeCwd;
 let activeRoundId;
@@ -305,6 +305,7 @@ export async function startServer() {
                 .enum(["info", "low", "medium", "high", "critical"])
                 .optional(),
             max_findings: z.number().optional(),
+            provenance: provenanceSchema.optional(),
         },
     }, async (args) => {
         try {
@@ -313,6 +314,7 @@ export async function startServer() {
                 format: args.format,
                 minSeverity: args.min_severity,
                 maxFindings: args.max_findings,
+                provenance: args.provenance,
             });
             const suffix = out.exportPath ? `\n\n(written to ${out.exportPath})` : "";
             return text(out.rendered + suffix);

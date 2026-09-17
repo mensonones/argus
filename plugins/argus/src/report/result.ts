@@ -9,6 +9,8 @@ export interface ReviewerRunStats {
 }
 
 export interface ReviewResult {
+  provenanceCheck?: { coordinator_id: string; dispatched_challenger_ids: string[] };
+  scope?: import("../git.js").RepoDiff["scope"];
   baseRef: string;
   projectSummary: string;
   reviewersRun: string[];

@@ -55,7 +55,7 @@ export async function detectBaseBranch(cwd) {
     // Fall back to the parent of HEAD.
     return "HEAD~1";
 }
-/** Return the merge-base so we diff only what this branch introduced. */
+/** Return the merge-base for an integrated-tree diff, not commit attribution. */
 async function mergeBase(cwd, base) {
     try {
         return (await git(cwd, ["merge-base", base, "HEAD"])).trim();
@@ -67,16 +67,26 @@ async function mergeBase(cwd, base) {
 export async function buildDiff(cwd, opts) {
     let range;
     let baseRef;
+    const head = (await git(cwd, ["rev-parse", "--verify", "HEAD^{commit}"])).trim();
+    let baseRevision;
+    let headRevision = head;
     if (opts.commit) {
         baseRef = opts.commit;
-        range = [`${opts.commit}^!`]; // changes introduced by that commit
+        const commit = (await git(cwd, ["rev-parse", "--verify", `${opts.commit}^{commit}`])).trim();
+        const parents = (await git(cwd, ["rev-list", "--parents", "-n", "1", commit])).trim().split(/\s+/).slice(1);
+        if (parents.length !== 1)
+            throw new Error("Single-commit review requires one non-merge parent; use an explicit branch/base diff for merge or root commits.");
+        baseRevision = parents[0];
+        headRevision = commit;
+        range = [baseRevision, commit];
     }
     else {
         const base = opts.base ?? (await detectBaseBranch(cwd));
         const mb = await mergeBase(cwd, base);
         baseRef = base;
-        // Three-dot against merge-base captures only this branch's changes.
-        range = opts.includeWorkingTree !== false ? [mb] : [`${mb}...HEAD`];
+        baseRevision = (await git(cwd, ["rev-parse", "--verify", `${mb}^{commit}`])).trim();
+        // Integrated endpoint differences can include merge resolutions.
+        range = opts.includeWorkingTree !== false ? [baseRevision] : [baseRevision, head];
     }
     const pathArgs = opts.paths && opts.paths.length ? ["--", ...opts.paths] : [];
     // numstat gives per-file add/delete counts + status.
@@ -167,7 +177,13 @@ export async function buildDiff(cwd, opts) {
         .filter((f) => !patches.has(f.path))
         .map((f) => f.patch)
         .join("");
-    return { baseRef, files, raw: raw + extraRaw };
+    return { baseRef, files, raw: raw + extraRaw, scope: {
+            mode: opts.commit ? "single-commit" : "integrated-branch-diff",
+            baseRevision, headRevision,
+            includeWorkingTree: !opts.commit && opts.includeWorkingTree !== false,
+            paths: opts.paths ?? [],
+            mergePolicy: opts.commit ? "non-merge-commit" : "merge-resolution-changes-not-excluded",
+        } };
 }
 function parseNameStatus(text) {
     const map = new Map();

@@ -20,13 +20,33 @@ import {
   recordChallenge,
   recordFinding,
   recordReviewerRun,
-  report,
-  reconcileFindings,
+  report as runtimeReport,
+  reconcileFindings as runtimeReconcileFindings,
   listFindings,
   listBaselineFindings,
   queryBaselineFindings,
   suppressFinding,
 } from "../dist/service.js";
+
+// Generic fixtures attest transport structure, never model semantic judgment.
+function report(opts) {
+  const ids = listFindings(opts.cwd).flatMap(f => f.challenge?.execution?.mode === "delegated" ? [f.challenge.execution.agentId] : []);
+  return runtimeReport({ ...opts, provenance: ids.length ? { coordinator_id: "test-coordinator", dispatched_challenger_ids: ids } : undefined });
+}
+function reconcileFindings(cwd, groups) {
+  const findings = listFindings(cwd);
+  return runtimeReconcileFindings(cwd, groups.map(group => {
+    const canonical = findings.find(f => f.id === group.canonical_id);
+    if (!canonical || group.members.length < 2) return group;
+    return { ...group, causal_analysis: "Synthetic transport fixture; semantic equivalence is not tested here.",
+      claim_coverage: group.members.flatMap(member => {
+        const source = findings.find(f => f.id === member.finding_id);
+        return source ? [{ finding_id: source.id, source_claim: source.impact,
+          description_excerpt: canonical.description, evidence_excerpt: canonical.evidence[0],
+          impact_excerpt: canonical.impact, observation_excerpt: canonical.evidencePackage?.observed }] : [];
+      }) };
+  }));
+}
 
 function reconcileSingles(cwd) {
   reconcileFindings(cwd, listFindings(cwd).filter(f => f.status === "confirmed").map(f => ({
@@ -58,6 +78,68 @@ test("Challenger execution provenance survives storage and reports without certi
       ? /not an independent subagent/ : /child-123.*not host-verified/;
     assert.match(md, expected); assert.match(terminal, expected);
   }
+});
+
+test("report refuses delegated coordinator IDs and missing/mismatched dispatch attestation before closing", async () => {
+  const cwd = repo(); const initialized = await initReview({ cwd });
+  const id = recordFinding(cwd, finding()).id;
+  const challenge = agentId => recordChallenge(cwd, id, "CONFIRMED", "Checked", undefined, undefined, undefined,
+    { mode: "delegated", agentId, detail: "Dispatch fixture" });
+  challenge("parent"); reconcileSingles(cwd);
+  const opts = { cwd, write: true, promoteGlobal: false };
+  assert.throws(() => runtimeReport(opts), /supply provenance/);
+  assert.throws(() => runtimeReport({ ...opts, provenance: { coordinator_id: "parent", dispatched_challenger_ids: ["parent"] } }), /coordinator ID/);
+  assert.throws(() => runtimeReport({ ...opts, provenance: { coordinator_id: "parent", dispatched_challenger_ids: ["child"] } }), /does not match/);
+  const memory = Memory.open(cwd); assert.equal(memory.getRound(initialized.roundId).status, "active"); memory.close();
+  assert.deepEqual(fs.readdirSync(path.join(cwd, ".argus/exports")), []);
+  challenge("child"); reconcileSingles(cwd);
+  const out = runtimeReport({ ...opts, provenance: { coordinator_id: "parent", dispatched_challenger_ids: ["child"] } });
+  assert.equal(out.result.provenanceCheck.coordinator_id, "parent");
+  assert.equal(runtimeReport({ cwd, write: false, promoteGlobal: false }).result.findings[0].challenge.execution.agentId, "child");
+});
+
+test("merged claim coverage cannot cite grouping prose instead of canonical content", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const a = recordFinding(cwd, finding({ description: "CTA no-op", evidence: ["button does nothing"], impact: "UI does not exit" })).id;
+  const b = recordFinding(cwd, finding({ description: "Session retained", evidence: ["no clearSession"], impact: "Tokens remain stored" })).id;
+  for (const id of [a,b]) recordChallenge(cwd, id, "CONFIRMED", "Static path inspected");
+  const group = { canonical_id: a, members: [a,b].map(id => ({ finding_id: id, category: "correctness" })),
+    rootCause: ownerCause, reasoning: "Both are in the same success flow", claims_reviewed: true };
+  assert.throws(() => runtimeReconcileFindings(cwd, [group]), /causal_analysis/);
+  const coverage = id => ({ finding_id: id, source_claim: id === a ? "UI does not exit" : "Tokens remain stored",
+    description_excerpt: id === a ? "CTA no-op" : "Session retained", evidence_excerpt: id === a ? "button does nothing" : "no clearSession",
+    impact_excerpt: id === a ? "UI does not exit" : "Tokens remain stored" });
+  const reviewed = { ...group, causal_analysis: "Counterfactual assessment required; this fixture tests coverage only", claim_coverage: [coverage(a),coverage(b)] };
+  assert.throws(() => runtimeReconcileFindings(cwd, [reviewed]), /canonical description/);
+  assert.throws(() => runtimeReconcileFindings(cwd, [{ ...reviewed, claim_coverage: [coverage(a)] }]), /every member/);
+  // Correctness of merging remains a human judgment, not a substring certificate.
+  recordChallenge(cwd, a, "CONFIRMED", "Coverage fixture corrected", undefined, {
+    reason: "Retain both validated consequences", title: "Combined fixture", description: "CTA no-op; Session retained",
+    evidence: ["button does nothing", "no clearSession"], impact: "UI does not exit; Tokens remain stored" });
+  runtimeReconcileFindings(cwd, [reviewed]);
+  assert.throws(() => runtimeReconcileFindings(cwd, [{ ...reviewed, claim_coverage: [{ ...coverage(a), source_claim: "invented" },coverage(b)] }]), /source_claim/);
+  assert.equal(runtimeReport({ cwd, write: false, promoteGlobal: false }).result.findings[0].consolidation.claimCoverage.length, 2);
+});
+
+test("scope pins endpoint revisions and discloses merges instead of excluding them", async () => {
+  const cwd = repo();
+  execFileSync("git", ["switch", "-c", "feature"], { cwd });
+  fs.writeFileSync(path.join(cwd, "feature.js"), "export const feature = 1;\n");
+  execFileSync("git", ["add", "feature.js"], { cwd }); execFileSync("git", ["commit", "-m", "feature"], { cwd });
+  execFileSync("git", ["switch", "main"], { cwd });
+  fs.writeFileSync(path.join(cwd, "upstream.js"), "export const upstream = 1;\n");
+  execFileSync("git", ["add", "upstream.js"], { cwd }); execFileSync("git", ["commit", "-m", "upstream"], { cwd });
+  const base = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();
+  execFileSync("git", ["switch", "feature"], { cwd }); execFileSync("git", ["merge", "main", "--no-edit"], { cwd });
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();
+  const initialized = await initReview({ cwd, base: "main", includeWorkingTree: false });
+  assert.equal(initialized.scope.baseRevision, base); assert.equal(initialized.scope.headRevision, head);
+  assert.equal(initialized.scope.mergePolicy, "merge-resolution-changes-not-excluded");
+  assert.deepEqual(initialized.changedFiles.map(f => f.path), ["feature.js"]);
+  await assert.rejects(() => buildDiff(cwd, { commit: head }), /non-merge parent/);
+  reconcileSingles(cwd);
+  const result = runtimeReport({ cwd, format: "json", write: false, promoteGlobal: false });
+  assert.deepEqual(JSON.parse(result.rendered).scope, initialized.scope);
 });
 
 test("tests reviewer is opt-in and its challenged finding survives the full pipeline", async () => {
@@ -659,7 +741,8 @@ test("isolated MCP workers share candidates and verdicts without replacing coord
     const memory = Memory.open(cwd);
     assert.equal(memory.activeRound().id, context.round_id); memory.close();
     reconcileSingles(cwd);
-    assert.match(await call(coordinator, "argus_report", { ...context, format: "json" }), /test-child/);
+    assert.match(await call(coordinator, "argus_report", { ...context, format: "json",
+      provenance: { coordinator_id: "test-coordinator", dispatched_challenger_ids: ["test-child"] } }), /test-child/);
     assert.equal((await specialist.callTool({ name: "argus_record_finding", arguments: { ...finding(), ...context } })).isError, true);
     await initReview({ cwd });
     const stale = await specialist.callTool({ name: "argus_record_finding", arguments: { ...finding(), ...context } });

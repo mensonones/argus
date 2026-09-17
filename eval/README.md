@@ -2,6 +2,9 @@
 
 Live workflow notes in `observations/` are unscored and may contain unresolved
 findings. Keep them out of blinded reviewer inputs. The
+[Codex real profile review adjudication](observations/2026-09-17-codex-real-profile-review.md)
+records incorrect Challenger attribution, a pre-existing UI issue and disputed
+consolidation; it is not a passing release gate or a scored quality evaluation. The
 [DSH lab observation](observations/2026-09-12-dsh-lab.md) records a disputed split
 and subsequent maintainer-approved grouping, not an extra pilot issue or a model ranking.
 

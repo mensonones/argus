@@ -82,7 +82,8 @@ export interface Finding {
   category: Category;
   /** All lenses associated with a consolidated finding. */
   categories?: Category[];
-  consolidation?: { canonicalId: string; memberIds: string[]; reasoning: string };
+  consolidation?: { canonicalId: string; memberIds: string[]; reasoning: string;
+    causalAnalysis?: string; claimCoverage?: import("./reconciliation.js").ReconciliationGroup["claim_coverage"] };
   baselineIdentity?: string;
   baselineMatch?: { findingId: string; reasoning: string };
   baselineIncorporations?: Array<{

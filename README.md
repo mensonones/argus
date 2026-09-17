@@ -13,7 +13,16 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.6** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.7** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.7
+
+The runtime now blocks report closure when delegated verdict IDs do not match
+explicit dispatch provenance. Reports expose pinned Git scope, and new merged
+groups require causal analysis and canonical claim coverage. These are structural
+checks, not certified execution or semantic completeness. Validated with 57 tests
+and a packaged MCP handshake (14 tools); schema v4 is unchanged. Reinstall all
+host definitions and start a fresh session.
 
 ### New in v0.3.0-alpha.6
 
@@ -112,6 +121,28 @@ The eight-case synthetic pilot tests the evaluation workflow; it does **not**
 establish production review quality. No model API or API key is introduced.
 
 ## How it works
+
+### Pre-report safeguards (v0.3.0-alpha.7)
+
+Delegated verdicts require report `provenance` with the real `coordinator_id`
+and `dispatched_challenger_ids` returned by the host. Missing/mismatched IDs
+block closure. Send returned child IDs explicitly; CODEX_SESSION_ID may identify
+the parent. This compares coordinator-supplied records, not certified host execution.
+CLI: `argus report --provenance '{"coordinator_id":"parent-id","dispatched_challenger_ids":["child-id"]}'`.
+
+Init/attachment/reports expose `scope`: pinned base/head revisions, paths,
+working-tree inclusion and merge policy. Branch review is an integrated diff;
+enumerating non-merge commits does not exclude merge-resolution changes.
+Single-commit mode rejects merge/root commits without a supported comparison.
+Issues already present at the pinned base must be disclosed as pre-existing;
+baseline NEW is not proof of introduction by this change. Legacy scope is unspecified.
+
+New merged reconciliation groups require `causal_analysis` and `claim_coverage`
+linking current member claims to exact canonical description/evidence/impact
+excerpts (and packet observations when present). This prevents grouping prose
+from standing in for canonical content. Excerpt presence does not prove semantic
+equivalence or complete claim preservation; those still require adjudication.
+Historical groups remain readable without retroactive certification.
 
 ### Sharing a round with subagents
 
@@ -493,7 +524,7 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.6
+### Released — v0.3.0-alpha.7
 
 - **Provenance gate:** delegated Challenger verdicts must carry the child's real
   dispatched `agentId` (never the coordinator's), verified and corrected before

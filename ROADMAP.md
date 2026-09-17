@@ -152,6 +152,10 @@ contexto de review, sem transformar preferência histórica em defeito atual.
 
 ## Próxima ação e registro de decisões
 
+Observação real adicional: [adjudicação do profile review no Codex](eval/observations/2026-09-17-codex-real-profile-review.md).
+Delegação foi observada, mas atribuição do Challenger, consolidação e cobertura
+canônica têm falhas; essa rodada não conclui os gates de proveniência/RC.
+
 **Agora:** repetir o React lab na alpha.5 em sessão nova, verificando persistência
 direta de candidatos/veredictos. Depois registrar a observação sanitizada e repetir
 o baseline, sem editar o código entre rodadas. Só então ampliar a matriz/corpus.

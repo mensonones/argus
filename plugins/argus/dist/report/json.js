@@ -1,6 +1,8 @@
 export function renderJson(result) {
     return JSON.stringify({
         base: result.baseRef,
+        scope: result.scope ?? null,
+        provenanceCheck: result.provenanceCheck ?? null,
         project: result.projectSummary,
         reviewers: result.reviewersRun,
         summary: {

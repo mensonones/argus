@@ -22,7 +22,7 @@ import {
 import type { Severity } from "./types.js";
 import { ARGUS_VERSION } from "./version.js";
 import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, reconciliationSchema, baselineQuerySchema, provenanceSchema } from "./validation.js";
 
 const SERVER_CWD = process.cwd();
 let activeCwd: string | undefined;
@@ -381,6 +381,7 @@ export async function startServer(): Promise<void> {
           .enum(["info", "low", "medium", "high", "critical"])
           .optional(),
         max_findings: z.number().optional(),
+        provenance: provenanceSchema.optional(),
       },
     },
     async (args) => {
@@ -390,6 +391,7 @@ export async function startServer(): Promise<void> {
           format: args.format,
           minSeverity: args.min_severity as Severity | undefined,
           maxFindings: args.max_findings,
+          provenance: args.provenance,
         });
         const suffix = out.exportPath ? `\n\n(written to ${out.exportPath})` : "";
         return text(out.rendered + suffix);

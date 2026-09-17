@@ -13,7 +13,7 @@ import { renderJson } from "./report/json.js";
 import { renderTerminal } from "./report/terminal.js";
 import { loadConfig, enabledReviewers, isIgnored } from "./config.js";
 import { evidencePackageSchema, challengeExecutionSchema } from "./evidence.js";
-import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema, baselineQuerySchema } from "./validation.js";
+import { rootCauseSchema, findingCorrectionSchema, categorySchema, reconciliationSchema, baselineQuerySchema, provenanceSchema } from "./validation.js";
 import { consolidateReconciled, findingsSignature } from "./reconciliation.js";
 import { ALL_CATEGORIES, SEVERITY_ORDER, } from "./types.js";
 const SEVERITIES = ["info", "low", "medium", "high", "critical"];
@@ -55,6 +55,7 @@ export async function initReview(opts) {
     const mem = Memory.open(repoRoot);
     try {
         const round = mem.createRound(diff.baseRef, context.overview);
+        mem.setMeta(`review-scope:${round.id}`, JSON.stringify(diff.scope));
         const changedFiles = diff.files.map((f) => {
             const ignored = isIgnored(f.path, config.ignore);
             return {
@@ -77,6 +78,7 @@ export async function initReview(opts) {
             : `Enabled reviewers [${reviewers.join(", ")}] over: ${reviewableFiles.join(", ")}`;
         return {
             repoRoot,
+            scope: diff.scope,
             roundId: round.id,
             baseRef: diff.baseRef,
             overview: context.overview,
@@ -166,7 +168,8 @@ export function reviewContext(cwd, roundId) {
         if (mem.activeRound()?.id !== roundId || round.status === "abandoned") {
             throw new Error("Stale round_id; the coordinator round was superseded. Do not create a replacement round.");
         }
-        return { repoRoot, roundId: round.id, baseRef: round.baseRef, overview: round.projectSummary, status: round.status, attached: true };
+        return { repoRoot, roundId: round.id, baseRef: round.baseRef, overview: round.projectSummary, status: round.status, attached: true,
+            scope: JSON.parse(mem.getMeta(`review-scope:${round.id}`) ?? "null") };
     }
     finally {
         mem.close();
@@ -311,10 +314,10 @@ export function reconcileFindings(cwd, input) {
     const groups = reconciliationSchema.parse(input);
     return withCurrentRound(cwd, (mem, roundId) => {
         const all = mem.listFindings(roundId);
-        const result = consolidateReconciled(all, groups);
+        const result = consolidateReconciled(all, groups, true);
         const history = baselineHistory(mem, roundId);
         attachBaselineLinks(result.findings, groups, history);
-        mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups }));
+        mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups, coverageVersion: 1 }));
         return { groups: result.findings.length, duplicatesMerged: result.removed,
             appliedGroups: result.findings.map(f => ({
                 canonicalId: f.id,
@@ -403,6 +406,18 @@ export function report(opts) {
         if (!round)
             throw new Error("No active review round.");
         const all = mem.listFindings(round.id);
+        const delegated = all.filter(f => f.challenge?.execution?.mode === "delegated");
+        const savedCheck = mem.getMeta(`provenance-check:${round.id}`);
+        const saved = savedCheck ? JSON.parse(savedCheck) : undefined;
+        const check = opts.provenance ?? (saved?.signature === findingsSignature(all) ? saved.provenance : undefined);
+        if (delegated.length) {
+            if (!check)
+                throw new Error("Before report, supply provenance with coordinator_id and dispatched_challenger_ids from actual host dispatch outputs.");
+            const checked = provenanceSchema.parse(check);
+            if (delegated.some(f => !checked.dispatched_challenger_ids.includes(f.challenge.execution.agentId))) {
+                throw new Error("Delegated verdict agentId does not match a supplied dispatched Challenger ID; correct while active before reporting.");
+            }
+        }
         const pending = all.filter((f) => f.status === "candidate");
         if (pending.length > 0) {
             throw new Error(`Cannot generate report: ${pending.length} candidate finding(s) still require Challenger verdicts.`);
@@ -418,7 +433,7 @@ export function report(opts) {
         const reconciliation = JSON.parse(stored);
         if (reconciliation.signature !== findingsSignature(all))
             throw new Error("Findings changed after reconciliation; run argus_reconcile again.");
-        const { findings: deduped, removed } = consolidateReconciled(all, reconciliationSchema.parse(reconciliation.groups));
+        const { findings: deduped, removed } = consolidateReconciled(all, reconciliationSchema.parse(reconciliation.groups), reconciliation.coverageVersion === 1);
         const history = baselineHistory(mem, round.id);
         attachBaselineLinks(deduped, reconciliation.groups, history);
         const previous = history.previous;
@@ -455,6 +470,8 @@ export function report(opts) {
             ...all.map((f) => f.reviewer),
         ]));
         const result = {
+            provenanceCheck: delegated.length ? check : undefined,
+            scope: JSON.parse(mem.getMeta(`review-scope:${round.id}`) ?? "null") ?? undefined,
             baseRef: round.baseRef,
             projectSummary: round.projectSummary,
             reviewersRun: reviewers,
@@ -505,6 +522,8 @@ export function report(opts) {
             }
         }
         mem.setMeta(`reported-findings:${round.id}`, JSON.stringify(classified));
+        if (check)
+            mem.setMeta(`provenance-check:${round.id}`, JSON.stringify({ signature: findingsSignature(all), provenance: check }));
         mem.setRoundStatus(round.id, "reported");
         return { result, rendered, exportPath };
     }

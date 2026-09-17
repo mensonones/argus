@@ -23,6 +23,14 @@ can differ and are not controlled by Argus. Names never enable disabled lenses.
 
 ## Principles (non-negotiable)
 
+- **Pre-report identity.** Send actual host-returned dispatch IDs to children;
+  never substitute environment IDs/placeholders. Supply report `provenance` with
+  `coordinator_id` and `dispatched_challenger_ids`; fix mismatches while active.
+- **Scope/claims.** Honor init `scope`: integrated diffs do not exclude merge
+  resolutions. Declare pre-existing issues. Merged groups require causal analysis
+  and claim coverage following full-review's correction contract; same flow
+  does not prove same cause.
+
 - **Shared round.** Only the coordinator creates a round. Give every child the
   init `repoRoot` and `roundId`; pass them as `repo_path` + `round_id` on every
   MCP call. Children can attach with `argus_init` using ONLY this pair. Never

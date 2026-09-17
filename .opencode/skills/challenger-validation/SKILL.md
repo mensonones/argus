@@ -51,7 +51,9 @@ or coordinator fallback with its reason in `detail`. When delegated, the
 this assignment — never the coordinator's thread or conversation id. Never invent
 a child ID or describe the coordinator as an independent subagent. This is
 reported provenance, not runtime-certified independence.
-grounded in the specific code you inspected. Rejecting a weak finding is a
+Do not derive it from CODEX_SESSION_ID: that may contain the parent's ID. If
+the actual returned dispatch ID was not supplied, request it before recording.
+Ground reasoning in the specific code you inspected. Rejecting a weak finding is a
 success, not a failure — it is the whole point of Argus.
 
 When the coordinator supplies the evidence-package contract, record your own

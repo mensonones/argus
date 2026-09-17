@@ -35,6 +35,35 @@ snapshot and observations can be established; never fabricate missing evidence.
 
 ## Steps
 
+### Scope, dispatch identity and retained claims
+
+Read init `scope`: branch review is an integrated endpoint diff with pinned
+base/head, paths and working-tree inclusion. `git log --no-merges` enumeration
+does not exclude merge-resolution changes from it. If individual non-merge
+commits are required, review explicit patches or ask permission to use an
+integrated diff; never claim commit filtering changed the endpoint diff. Compare
+candidate behavior against the pinned base and disclose pre-existing issues as
+context, not introduced regressions. Baseline NEW is not Git introduction.
+
+After dispatch, send Momo the exact child ID returned by the host before it
+records verdicts. Never use an ID placeholder or derive identity from
+CODEX_SESSION_ID, which may identify the parent. Supply `argus_report.provenance`
+as `{coordinator_id,dispatched_challenger_ids}` from actual host outputs. All
+delegated verdicts, including rejections, must match this list and not the parent.
+Missing/mismatched provenance blocks reporting; fix verdicts while active.
+The runtime compares supplied IDs, not host-certified execution evidence.
+
+Multi-member reconciliation requires `causal_analysis` assessing concrete
+separate-prevention counterfactuals; same flow or a broad "complete the flow"
+fix is not a causal mechanism. Split independent omissions. Provide
+`claim_coverage` for every retained consequence of every member: `finding_id`,
+`source_claim` quoting its current validated description/evidence/impact, and
+exact canonical `description_excerpt`, `evidence_excerpt`, `impact_excerpt`.
+If the canonical evidence packet exists, also provide `observation_excerpt`
+from `observed`. Correct canonical content before grouping; reconciliation
+prose/recommendations cannot replace it. Runtime checks reference presence/member
+coverage, not semantic completeness or equivalence; assess those yourself.
+
 1. **Init.** `argus_init` with the host's absolute workspace root as
    `repo_path` (and pass `--base`/`--commit`/paths if given). Read the
    overview and `reviewableFiles`. If nothing reviewable changed (only
@@ -160,7 +189,7 @@ snapshot and observations can be established; never fabricate missing evidence.
 
    Example group (`argus reconcile --json '<array>'` is the CLI fallback):
    ```json
-   [{"canonical_id":"surviving-id","members":[{"finding_id":"surviving-id","category":"security"},{"finding_id":"duplicate-id","category":"correctness"}],"rootCause":{"symbol":"updateAccount","mechanism":"missing-owner-check","invariant":"only-owner-may-update"},"reasoning":"Both witnesses demonstrate the same unauthorized mutation; no independent defect remains.","claims_reviewed":true}]
+   [{"canonical_id":"surviving-id","members":[{"finding_id":"surviving-id","category":"security"}],"rootCause":{"symbol":"updateAccount","mechanism":"missing-owner-check","invariant":"only-owner-may-update"},"reasoning":"One validated owner-check defect.","claims_reviewed":true}]
    ```
 
    `category` is mandatory on every recorded finding. Supported categories:

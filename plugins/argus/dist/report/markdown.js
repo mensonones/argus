@@ -83,6 +83,10 @@ function renderFinding(f, index) {
     }
     if (f.consolidation)
         lines.push(`**Reconciliation:** canonical ${f.consolidation.canonicalId}; members ${f.consolidation.memberIds.join(", ")} — ${f.consolidation.reasoning}`);
+    if (f.consolidation?.causalAnalysis)
+        lines.push(`**Causal analysis (coordinator-reported):** ${f.consolidation.causalAnalysis}`);
+    for (const c of f.consolidation?.claimCoverage ?? [])
+        lines.push(`**Retained claim (${c.finding_id}, coordinator-reported):** ${c.source_claim} — ${c.impact_excerpt}`);
     if (f.categories?.length)
         lines.push(`**Lenses:** ${f.categories.join(", ")}`);
     lines.push("");
@@ -108,6 +112,9 @@ export function renderMarkdown(result) {
     out.push(result.projectSummary);
     out.push("");
     out.push(`- Base: \`${result.baseRef}\``);
+    out.push(`- Scope: ${result.scope ? `${result.scope.mode} · ${result.scope.baseRevision} → ${result.scope.headRevision} · working tree included: ${result.scope.includeWorkingTree} · ${result.scope.mergePolicy} · paths: ${JSON.stringify(result.scope.paths)}` : "legacy / unspecified"}`);
+    if (result.provenanceCheck)
+        out.push("- Challenger IDs matched coordinator-supplied dispatch IDs; not host-certified execution.");
     out.push(`- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.map(personaLabel).join(", ") || "none"}`);
     out.push(`- ${result.candidateCount} candidate finding(s)`);
     out.push(`- ${result.rejectedCount} rejected by Challenger`);

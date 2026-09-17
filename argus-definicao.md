@@ -600,6 +600,12 @@ security:
 
 ## 19. Roadmap
 
+Entregue em v0.3.0-alpha.7: gate de IDs delegados com
+proveniência fornecida pelo coordenador antes do relatório, escopo Git explícito
+e fixado em SHAs, e análise causal/cobertura canônica obrigatórias em novas
+fusões. IDs e trechos são verificados estruturalmente, não certificados pelo
+host nem avaliados semanticamente pelo runtime. Histórico original preservado.
+
 O [roadmap formal](ROADMAP.md) define escopo futuro, critérios para RC/estável,
 matriz de hosts, avaliação, decisões de CI e limites por versão. A cronologia
 abaixo registra a evolução; não substitui os critérios de conclusão. Sem datas
@@ -675,7 +681,15 @@ MCP separados preserva os mesmos IDs de candidato e veredicto. Exige acesso ao
 mesmo banco `.argus`, sem contornar isolamento do host. Schema v4 e 14 tools
 MCP mantidos; reinstalar definições e iniciar nova sessão após atualizar.
 
-**v0.3.0-alpha.6 (atual):** o coordenador precisa acertar a proveniência do
+**v0.3.0-alpha.7 (atual):** o runtime bloqueia o relatório quando IDs delegados
+não correspondem à proveniência explícita do despacho. Init/anexo/relatórios
+expõem escopo Git com revisões fixadas e política de merges. Novos grupos com
+múltiplos candidatos exigem análise causal e cobertura das alegações no canônico.
+Validação: 57 testes e handshake do pacote com 14 tools MCP; schema v4 mantido.
+São verificações estruturais, não certificação de execução ou completude semântica.
+Reinstalar definições e iniciar nova sessão.
+
+**v0.3.0-alpha.6:** o coordenador precisa acertar a proveniência do
 Challenger delegado **antes** do relatório — todo veredicto `mode=delegated` deve
 carregar o `agentId` real do filho despachado (nunca o id da thread coordenadora),
 e um `execution` errado é corrigido enquanto a rodada ainda está `active`, pois

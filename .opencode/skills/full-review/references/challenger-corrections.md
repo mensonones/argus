@@ -57,6 +57,15 @@ never verified fixed. History stores canonical groups before filtering/suppressi
 
 ## Incorporating historical findings
 
+New multi-member groups require `causal_analysis` and `claim_coverage`. Assess
+concrete independent-prevention counterfactuals, not a broad "finish the flow"
+cause. Each retained consequence needs member `finding_id`, `source_claim`
+quoting its current description/evidence/impact, and exact canonical
+`description_excerpt`, `evidence_excerpt`, `impact_excerpt`; if a packet exists,
+also quote its `observed` as `observation_excerpt`. Correct canonical content
+first. Runtime checks excerpts and member references, not semantic truth or
+completeness. Historical groups remain readable, not retroactively certified.
+
 If canonical content now covers a consequence previously reported separately,
 keep `baseline_match` for its primary identity and add `incorporated_baselines`:
 `[{"finding_id":"historical-facet-id","reasoning":"why this consequence is covered, not fixed","covered_claims":["specific verified consequence retained in canonical content"]}]`.

@@ -56,6 +56,7 @@ Commands
   suppressions [--all]      List active (or all) suppressions
   config-init               Write a starter argus.yaml in the repo root
   report                    Deduplicate, rank, render the final report
+    --provenance <json>     Coordinator ID and dispatched Challenger IDs
     --format <fmt>          terminal | markdown | json
     --min-severity <sev>
     --max-findings <n>
@@ -246,6 +247,7 @@ export async function main(argv) {
                         format: { type: "string" },
                         "min-severity": { type: "string" },
                         "max-findings": { type: "string" },
+                        provenance: { type: "string" },
                     },
                 });
                 const out = report({
@@ -253,6 +255,7 @@ export async function main(argv) {
                     format: values.format ?? "terminal",
                     minSeverity: values["min-severity"],
                     maxFindings: values["max-findings"] ? Number(values["max-findings"]) : undefined,
+                    provenance: values.provenance ? JSON.parse(values.provenance) : undefined,
                 });
                 process.stdout.write(out.rendered + "\n");
                 if (out.exportPath)

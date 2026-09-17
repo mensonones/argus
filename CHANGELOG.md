@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+No unreleased changes.
+
+## 0.3.0-alpha.7 — 2026-09-17
+
+- Report closure now checks delegated verdict IDs against explicit coordinator-supplied dispatch provenance, including rejected candidates, before writing exports. Environment session IDs must not substitute for actual child dispatch IDs.
+- Init/attach/reports expose pinned integrated-diff scope, working-tree inclusion, paths and merge policy; single-commit mode rejects unsupported merge/root comparisons. Pre-existing issues are distinguished in review instructions.
+- New multi-member groups require causal analysis and member-to-canonical claim excerpts across description/evidence/impact and packet observation. Legacy groups remain readable; structural checks do not certify semantic completeness. Schema v4 and 14 MCP tools unchanged.
+
+- Recorded a real Codex profile-review adjudication: visible delegation but incorrect stored Challenger ID, pre-existing CTA behavior, unsupported consolidation and incomplete canonical claim coverage. Original application/report/history preserved; no quality score or passing release gate asserted.
+
+Validated with 57 automated tests and an installed-package MCP handshake (14 tools).
+Reinstall all host definitions and start a fresh session. SQLite schema v4 is unchanged.
+
 ## 0.3.0-alpha.6 — 2026-09-17
 
 - Coordinator and Challenger instructions require settling delegated-verdict provenance before reporting: each mode=delegated verdict must carry the child's real dispatched agentId, never the coordinator's thread id, and any wrong execution is corrected while the round is still active. A reported round refuses later verdict/metadata corrections, so provenance is checked before argus_report.
