@@ -133,7 +133,7 @@ test("scope pins endpoint revisions and discloses merges instead of excluding th
   const base = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();
   execFileSync("git", ["switch", "feature"], { cwd }); execFileSync("git", ["merge", "main", "--no-edit"], { cwd });
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();
-  const initialized = await initReview({ cwd, base: "main", includeWorkingTree: false });
+  const initialized = await initReview({ cwd, base: "main", mode: "integrated-branch-diff", includeWorkingTree: false });
   assert.equal(initialized.scope.baseRevision, base); assert.equal(initialized.scope.headRevision, head);
   assert.equal(initialized.scope.mergePolicy, "merge-resolution-changes-not-excluded");
   assert.deepEqual(initialized.changedFiles.map(f => f.path), ["feature.js"]);

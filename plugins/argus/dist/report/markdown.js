@@ -18,6 +18,8 @@ function renderFinding(f, index) {
     lines.push(`### ${index}. ${SEVERITY_LABEL[f.severity]} · ${f.category} — ${f.title}`);
     lines.push("");
     lines.push(`**Location:** \`${location(f)}\``);
+    if (f.sourceCommits?.length)
+        lines.push(`**Source commits:** ${f.sourceCommits.map(sha => `\`${sha}\``).join(", ")}`);
     lines.push("");
     if (f.description) {
         lines.push(f.description);
@@ -113,6 +115,10 @@ export function renderMarkdown(result) {
     out.push("");
     out.push(`- Base: \`${result.baseRef}\``);
     out.push(`- Scope: ${result.scope ? `${result.scope.mode} · ${result.scope.baseRevision} → ${result.scope.headRevision} · working tree included: ${result.scope.includeWorkingTree} · ${result.scope.mergePolicy} · paths: ${JSON.stringify(result.scope.paths)}` : "legacy / unspecified"}`);
+    if (result.scope?.selectedCommits)
+        out.push(`- Selected non-merge commits (${result.scope.selectedCommits.length}): ${result.scope.selectedCommits.map(sha => `\`${sha}\``).join(", ") || "none"}`);
+    if (result.scope?.selectionReason)
+        out.push(`- Scope selection: ${result.scope.selectionReason}`);
     if (result.provenanceCheck)
         out.push("- Challenger IDs matched coordinator-supplied dispatch IDs; not host-certified execution.");
     out.push(`- ${result.reviewersRun.length} reviewer(s): ${result.reviewersRun.map(personaLabel).join(", ") || "none"}`);

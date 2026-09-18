@@ -48,6 +48,8 @@ export function consolidateReconciled(findings, groups, requireCoverage = false)
         }
         return {
             ...canonical,
+            sourceCommits: members.some(f => f.sourceCommits?.length)
+                ? Array.from(new Set(members.flatMap(f => f.sourceCommits ?? []))) : undefined,
             category: members.find(f => f.id === canonical.id).category,
             categories: Array.from(new Set(members.map(f => f.category))),
             detectedBy: Array.from(new Set(members.flatMap(f => f.detectedBy ?? [f.reviewer]))),

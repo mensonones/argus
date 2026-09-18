@@ -102,12 +102,14 @@ export async function startServer(): Promise<void> {
           .optional()
           .describe("Absolute path of the git repository being reviewed"),
         base: z.string().optional().describe("Base ref to diff against"),
+        mode: z.enum(["auto", "working-tree", "branch-commits", "integrated-branch-diff"]).optional()
+          .describe("Default auto: local reviewable changes -> working-tree; otherwise branch-commits. Use branch-commits for only commits, excluding merges."),
         commit: z.string().optional().describe("Review a single commit"),
         paths: z.array(z.string()).optional().describe("Limit to these paths"),
         includeWorkingTree: z
           .boolean()
           .optional()
-          .describe("Include staged, unstaged, and untracked changes (default: true)"),
+          .describe("false selects branch commits unless explicit integrated mode; do not pass on attach"),
       },
     },
     async (args) => {
@@ -172,6 +174,8 @@ export async function startServer(): Promise<void> {
         severity: z.enum(["info", "low", "medium", "high", "critical"]).optional(),
         confidence: z.enum(["low", "medium", "high"]).optional(),
         title: z.string().min(1),
+        source_commits: z.array(z.string().regex(/^[a-f0-9]{40,64}$/)).min(1).optional()
+          .describe("Required for branch-commits: selected patch SHAs responsible for this finding"),
         file: z.string().min(1),
         start_line: z.number().optional(),
         end_line: z.number().optional(),

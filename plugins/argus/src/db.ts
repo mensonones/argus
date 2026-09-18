@@ -284,7 +284,7 @@ export class Memory {
         f.score ?? null,
         createdAt,
         f.evidencePackage ? JSON.stringify(f.evidencePackage) : null,
-        JSON.stringify({rootCause:f.rootCause, rootCauseValidated:f.rootCauseValidated, corrections:f.corrections}),
+        JSON.stringify({sourceCommits:f.sourceCommits, rootCause:f.rootCause, rootCauseValidated:f.rootCauseValidated, corrections:f.corrections}),
       );
     return { ...f, roundId, createdAt };
   }
@@ -319,7 +319,7 @@ export class Memory {
           corrections:[...(original.corrections ?? []), {reason:correction.reason, original:content}]};
       }
       const cause = rootCause ?? original.rootCause;
-      const data = {rootCause:cause, rootCauseValidated:!!cause && result !== "REJECTED", corrections:revised.corrections, challengeExecution:execution};
+      const data = {sourceCommits:original.sourceCommits, rootCause:cause, rootCauseValidated:!!cause && result !== "REJECTED", corrections:revised.corrections, challengeExecution:execution};
       this.db.prepare(`UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?,
         evidence_package=COALESCE(?, evidence_package), review_data=?, title=?, description=?,
         evidence=?, impact=?, scenario=?, recommendation=?, severity=?, confidence=?
@@ -602,7 +602,7 @@ function migrateGlobal(db: ResilientDatabase): void {
 
 function rowToFinding(row: Record<string, unknown>): Finding {
   const review = typeof row.review_data === "string" ? JSON.parse(row.review_data) as
-    Pick<Finding, "rootCause" | "rootCauseValidated" | "corrections"> & { challengeExecution?: ChallengeExecution } : {};
+    Pick<Finding, "sourceCommits" | "rootCause" | "rootCauseValidated" | "corrections"> & { challengeExecution?: ChallengeExecution } : {};
   const { challengeExecution, ...contentReview } = review;
   const start = row.start_line as number | null;
   const end = row.end_line as number | null;

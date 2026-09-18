@@ -39,6 +39,7 @@ Commands
   init [paths...]           Detect repo, diff, open a review round
     --base <ref>            Base branch/ref (default: auto-detect)
     --commit <sha>          Review a single commit
+    --mode <mode>           auto | working-tree | branch-commits | integrated-branch-diff
     --committed-only       Exclude staged, unstaged, and untracked changes
   list [--status s]         List findings (candidate|confirmed|rejected)
   reviewer-run <id> <s>     Record reviewer status (started|completed|failed)
@@ -115,6 +116,7 @@ export async function main(argv) {
                     options: {
                         base: { type: "string" },
                         commit: { type: "string" },
+                        mode: { type: "string" },
                         "committed-only": { type: "boolean" },
                     },
                 });
@@ -122,7 +124,8 @@ export async function main(argv) {
                     cwd,
                     base: values.base,
                     commit: values.commit,
-                    includeWorkingTree: !values["committed-only"],
+                    mode: values.mode,
+                    includeWorkingTree: values["committed-only"] ? false : undefined,
                     paths: positionals.length ? positionals : undefined,
                 });
                 console.log(JSON.stringify(res, null, 2));

@@ -1,6 +1,6 @@
 ---
 description: Run an Argus multi-perspective code review of the current change, with adversarial validation.
-argument-hint: [--base <ref>] [--commit <sha>] [paths...] | free-text scope
+argument-hint: [--base <ref>] [--commit <sha>] [--mode <mode>] [paths...] | free-text scope
 ---
 
 Run the **Argus** review workflow for the current repository change.
@@ -22,6 +22,13 @@ skills: a name is not proof they were loaded. Host-generated instance names
 can differ and are not controlled by Argus. Names never enable disabled lenses.
 
 ## Principles (non-negotiable)
+
+- **Automatic scope.** Default `mode=auto`: reviewable local changes select
+  working-tree; otherwise review non-merge branch commits. "Only commits, not
+  merges" explicitly selects branch-commits and excludes local edits. Hand each
+  reviewer the actual init/attach patchSets with SHA/parent boundaries. Record
+  source_commits for findings, validate continued reachability at pinned HEAD,
+  and present the selected SHAs. An integrated diff is not a filtered commit review.
 
 - **Pre-report identity.** Send actual host-returned dispatch IDs to children;
   never substitute environment IDs/placeholders. Supply report `provenance` with

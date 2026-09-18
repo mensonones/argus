@@ -17,13 +17,18 @@ export interface DiffFile {
 }
 
 export interface RepoDiff {
+  /** Patches retain their original comparison boundaries; never flatten into a fake endpoint. */
+  patchSets?: PatchSet[];
   scope: {
-    mode: "integrated-branch-diff" | "single-commit";
+    mode: "integrated-branch-diff" | "single-commit" | "working-tree" | "branch-commits";
     baseRevision: string;
     headRevision: string;
     includeWorkingTree: boolean;
     paths: string[];
-    mergePolicy: "merge-resolution-changes-not-excluded" | "non-merge-commit";
+    mergePolicy: "merge-resolution-changes-not-excluded" | "non-merge-commit" | "merges-excluded" | "not-applicable";
+    selectedCommits?: string[];
+    selectionReason?: string;
+    baseTipRevision?: string;
   };
   /** What the diff was computed against, for display. */
   baseRef: string;
@@ -31,6 +36,15 @@ export interface RepoDiff {
   /** Raw combined unified diff. */
   raw: string;
 }
+
+export interface PatchSet {
+  kind: "commit" | "staged" | "unstaged" | "untracked";
+  revision: string;
+  parentRevision?: string;
+  files: DiffFile[];
+  raw: string;
+}
+export type ReviewMode = "auto" | "working-tree" | "branch-commits" | "integrated-branch-diff";
 
 async function git(cwd: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", args, {
@@ -97,6 +111,9 @@ async function mergeBase(cwd: string, base: string): Promise<string> {
 }
 
 interface DiffOptions {
+  mode?: ReviewMode;
+  /** Runtime eligibility predicate for auto local-change detection. */
+  isReviewablePath?: (file: string) => boolean;
   /** Ref to compare against. If omitted, base branch is auto-detected. */
   base?: string;
   /** Review a single commit instead of a branch diff. */
@@ -111,6 +128,9 @@ export async function buildDiff(
   cwd: string,
   opts: DiffOptions,
 ): Promise<RepoDiff> {
+  if (opts.commit && opts.mode && opts.mode !== "auto") throw new Error("commit and mode are mutually exclusive.");
+  if (opts.mode && !["auto", "working-tree", "branch-commits", "integrated-branch-diff"].includes(opts.mode)) throw new Error("Unsupported review mode.");
+  if (!opts.commit && opts.mode !== "integrated-branch-diff") return buildSelectedDiff(cwd, opts);
   let range: string[];
   let baseRef: string;
   const head = (await git(cwd, ["rev-parse", "--verify", "HEAD^{commit}"])).trim();
@@ -231,6 +251,71 @@ export async function buildDiff(
     paths: opts.paths ?? [],
     mergePolicy: opts.commit ? "non-merge-commit" : "merge-resolution-changes-not-excluded",
   } };
+}
+
+async function buildSelectedDiff(cwd: string, opts: DiffOptions): Promise<RepoDiff> {
+  const head = (await git(cwd, ["rev-parse", "--verify", "HEAD^{commit}"])).trim();
+  const paths = opts.paths?.length ? ["--", ...opts.paths] : [];
+  const localNames = new Set<string>();
+  for (const args of [["diff", "--name-only", "-z", "--cached", head], ["diff", "--name-only", "-z"], ["ls-files", "--others", "--exclude-standard", "-z"]]) {
+    for (const file of (await git(cwd, [...args, ...paths])).split("\0").filter(Boolean)) localNames.add(file);
+  }
+  const eligible = (file: string) => file !== ".argus" && !file.startsWith(".argus/") && (opts.isReviewablePath?.(file) ?? true);
+  const hasLocal = [...localNames].some(eligible);
+  const mode = opts.mode && opts.mode !== "auto" ? opts.mode
+    : opts.includeWorkingTree === false ? "branch-commits" : hasLocal ? "working-tree" : "branch-commits";
+  if (mode === "working-tree" && opts.includeWorkingTree === false) throw new Error("working-tree conflicts with includeWorkingTree=false.");
+  const patchSets: PatchSet[] = [];
+  let baseRef = "HEAD", baseRevision = head, baseTipRevision: string | undefined;
+  const selectedCommits: string[] = [];
+  if (mode === "branch-commits") {
+    baseRef = opts.base ?? await detectBaseBranch(cwd);
+    baseTipRevision = (await git(cwd, ["rev-parse", "--verify", `${baseRef}^{commit}`])).trim();
+    baseRevision = (await git(cwd, ["merge-base", baseTipRevision, head])).trim();
+    const commits = (await git(cwd, ["rev-list", "--reverse", "--topo-order", "--no-merges", `${baseTipRevision}..${head}`])).trim().split("\n").filter(Boolean);
+    for (const revision of commits) {
+      const diff = await buildDiff(cwd, { commit: revision, paths: opts.paths });
+      if (!diff.files.length) continue; // path-restricted selection records only evaluated patches
+      selectedCommits.push(revision);
+      patchSets.push({ kind: "commit", revision, parentRevision: diff.scope.baseRevision, files: diff.files, raw: diff.raw });
+    }
+  } else {
+    const staged = await readTrackedDiff(cwd, ["--cached", head], paths);
+    const unstaged = await readTrackedDiff(cwd, [], paths);
+    patchSets.push({ kind: "staged", revision: head, files: staged.files, raw: staged.raw },
+      { kind: "unstaged", revision: head, files: unstaged.files, raw: unstaged.raw });
+    // Reuse the explicit integrated reader only for its untracked-file handling.
+    const local = await buildDiff(cwd, { mode: "integrated-branch-diff", base: head, paths: opts.paths, includeWorkingTree: true });
+    const tracked = new Set((await git(cwd, ["ls-files", "-z", ...paths])).split("\0"));
+    const files = local.files.filter(f => !tracked.has(f.path) && f.path !== ".argus" && !f.path.startsWith(".argus/"));
+    patchSets.push({ kind: "untracked", revision: head, files, raw: files.map(f => f.patch).join("") });
+  }
+  const sets = patchSets.map(set => ({ ...set, files: set.files.filter(f => f.path !== ".argus" && !f.path.startsWith(".argus/")) }))
+    .filter(set => set.files.length).map(set => ({ ...set, raw: set.files.map(f => f.patch).join("") }));
+  const byPath = new Map<string, DiffFile>();
+  for (const set of sets) for (const file of set.files) {
+    const previous = byPath.get(file.path);
+    byPath.set(file.path, previous ? { ...file, additions: previous.additions + file.additions,
+      deletions: previous.deletions + file.deletions, patch: previous.patch + file.patch } : { ...file });
+  }
+  return { baseRef, files: [...byPath.values()], patchSets: sets,
+    raw: sets.map(set => `# Argus patch boundary: ${set.kind} ${set.parentRevision ?? ""} -> ${set.revision}\n${set.raw}`).join("\n"),
+    scope: { mode, baseRevision, headRevision: head, baseTipRevision, paths: opts.paths ?? [],
+      includeWorkingTree: mode === "working-tree", selectedCommits,
+      mergePolicy: mode === "branch-commits" ? "merges-excluded" : "not-applicable",
+      selectionReason: opts.mode && opts.mode !== "auto" ? "explicit-mode" : opts.includeWorkingTree === false ? "committed-only" : hasLocal ? "reviewable-local-changes" : "no-reviewable-local-changes" } };
+}
+
+async function readTrackedDiff(cwd: string, range: string[], paths: string[]): Promise<{ files: DiffFile[]; raw: string }> {
+  const raw = await git(cwd, ["diff", "--no-color", "--no-renames", "--unified=3", ...range, ...paths]);
+  const statuses = parseNameStatus(await git(cwd, ["diff", "--name-status", "--no-renames", ...range, ...paths]));
+  const patches = splitPatches(raw);
+  const numstat = await git(cwd, ["diff", "--numstat", "--no-renames", ...range, ...paths]);
+  return { raw, files: numstat.split("\n").filter(Boolean).map(line => {
+    const [adds, dels, ...parts] = line.split("\t"), file = parts.join("\t");
+    return { path: file, status: statuses.get(file) ?? "M", additions: adds === "-" ? 0 : Number(adds),
+      deletions: dels === "-" ? 0 : Number(dels), patch: patches.get(file) ?? "" };
+  }) };
 }
 
 function parseNameStatus(text: string): Map<string, string> {

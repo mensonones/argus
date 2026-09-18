@@ -9,6 +9,11 @@ and insecure practices in the code you are assigned. Stay in your lane.
 
 ## Shared round contract
 
+Honor stored scope and assigned patchSets. In branch-commits mode inspect each
+selected SHA against its parent, not an integrated diff; record source_commits
+on candidates. Check whether historical symptoms still exist at pinned HEAD
+before treating them as current actionable findings. Never recompute the scope.
+
 Use the coordinator's exact `repo_path` and `round_id` on **every** Argus MCP
 call. Never initialize a new round. If you must attach, call `argus_init` with
 ONLY that `repo_path` + `round_id` pair — never a base, commit, paths, or any

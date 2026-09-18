@@ -401,7 +401,7 @@ são reconstruídas, sem reescrever histórico ou afirmar que ausência prova co
 ```text
 /argus:review
 
-1. Init           argus_init → commits + working tree + contexto + round
+1. Init           argus_init → auto: alterações locais revisáveis ou commits não-merge + contexto + round
 2. Select         escolher reviewers relevantes aos arquivos revisáveis
 3. Review         registrar execução + dispatch (ou lentes sequenciais no host)
 4. Challenge      para cada candidate → argus-challenger → argus_record_challenge
@@ -689,7 +689,17 @@ Validação: 57 testes e handshake do pacote com 14 tools MCP; schema v4 mantido
 São verificações estruturais, não certificação de execução ou completude semântica.
 Reinstalar definições e iniciar nova sessão.
 
-**v0.3.0-alpha.8 (atual):** integridade de rodada — `argus_init` recusa abrir
+**v0.3.0-alpha.9 (atual):** seleção automática de escopo: alterações locais
+revisáveis primeiro; na ausência delas, commits da branch sem merges. Modos
+explícitos prevalecem. Patches preservam SHA/pai e camadas staged/unstaged;
+achados de commits exigem atribuição ao SHA e as instruções exigem verificação
+contra o HEAD fixado. Init e anexo compartilham os patches armazenados;
+relatórios divulgam a seleção independentemente do baseline. Validação: 67
+testes e handshake do pacote com 15 tools MCP; schema v4 mantido. Reinstalar
+todos os hosts e iniciar nova sessão. A verificação semântica permanece
+responsabilidade dos agentes, não certificação automática do runtime.
+
+**v0.3.0-alpha.8:** integridade de rodada — `argus_init` recusa abrir
 rodada com uma ativa (não substitui em silêncio); nova tool `argus_abandon_round`
 encerra a ativa de forma explícita e auditada (com razão), removendo a
 "recuperação" por rodada paralela. O contrato de rodada compartilhada passa a ser

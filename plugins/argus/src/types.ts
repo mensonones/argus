@@ -77,6 +77,8 @@ export interface EvidencePackage {
 }
 
 export interface Finding {
+  /** Selected non-merge patches which introduced this candidate; not proof of reachability at HEAD. */
+  sourceCommits?: string[];
   id: string;
   title: string;
   category: Category;

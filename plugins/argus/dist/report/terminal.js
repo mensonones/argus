@@ -30,6 +30,10 @@ export function renderTerminal(result) {
     out.push(`Scope: ${result.scope ? `${result.scope.mode} ${result.scope.baseRevision} → ${result.scope.headRevision}; working tree included: ${result.scope.includeWorkingTree}; ${result.scope.mergePolicy}; paths: ${JSON.stringify(result.scope.paths)}` : "legacy / unspecified"}`);
     if (result.provenanceCheck)
         out.push("Challenger IDs matched coordinator-supplied dispatch IDs (not host-certified).");
+    if (result.scope?.selectedCommits)
+        out.push(`Selected non-merge commits (${result.scope.selectedCommits.length}): ${result.scope.selectedCommits.join(", ") || "none"}`);
+    if (result.scope?.selectionReason)
+        out.push(`Scope selection: ${result.scope.selectionReason}`);
     out.push(color.bold(color.cyan("\nArgus Review")));
     out.push(color.dim(result.projectSummary.split("\n")[0]));
     out.push("");
@@ -82,6 +86,8 @@ export function renderTerminal(result) {
         if (f.corrections?.length)
             out.push(block("Challenger corrections", f.corrections.map(c => c.reason).join("\n")));
         const packet = f.evidencePackage;
+        if (f.sourceCommits?.length)
+            out.push(block("Source commits", f.sourceCommits.join(", ")));
         out.push(block("Validation", `  ${packet?.method ?? "legacy / unspecified"} (reviewer-reported)`));
         if (packet) {
             out.push(block("Snapshot", `  ${packet.revision} · working tree: ${packet.workingTree}`));

@@ -11,6 +11,12 @@ the finding's text alone.
 
 ## Gates
 
+For a branch-commits assignment, inspect the recorded source_commits patches
+against their parents and verify the defect at pinned scope.headRevision.
+Later commits may remove an intermediate defect. Do not confirm a current
+actionable finding solely from a historical patch; disclose historical-only
+observations separately. Use stored scope/patchSets, never replace the scope.
+
 - **G1 — Reachability.** The problematic code runs on a path that can actually be
   reached in normal operation. Dead/unreachable code → REJECTED.
 - **G2 — Realistic input (security/correctness).** For security, the input is

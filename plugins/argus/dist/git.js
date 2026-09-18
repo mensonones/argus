@@ -65,6 +65,12 @@ async function mergeBase(cwd, base) {
     }
 }
 export async function buildDiff(cwd, opts) {
+    if (opts.commit && opts.mode && opts.mode !== "auto")
+        throw new Error("commit and mode are mutually exclusive.");
+    if (opts.mode && !["auto", "working-tree", "branch-commits", "integrated-branch-diff"].includes(opts.mode))
+        throw new Error("Unsupported review mode.");
+    if (!opts.commit && opts.mode !== "integrated-branch-diff")
+        return buildSelectedDiff(cwd, opts);
     let range;
     let baseRef;
     const head = (await git(cwd, ["rev-parse", "--verify", "HEAD^{commit}"])).trim();
@@ -184,6 +190,73 @@ export async function buildDiff(cwd, opts) {
             paths: opts.paths ?? [],
             mergePolicy: opts.commit ? "non-merge-commit" : "merge-resolution-changes-not-excluded",
         } };
+}
+async function buildSelectedDiff(cwd, opts) {
+    const head = (await git(cwd, ["rev-parse", "--verify", "HEAD^{commit}"])).trim();
+    const paths = opts.paths?.length ? ["--", ...opts.paths] : [];
+    const localNames = new Set();
+    for (const args of [["diff", "--name-only", "-z", "--cached", head], ["diff", "--name-only", "-z"], ["ls-files", "--others", "--exclude-standard", "-z"]]) {
+        for (const file of (await git(cwd, [...args, ...paths])).split("\0").filter(Boolean))
+            localNames.add(file);
+    }
+    const eligible = (file) => file !== ".argus" && !file.startsWith(".argus/") && (opts.isReviewablePath?.(file) ?? true);
+    const hasLocal = [...localNames].some(eligible);
+    const mode = opts.mode && opts.mode !== "auto" ? opts.mode
+        : opts.includeWorkingTree === false ? "branch-commits" : hasLocal ? "working-tree" : "branch-commits";
+    if (mode === "working-tree" && opts.includeWorkingTree === false)
+        throw new Error("working-tree conflicts with includeWorkingTree=false.");
+    const patchSets = [];
+    let baseRef = "HEAD", baseRevision = head, baseTipRevision;
+    const selectedCommits = [];
+    if (mode === "branch-commits") {
+        baseRef = opts.base ?? await detectBaseBranch(cwd);
+        baseTipRevision = (await git(cwd, ["rev-parse", "--verify", `${baseRef}^{commit}`])).trim();
+        baseRevision = (await git(cwd, ["merge-base", baseTipRevision, head])).trim();
+        const commits = (await git(cwd, ["rev-list", "--reverse", "--topo-order", "--no-merges", `${baseTipRevision}..${head}`])).trim().split("\n").filter(Boolean);
+        for (const revision of commits) {
+            const diff = await buildDiff(cwd, { commit: revision, paths: opts.paths });
+            if (!diff.files.length)
+                continue; // path-restricted selection records only evaluated patches
+            selectedCommits.push(revision);
+            patchSets.push({ kind: "commit", revision, parentRevision: diff.scope.baseRevision, files: diff.files, raw: diff.raw });
+        }
+    }
+    else {
+        const staged = await readTrackedDiff(cwd, ["--cached", head], paths);
+        const unstaged = await readTrackedDiff(cwd, [], paths);
+        patchSets.push({ kind: "staged", revision: head, files: staged.files, raw: staged.raw }, { kind: "unstaged", revision: head, files: unstaged.files, raw: unstaged.raw });
+        // Reuse the explicit integrated reader only for its untracked-file handling.
+        const local = await buildDiff(cwd, { mode: "integrated-branch-diff", base: head, paths: opts.paths, includeWorkingTree: true });
+        const tracked = new Set((await git(cwd, ["ls-files", "-z", ...paths])).split("\0"));
+        const files = local.files.filter(f => !tracked.has(f.path) && f.path !== ".argus" && !f.path.startsWith(".argus/"));
+        patchSets.push({ kind: "untracked", revision: head, files, raw: files.map(f => f.patch).join("") });
+    }
+    const sets = patchSets.map(set => ({ ...set, files: set.files.filter(f => f.path !== ".argus" && !f.path.startsWith(".argus/")) }))
+        .filter(set => set.files.length).map(set => ({ ...set, raw: set.files.map(f => f.patch).join("") }));
+    const byPath = new Map();
+    for (const set of sets)
+        for (const file of set.files) {
+            const previous = byPath.get(file.path);
+            byPath.set(file.path, previous ? { ...file, additions: previous.additions + file.additions,
+                deletions: previous.deletions + file.deletions, patch: previous.patch + file.patch } : { ...file });
+        }
+    return { baseRef, files: [...byPath.values()], patchSets: sets,
+        raw: sets.map(set => `# Argus patch boundary: ${set.kind} ${set.parentRevision ?? ""} -> ${set.revision}\n${set.raw}`).join("\n"),
+        scope: { mode, baseRevision, headRevision: head, baseTipRevision, paths: opts.paths ?? [],
+            includeWorkingTree: mode === "working-tree", selectedCommits,
+            mergePolicy: mode === "branch-commits" ? "merges-excluded" : "not-applicable",
+            selectionReason: opts.mode && opts.mode !== "auto" ? "explicit-mode" : opts.includeWorkingTree === false ? "committed-only" : hasLocal ? "reviewable-local-changes" : "no-reviewable-local-changes" } };
+}
+async function readTrackedDiff(cwd, range, paths) {
+    const raw = await git(cwd, ["diff", "--no-color", "--no-renames", "--unified=3", ...range, ...paths]);
+    const statuses = parseNameStatus(await git(cwd, ["diff", "--name-status", "--no-renames", ...range, ...paths]));
+    const patches = splitPatches(raw);
+    const numstat = await git(cwd, ["diff", "--numstat", "--no-renames", ...range, ...paths]);
+    return { raw, files: numstat.split("\n").filter(Boolean).map(line => {
+            const [adds, dels, ...parts] = line.split("\t"), file = parts.join("\t");
+            return { path: file, status: statuses.get(file) ?? "M", additions: adds === "-" ? 0 : Number(adds),
+                deletions: dels === "-" ? 0 : Number(dels), patch: patches.get(file) ?? "" };
+        }) };
 }
 function parseNameStatus(text) {
     const map = new Map();

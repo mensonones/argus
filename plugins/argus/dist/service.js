@@ -44,18 +44,21 @@ export async function initReview(opts) {
     if (!(await isGitRepo(repoRoot))) {
         throw new Error(`Not a git repository: ${repoRoot}`);
     }
+    const { config, source: configSource } = loadConfig(repoRoot);
     const diff = await buildDiff(repoRoot, {
+        mode: opts.mode,
+        isReviewablePath: file => isReviewable(file) && !isIgnored(file, config.ignore),
         base: opts.commit ? undefined : opts.base,
         commit: opts.commit,
         paths: opts.paths,
         includeWorkingTree: opts.includeWorkingTree,
     });
     const context = await buildContext(repoRoot, diff);
-    const { config, source: configSource } = loadConfig(repoRoot);
     const mem = Memory.open(repoRoot);
     try {
         const round = mem.createRound(diff.baseRef, context.overview);
         mem.setMeta(`review-scope:${round.id}`, JSON.stringify(diff.scope));
+        mem.setMeta(`review-patches:${round.id}`, JSON.stringify(diff.patchSets ?? []));
         const changedFiles = diff.files.map((f) => {
             const ignored = isIgnored(f.path, config.ignore);
             return {
@@ -79,6 +82,7 @@ export async function initReview(opts) {
         return {
             repoRoot,
             scope: diff.scope,
+            patchSets: diff.patchSets,
             roundId: round.id,
             baseRef: diff.baseRef,
             overview: context.overview,
@@ -134,6 +138,7 @@ function coerce(input) {
         : undefined;
     return {
         id: randomUUID(),
+        sourceCommits: input.source_commits,
         title: input.title,
         category,
         severity,
@@ -169,7 +174,8 @@ export function reviewContext(cwd, roundId) {
             throw new Error("Stale round_id; the coordinator round was superseded. Do not create a replacement round.");
         }
         return { repoRoot, roundId: round.id, baseRef: round.baseRef, overview: round.projectSummary, status: round.status, attached: true,
-            scope: JSON.parse(mem.getMeta(`review-scope:${round.id}`) ?? "null") };
+            scope: JSON.parse(mem.getMeta(`review-scope:${round.id}`) ?? "null"),
+            patchSets: JSON.parse(mem.getMeta(`review-patches:${round.id}`) ?? "[]") };
     }
     finally {
         mem.close();
@@ -214,6 +220,16 @@ function withCurrentRound(cwd, fn, requireActive = false) {
 export function recordFinding(cwd, input) {
     return withCurrentRound(cwd, (mem, roundId) => {
         const finding = coerce(input);
+        const scope = JSON.parse(mem.getMeta(`review-scope:${roundId}`) ?? "null");
+        if (scope?.mode === "branch-commits" && scope.selectedCommits?.length) {
+            const sets = JSON.parse(mem.getMeta(`review-patches:${roundId}`) ?? "[]");
+            if (!finding.sourceCommits?.length || finding.sourceCommits.some(sha => !scope.selectedCommits.includes(sha) || !sets.some(set => set.revision === sha && set.files.some(file => file.path === finding.file)))) {
+                throw new Error("branch-commits finding requires source_commits from selected patches touching this file.");
+            }
+        }
+        if (finding.sourceCommits && (!Array.isArray(finding.sourceCommits) || finding.sourceCommits.some(sha => typeof sha !== "string" || !/^[a-f0-9]{40,64}$/.test(sha)))) {
+            throw new Error("source_commits must contain full commit SHAs.");
+        }
         // Dedupe hint: surface similar existing findings in the same file.
         const existing = mem.listFindings(roundId);
         const similar = existing

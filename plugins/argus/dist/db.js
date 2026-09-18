@@ -192,7 +192,7 @@ export class Memory {
           challenge_reasoning=excluded.challenge_reasoning,
           detected_by=excluded.detected_by, score=excluded.score,
           evidence_package=excluded.evidence_package, review_data=excluded.review_data`)
-            .run(f.id, roundId, f.reviewer, f.category, f.severity, f.confidence, f.title, f.file, f.lines?.start ?? null, f.lines?.end ?? null, f.description, JSON.stringify(f.evidence ?? []), f.impact, f.scenario ?? null, f.recommendation ?? null, f.status, f.challenge?.result ?? null, f.challenge?.reasoning ?? null, JSON.stringify(f.detectedBy ?? [f.reviewer]), f.score ?? null, createdAt, f.evidencePackage ? JSON.stringify(f.evidencePackage) : null, JSON.stringify({ rootCause: f.rootCause, rootCauseValidated: f.rootCauseValidated, corrections: f.corrections }));
+            .run(f.id, roundId, f.reviewer, f.category, f.severity, f.confidence, f.title, f.file, f.lines?.start ?? null, f.lines?.end ?? null, f.description, JSON.stringify(f.evidence ?? []), f.impact, f.scenario ?? null, f.recommendation ?? null, f.status, f.challenge?.result ?? null, f.challenge?.reasoning ?? null, JSON.stringify(f.detectedBy ?? [f.reviewer]), f.score ?? null, createdAt, f.evidencePackage ? JSON.stringify(f.evidencePackage) : null, JSON.stringify({ sourceCommits: f.sourceCommits, rootCause: f.rootCause, rootCauseValidated: f.rootCauseValidated, corrections: f.corrections }));
         return { ...f, roundId, createdAt };
     }
     updateChallenge(roundId, findingId, result, reasoning, evidencePackage, correction, rootCause, execution) {
@@ -217,7 +217,7 @@ export class Memory {
                     corrections: [...(original.corrections ?? []), { reason: correction.reason, original: content }] };
             }
             const cause = rootCause ?? original.rootCause;
-            const data = { rootCause: cause, rootCauseValidated: !!cause && result !== "REJECTED", corrections: revised.corrections, challengeExecution: execution };
+            const data = { sourceCommits: original.sourceCommits, rootCause: cause, rootCauseValidated: !!cause && result !== "REJECTED", corrections: revised.corrections, challengeExecution: execution };
             this.db.prepare(`UPDATE findings SET challenge_result=?, challenge_reasoning=?, status=?,
         evidence_package=COALESCE(?, evidence_package), review_data=?, title=?, description=?,
         evidence=?, impact=?, scenario=?, recommendation=?, severity=?, confidence=?

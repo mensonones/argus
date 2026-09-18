@@ -2,7 +2,14 @@
 
 ## Unreleased
 
-No unreleased changes.
+## 0.3.0-alpha.9 — 2026-09-18
+
+- Automatic scope selects reviewable local staged/unstaged/untracked changes, or non-merge branch commits when no eligible local changes exist. Explicit modes override selection.
+- Commit reviews retain selected SHA/parent patch boundaries, exclude merges/upstream commits, preserve intermediate changes and require per-finding source commit attribution. Local reviews preserve opposing staged/unstaged patches. Instructions require checking historical defects against pinned HEAD.
+- Init/attachment expose stored patch sets; reports record selected SHAs independently of baseline history. Integrated diff remains an explicit mode. No schema migration or added MCP tool.
+
+Validated with 67 automated tests and the packaged MCP handshake (15 tools).
+SQLite schema v4 is unchanged. Reinstall all host definitions and start a fresh session.
 
 ## 0.3.0-alpha.8 — 2026-09-17
 

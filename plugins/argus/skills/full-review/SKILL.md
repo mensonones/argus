@@ -37,13 +37,29 @@ snapshot and observations can be established; never fabricate missing evidence.
 
 ### Scope, dispatch identity and retained claims
 
-Read init `scope`: branch review is an integrated endpoint diff with pinned
-base/head, paths and working-tree inclusion. `git log --no-merges` enumeration
-does not exclude merge-resolution changes from it. If individual non-merge
-commits are required, review explicit patches or ask permission to use an
-integrated diff; never claim commit filtering changed the endpoint diff. Compare
+Choose init `mode` from the user's explicit scope; otherwise leave it `auto`.
+Auto selects `working-tree` when staged/unstaged/untracked reviewable changes
+exist within the requested paths/config, otherwise `branch-commits`.
+"Only commits, not merges" means `mode: "branch-commits"`, even with local edits.
+This mode selects SHAs reachable from pinned HEAD but not the pinned base tip,
+excluding merge commits, and returns `patchSets` comparing each SHA to its parent.
+Pass the actual relevant patch sets, their SHA/parent and the exact scope to
+each reviewer; do not substitute the integrated snapshot or current file list.
+Working-tree sets preserve staged and unstaged separately; the same path may
+occur more than once. No eligible local changes or own commits means no change
+to review; do not invent a scope or claim clean files were reviewed.
+`integrated-branch-diff` remains available explicitly and may include merge
+resolutions. `git log --no-merges` alone never filters an integrated diff. Compare
 candidate behavior against the pinned base and disclose pre-existing issues as
 context, not introduced regressions. Baseline NEW is not Git introduction.
+
+In branch-commits mode, each candidate must supply `source_commits` from the
+selected patches touching its file. Inspect that commit's parent and tree (use
+`git show <sha>:<path>`), not only HEAD: an intermediate change can be reverted
+later. Momo must establish whether each defect remains at pinned HEAD. Keep
+historical-only issues out of the current actionable findings and disclose
+them as historical context; do not claim resolved baseline without verification.
+Present the recorded mode and selected SHAs, not an independently counted log.
 
 After dispatch, send Momo the exact child ID returned by the host before it
 records verdicts. Never use an ID placeholder or derive identity from
@@ -75,7 +91,8 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    this never creates a round or recomputes the diff. Never have a child call
    ordinary init: `argus_init` now refuses to open a round while one is active
    (it does not silently replace it). Pass overview, scope, enabled lenses and
-   stack suggestions too; attach returns identity, not a fresh review plan.
+   stack suggestions and relevant `patchSets` too; attach returns the stored
+   scope and patches without recomputing a review plan.
    Verify returned candidate IDs in the coordinator's list before dispatching
    Momo. On context errors, stop and verify the pair and shared database; never
    recreate candidates to hide persistence failures. If — and only if — the round

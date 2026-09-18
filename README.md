@@ -13,7 +13,18 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.8** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.9** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.9
+
+Automatic scope reviews eligible local changes first; when none exist, it reviews
+the branch's non-merge commits. Explicit modes override this choice. Commit
+reviews retain each SHA/parent patch, require finding attribution, and instruct
+reviewers to verify historical defects against pinned HEAD. Local reviews retain
+staged and unstaged patches separately. Stored patch sets are shared with children
+and scope selection is disclosed in reports. Validated with 67 tests and a packaged
+MCP handshake (15 tools); schema v4 is unchanged. Reinstall all host definitions
+and start a fresh session.
 
 ### New in v0.3.0-alpha.8
 
@@ -134,6 +145,30 @@ establish production review quality. No model API or API key is introduced.
 
 ## How it works
 
+### Review scope (v0.3.0-alpha.9)
+
+Default `mode: auto` selects staged/unstaged/untracked reviewable changes if
+present within the requested paths and `argus.yaml` ignores. Otherwise it reviews
+the branch's non-merge commits absent from the pinned base tip. Argus artifacts
+and documentation-only local changes do not trigger a local code review.
+
+Explicit mode wins: “only commits, no merges” means `branch-commits`, ignoring
+local edits. Each selected SHA is compared to its own parent; merge-only
+resolution edits are excluded. Init and attachment return `patchSets` with
+SHA/parent boundaries. Local patches preserve staged and unstaged separately,
+including opposing edits. Empty selection means there is no change to review.
+
+CLI: `argus init --mode branch-commits --base main`; MCP:
+`argus_init({repo_path: "/absolute/repo", mode: "branch-commits", base: "main"})`.
+Other modes: `working-tree`, `integrated-branch-diff`, or a single `commit`.
+`--committed-only` selects branch commits unless integrated mode is explicit.
+
+Branch findings require `source_commits` from selected patches touching the
+file. Reviewers inspect those trees; the Challenger checks continued relevance
+at pinned HEAD. A later-reverted historical defect is not a current actionable
+finding. Reports record the selected SHAs and scope independently of baseline
+history (`new`/`persistent`). Patch attribution does not certify causal truth.
+
 ### Pre-report safeguards (v0.3.0-alpha.7)
 
 Delegated verdicts require report `provenance` with the real `coordinator_id`
@@ -143,7 +178,7 @@ the parent. This compares coordinator-supplied records, not certified host execu
 CLI: `argus report --provenance '{"coordinator_id":"parent-id","dispatched_challenger_ids":["child-id"]}'`.
 
 Init/attachment/reports expose `scope`: pinned base/head revisions, paths,
-working-tree inclusion and merge policy. Branch review is an integrated diff;
+working-tree inclusion and merge policy. Explicit integrated mode is an endpoint diff;
 enumerating non-merge commits does not exclude merge-resolution changes.
 Single-commit mode rejects merge/root commits without a supported comparison.
 Issues already present at the pinned base must be disclosed as pre-existing;
@@ -551,7 +586,10 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.8
+### Released — v0.3.0-alpha.9
+
+- **Scope:** eligible local changes, otherwise non-merge branch commits; explicit
+  overrides, stored per-parent patches and source SHA attribution in reports.
 
 - **Round integrity:** `argus_init` refuses to replace an active round; explicit
   audited `argus_abandon_round` is the only unblock. Every reviewer carries the
