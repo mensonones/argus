@@ -1,0 +1,10 @@
+{
+  "id": "C3-isJson-any-value",
+  "repo": "validator.js",
+  "repoUrl": "https://github.com/validatorjs/validator.js.git",
+  "localRepo": "~/dev/argus-eval/validator.js",
+  "localRef": "fcfbff59f754b2fe81b4f91560a33455236a7f01",
+  "reviewRef": "fcfbff59f754b2fe81b4f91560a33455236a7f01",
+  "control": true,
+  "construction": "as-is (feat(isJson): allow any valid JSON value)"
+}

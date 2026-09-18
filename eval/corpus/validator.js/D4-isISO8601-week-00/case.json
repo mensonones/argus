@@ -1,0 +1,10 @@
+{
+  "id": "D4-isISO8601-week-00",
+  "repo": "validator.js",
+  "repoUrl": "https://github.com/validatorjs/validator.js.git",
+  "localRepo": "~/dev/argus-eval/validator.js",
+  "localRef": "eval/D4",
+  "reviewRef": "314b06a4ac01459a913107844ad0e93775337a2e",
+  "control": false,
+  "construction": "revert-of 3d2f4b3 (fix(isISO8601): reject week-zero dates)"
+}

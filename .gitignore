@@ -29,5 +29,5 @@ eval/runs/
 # NOTE: the plugin ships its compiled dist/ (committed) so it runs without a
 # build step on install — do NOT ignore plugins/argus/dist.
 
-# Private evaluation corpus (real diffs/gabaritos from private repos — never publish)
-eval/corpus/
+# Private evaluation corpus (real diffs from private repos — never publish)
+eval/corpus-private/

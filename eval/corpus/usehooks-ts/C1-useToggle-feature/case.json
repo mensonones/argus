@@ -1,0 +1,10 @@
+{
+  "id": "C1-useToggle-feature",
+  "repo": "usehooks-ts",
+  "repoUrl": "https://github.com/juliencrn/usehooks-ts.git",
+  "localRepo": "~/dev/argus-eval/usehooks-ts",
+  "localRef": "99a1882aad1923c25365546b09bfdad5b9cc2469",
+  "reviewRef": "99a1882aad1923c25365546b09bfdad5b9cc2469",
+  "control": true,
+  "construction": "as-is (feat: create useToggle hook)"
+}

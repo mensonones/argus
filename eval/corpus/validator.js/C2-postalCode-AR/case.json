@@ -1,0 +1,10 @@
+{
+  "id": "C2-postalCode-AR",
+  "repo": "validator.js",
+  "repoUrl": "https://github.com/validatorjs/validator.js.git",
+  "localRepo": "~/dev/argus-eval/validator.js",
+  "localRef": "0b9654ac9f377170716f1179d9234eca262882bb",
+  "reviewRef": "0b9654ac9f377170716f1179d9234eca262882bb",
+  "control": true,
+  "construction": "as-is (feat(postalCode): Argentina)"
+}

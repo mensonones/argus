@@ -98,7 +98,8 @@ for (const repoDir of fs.readdirSync(CORPUS)) {
 function pct(n, d) { return d ? ((100 * n) / d).toFixed(0) + "%" : "—"; }
 function avg(xs) { return xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : "—"; }
 
-console.log(`Corpus: ${cases} cases (${controls} controls) across ${fs.readdirSync(CORPUS).length} repo group(s)\n`);
+const repoGroups = fs.readdirSync(CORPUS).filter((d) => fs.statSync(path.join(CORPUS, d)).isDirectory()).length;
+console.log(`Corpus: ${cases} cases (${controls} controls) across ${repoGroups} repo group(s)\n`);
 console.log("arm          recall   precision   control-noise   runs   run-to-run Δ");
 console.log("----------   ------   ---------   -------------   ----   ------------");
 for (const arm of arms) {

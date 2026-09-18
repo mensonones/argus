@@ -1,0 +1,14 @@
+{
+  "caseId": "D2-useFetch-cancel-flag",
+  "issues": [
+    {
+      "id": "usefetch-stale-cancel-flag",
+      "category": "correctness",
+      "file": "src/useFetch/useFetch.ts",
+      "lineHint": 46,
+      "severity": "medium",
+      "mustFind": true,
+      "description": "The effect no longer resets cancelRequest.current = false at the start of a fetch. After a previous request was cancelled (unmount / url change) the ref stays true, so a later fetch's success/error is treated as cancelled and its dispatch is dropped — the hook silently stops updating state."
+    }
+  ]
+}

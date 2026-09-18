@@ -1,0 +1,14 @@
+{
+  "caseId": "D3-isISO8601-ordinal-360",
+  "issues": [
+    {
+      "id": "iso8601-rejects-ordinal-360",
+      "category": "correctness",
+      "file": "src/lib/isISO8601.js",
+      "lineHint": 5,
+      "severity": "medium",
+      "mustFind": true,
+      "description": "The ordinal-day branch uses 3([0-5]\\d|6[1-6]), which rejects ordinal day 360 (e.g. '2020360' / '2020-360'), a valid ISO 8601 ordinal date. isISO8601 returns false for a valid date (false negative)."
+    }
+  ]
+}

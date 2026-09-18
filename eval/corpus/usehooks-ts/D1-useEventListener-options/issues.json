@@ -1,0 +1,14 @@
+{
+  "caseId": "D1-useEventListener-options",
+  "issues": [
+    {
+      "id": "removeeventlistener-options-mismatch",
+      "category": "correctness",
+      "file": "src/useEventListener/useEventListener.ts",
+      "lineHint": 76,
+      "severity": "medium",
+      "mustFind": true,
+      "description": "Effect cleanup calls removeEventListener(eventName, listener) without the `options` argument that addEventListener used. Per the DOM spec the options (notably `capture`) must match for removal, so the listener is not removed on cleanup — a leak / duplicated or stale handler across renders."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "D1-useEventListener-options",
+  "repo": "usehooks-ts",
+  "repoUrl": "https://github.com/juliencrn/usehooks-ts.git",
+  "localRepo": "~/dev/argus-eval/usehooks-ts",
+  "localRef": "eval/D1",
+  "reviewRef": "573f9fe0e92209cdd5adea711c036175db905276",
+  "control": false,
+  "construction": "revert-of 6acb132 (fix: useEventListener removeEventListener options)"
+}

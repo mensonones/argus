@@ -1,0 +1,10 @@
+{
+  "id": "D3-isISO8601-ordinal-360",
+  "repo": "validator.js",
+  "repoUrl": "https://github.com/validatorjs/validator.js.git",
+  "localRepo": "~/dev/argus-eval/validator.js",
+  "localRef": "eval/D3",
+  "reviewRef": "041c710bad10a6c3c944636b74fdbec3d5c7b738",
+  "control": false,
+  "construction": "revert-of a38f15b (Fix isISO8601 rejecting valid ordinal day 360)"
+}

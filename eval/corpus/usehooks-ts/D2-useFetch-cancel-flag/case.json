@@ -1,0 +1,10 @@
+{
+  "id": "D2-useFetch-cancel-flag",
+  "repo": "usehooks-ts",
+  "repoUrl": "https://github.com/juliencrn/usehooks-ts.git",
+  "localRepo": "~/dev/argus-eval/usehooks-ts",
+  "localRef": "eval/D2",
+  "reviewRef": "b1e4a301a6d35b053ed746ec726aae84ae2a6635",
+  "control": false,
+  "construction": "revert-of 59ccef4 (fix: useFetch bug)"
+}
