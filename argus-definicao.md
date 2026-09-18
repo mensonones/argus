@@ -699,14 +699,22 @@ testes e handshake do pacote com 15 tools MCP; schema v4 mantido. Reinstalar
 todos os hosts e iniciar nova sessão. A verificação semântica permanece
 responsabilidade dos agentes, não certificação automática do runtime.
 
-**v0.3.0-alpha.10 (atual):** fidelidade de patch — os patches por arquivo são
+**v0.3.0-alpha.10:** fidelidade de patch — os patches por arquivo são
 gravados **verbatim**, idênticos byte-a-byte à saída do Git, inclusive linhas de
 contexto em branco no fim do hunk. O `splitPatches` usava `trimEnd()`, que
 removia essas linhas (`" \n"`) do último hunk, quebrando a cópia exata (o marcador
 "no newline at end of file" não era afetado). Um teste unitário e um de
 integração com git real travam a igualdade byte-a-byte. Validação: 69 testes e
 handshake com 15 tools MCP; schema v4 mantido. Reinstalar hosts e iniciar nova
-sessão.
+sessão. (Validado em sessão real no Codex: 51/51 patches byte-exatos vs git.)
+
+**v0.3.0-alpha.11 (atual):** o coordenador libera cada reviewer assim que sua
+conclusão (`completed`/`failed`) é registrada, em vez de manter as lentes abertas
+até a fase de Challenge. Observado num run real no Codex: manter os reviewers
+concluídos abertos esgotava o limite de subagentes do host e falhava o primeiro
+despacho do Challenger. Os findings persistem na rodada compartilhada, então
+fechar um reviewer concluído não perde nada. Mudança só de instrução; schema v4 e
+15 tools MCP mantidos. Reinstalar hosts e iniciar nova sessão.
 
 **v0.3.0-alpha.8:** integridade de rodada — `argus_init` recusa abrir
 rodada com uma ativa (não substitui em silêncio); nova tool `argus_abandon_round`

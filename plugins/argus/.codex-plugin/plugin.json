@@ -1,6 +1,6 @@
 {
   "name": "argus",
-  "version": "0.3.0-alpha.10+codex.20260918110606",
+  "version": "0.3.0-alpha.11+codex.20260918112715",
   "description": "Agentic multi-perspective code review with an adversarial challenger, for Codex.",
   "author": {
     "name": "mensonones"

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.11 — 2026-09-18
+
+- The coordinator releases each reviewer subagent as soon as its `completed`/`failed` status is recorded, instead of keeping all lenses open into the Challenge stage. Observed in a real Codex run: leaving finished reviewers open exhausted the host's concurrent-subagent cap and failed the first Challenger dispatch (the coordinator recovered by closing them). Findings persist in the shared round, so closing a finished reviewer loses nothing. Instruction-only; SQLite schema v4 and the 15 MCP tools are unchanged.
+
+Validated with 69 automated tests and the release-validation MCP handshake (15 tools).
+Reinstall host definitions and start a fresh session.
+
 ## 0.3.0-alpha.10 — 2026-09-18
 
 - Patch fidelity: per-file patches are now stored verbatim — byte-for-byte equal to git's output, including trailing blank context lines (` \n`). `splitPatches` previously applied `trimEnd()`, which dropped trailing blank context lines from the last hunk, so stored and reported patches were not exact copies of git (the "no newline at end of file" marker was unaffected). A unit test and a real-git integration test lock byte-for-byte equality. SQLite schema v4 and the 15 MCP tools are unchanged.

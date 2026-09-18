@@ -13,7 +13,16 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.10** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.11** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.11
+
+The coordinator releases each reviewer subagent as soon as its `completed`/
+`failed` status is recorded, instead of holding all lenses open into the
+Challenge stage — which, in a real Codex run, exhausted the host's
+concurrent-subagent cap and failed the first Challenger dispatch. Findings
+persist in the shared round, so closing a finished reviewer loses nothing.
+Instruction-only; reinstall host definitions and start a fresh session.
 
 ### New in v0.3.0-alpha.10
 
@@ -594,7 +603,11 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.10
+### Released — v0.3.0-alpha.11
+
+- **Concurrency:** the coordinator releases each finished reviewer subagent
+  before the Challenge stage, so the host's subagent cap can't block Challenger
+  dispatch (findings persist in the shared round regardless).
 
 - **Patch fidelity:** per-file patches are stored verbatim, byte-for-byte equal
   to git (trailing blank context preserved), locked by unit + real-git tests.
