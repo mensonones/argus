@@ -332,7 +332,17 @@ function parseNameStatus(text: string): Map<string, string> {
 }
 
 /** Split a combined unified diff into per-file patch text keyed by new path. */
-function splitPatches(raw: string): Map<string, string> {
+/**
+ * Split a combined `git diff` into per-file patches, keyed by post-change path.
+ * Each chunk is stored VERBATIM: the lookahead split already bounds it exactly
+ * at the next `diff --git`, so the stored patch is a byte-exact copy of git's
+ * output — including trailing blank context lines (` \n`) and any
+ * "\\ No newline at end of file" markers. (A previous `trimEnd()` here silently
+ * dropped trailing blank context lines, breaking exact-patch fidelity.)
+ *
+ * Exported for tests that assert byte-for-byte equality with git.
+ */
+export function splitPatches(raw: string): Map<string, string> {
   const map = new Map<string, string>();
   const chunks = raw.split(/(?=^diff --git )/m);
   for (const chunk of chunks) {
@@ -344,7 +354,7 @@ function splitPatches(raw: string): Map<string, string> {
       const header = chunk.match(/^diff --git a\/.+ b\/(.+)$/m);
       path = header?.[1]?.trim();
     }
-    if (path) map.set(path, chunk.trimEnd() + "\n");
+    if (path) map.set(path, chunk);
   }
   return map;
 }

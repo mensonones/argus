@@ -539,6 +539,44 @@ test("Codex custom-agent TOML uses the documented subagents schema", async () =>
   assert.doesNotMatch(toml, /^instructions =/m);
 });
 
+test("splitPatches keeps per-file patches byte-for-byte, including trailing blank context lines", async () => {
+  const { splitPatches } = await import("../dist/git.js");
+  // A blank source line is a single-space context line (" \n"). trimEnd() used
+  // to strip it, so patches stopped being exact copies of git output.
+  const f1 =
+    "diff --git a/a.js b/a.js\nindex 1111111..2222222 100644\n--- a/a.js\n+++ b/a.js\n" +
+    "@@ -1,3 +1,3 @@\n-const a = 1;\n+const a = 11;\n const b = 2;\n \n";
+  const f2 =
+    "diff --git a/b.js b/b.js\nindex 3333333..4444444 100644\n--- a/b.js\n+++ b/b.js\n" +
+    "@@ -1 +1 @@\n-x\n+y\n";
+  const raw = f1 + f2;
+  const patches = splitPatches(raw);
+
+  assert.equal(patches.get("a.js"), f1); // trailing blank context line preserved
+  assert.equal(patches.get("b.js"), f2);
+  assert.ok(patches.get("a.js").endsWith(" \n")); // the exact regression
+  // Nothing dropped or reordered: the per-file patches recompose the raw diff.
+  assert.equal([...patches.values()].join(""), raw);
+});
+
+test("buildDiff patches equal real git output byte-for-byte, including trailing blank context", async () => {
+  const cwd = repo();
+  // A file that ends with a blank line; a change near the top leaves the blank
+  // trailing context line in the last hunk — the case trimEnd() used to corrupt.
+  fs.writeFileSync(path.join(cwd, "pad.js"), "const a = 1;\nconst b = 2;\n\n");
+  git(cwd, "add", "pad.js"); git(cwd, "commit", "-qm", "add pad");
+  fs.writeFileSync(path.join(cwd, "pad.js"), "const a = 11;\nconst b = 2;\n\n");
+
+  const base = git(cwd, "merge-base", "main", "HEAD").trim();
+  const diff = await buildDiff(cwd, { base: "main", includeWorkingTree: true });
+  const file = diff.files.find((f) => f.path === "pad.js");
+  assert.ok(file, "pad.js present in diff");
+
+  const canonical = git(cwd, "diff", "--no-color", "--no-renames", "--unified=3", base, "--", "pad.js");
+  assert.equal(file.patch, canonical); // byte-for-byte equal to git
+  assert.ok(file.patch.endsWith(" \n"), "trailing blank context line preserved");
+});
+
 function repo() {
   const cwd = tempDir();
   git(cwd, "init", "-q", "-b", "main");
