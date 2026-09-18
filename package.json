@@ -16,7 +16,9 @@
     "typecheck": "npm --prefix plugins/argus run typecheck",
     "test": "npm --prefix plugins/argus test",
     "eval:score": "node eval/score.mjs",
-    "eval:prepare": "node eval/prepare.mjs"
+    "eval:prepare": "node eval/prepare.mjs",
+    "eval:collect": "node eval/collect.mjs",
+    "eval:score-corpus": "node eval/score-corpus.mjs"
   },
   "license": "MIT",
   "engines": {

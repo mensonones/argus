@@ -1,0 +1,14 @@
+{
+  "caseId": "example-defect-case",
+  "issues": [
+    {
+      "id": "unique-defect-slug",
+      "category": "correctness",
+      "file": "src/path/to/File.ext",
+      "lineHint": 34,
+      "severity": "medium",
+      "description": "The concrete defect and why it is one. Written WITHOUT looking at any Argus output.",
+      "mustFind": true
+    }
+  ]
+}

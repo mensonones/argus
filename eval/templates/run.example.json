@@ -1,0 +1,28 @@
+{
+  "arm": "full",
+  "run": 1,
+  "host": "codex",
+  "model": "gpt-5.x",
+  "seconds": null,
+  "tokens": null,
+  "findings": [
+    {
+      "ref": "src/path/to/File.ext:34",
+      "title": "Short finding title (for human reference only)",
+      "verdict": "CONFIRMED",
+      "adjudication": "unique-defect-slug"
+    },
+    {
+      "ref": "src/path/to/Other.ext:10",
+      "title": "A finding that matched no real issue",
+      "verdict": "CONFIRMED",
+      "adjudication": null
+    },
+    {
+      "ref": "src/path/to/Third.ext:5",
+      "title": "A real defect the Challenger wrongly rejected",
+      "verdict": "REJECTED",
+      "adjudication": "another-defect-slug"
+    }
+  ]
+}

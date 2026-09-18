@@ -1,0 +1,11 @@
+{
+  "id": "example-defect-case",
+  "repo": "/absolute/path/to/private/repo",
+  "mode": "branch-commits",
+  "base": "main",
+  "head": "<head-sha>",
+  "commits": ["<sha1>", "<sha2>"],
+  "paths": [],
+  "control": false,
+  "notes": "How the defect was introduced and why this diff was chosen. For a control case set \"control\": true and leave issues.json empty."
+}
