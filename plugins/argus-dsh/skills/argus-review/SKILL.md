@@ -136,6 +136,13 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    when each reviewer returns. If these reviewer tools are unavailable, apply the
    matching review skills sequentially in the coordinator instead.
 
+   Release each reviewer's subagent as soon as its `completed`/`failed` status is
+   recorded — do not keep finished reviewer threads open into the Challenge
+   stage. Hosts cap concurrent subagents, so leaving all lenses open can exhaust
+   the budget and block Challenger dispatch. The recorded run and its findings
+   persist in the shared round after the thread is released, so closing a
+   finished reviewer loses nothing.
+
    Host note: some hosts cannot select a custom agent by name from a tool-backed
    session — Codex `spawn_agent` only takes a generic type plus overrides
    (openai/codex#15250). There, load the reviewer's persona instructions (its

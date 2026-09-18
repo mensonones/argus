@@ -108,7 +108,12 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    Missing/invalid categories fail; never substitute correctness for another lens.
    Never tell a subagent to
    "review the repo" — assign concrete files and its single lens. Run
-   independent specialists in parallel when possible. Where the host cannot
+   independent specialists in parallel when possible. Release each reviewer's
+   subagent as soon as its `completed`/`failed` status is recorded — do not keep
+   finished reviewer threads open into the Challenge stage, or the host's
+   concurrent-subagent cap can block Challenger dispatch. The run and findings
+   persist in the shared round, so closing a finished reviewer loses nothing.
+   Where the host cannot
    select a custom agent by name from a tool-backed session (Codex `spawn_agent`,
    openai/codex#15250), inject the reviewer's persona instructions into a generic
    worker and disclose it as such — a persona name in the prompt is not a
