@@ -1,2 +1,2 @@
-export const ARGUS_VERSION = "0.3.0-alpha.9";
+export const ARGUS_VERSION = "0.3.0-alpha.10";
 export const DATABASE_SCHEMA_VERSION = 4;

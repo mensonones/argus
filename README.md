@@ -13,7 +13,15 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.9** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.10** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.10
+
+Per-file patches are stored verbatim — byte-for-byte equal to git's output,
+including trailing blank context lines. A prior `trimEnd()` in `splitPatches`
+dropped trailing blank context, so reported patches were not exact copies of
+git; a unit test and a real-git integration test now lock byte-for-byte
+equality. Reinstall host definitions and start a fresh session.
 
 ### New in v0.3.0-alpha.9
 
@@ -586,7 +594,10 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.9
+### Released — v0.3.0-alpha.10
+
+- **Patch fidelity:** per-file patches are stored verbatim, byte-for-byte equal
+  to git (trailing blank context preserved), locked by unit + real-git tests.
 
 - **Scope:** eligible local changes, otherwise non-merge branch commits; explicit
   overrides, stored per-parent patches and source SHA attribution in reports.
