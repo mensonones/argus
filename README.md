@@ -13,7 +13,16 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.11** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.12** — [Project status](#status) · [Changelog](CHANGELOG.md).
+
+### New in v0.3.0-alpha.12
+
+Claude Code reviewers now deny `Write`/`Edit` at the agent configuration layer
+and preload their lens skills. Codex now ships the portable Agent Plugins
+`plugin.json` + `mcp.json` layout while retaining its compatibility manifests.
+Release validation installs the package and handshakes both MCP declarations.
+Validated with 70 tests and 15 MCP tools; schema v4 is unchanged. Reinstall all
+host definitions and start a fresh session.
 
 ### New in v0.3.0-alpha.11
 
@@ -369,6 +378,10 @@ in the *next* session — restart Claude Code if `/mcp` doesn't list `argus` yet
 
 **Verify:** `/mcp` shows `argus` connected; `/argus` suggests `/argus:review`.
 
+Claude specialist agents preload the matching review skill and deny `Write` and
+`Edit` at the agent configuration layer. They inspect and report; they do not
+modify the reviewed files.
+
 **Start** — open Claude Code *inside the git repo you want reviewed* and run:
 
 ```
@@ -389,8 +402,11 @@ codex plugin add argus@argus-marketplace
 ```
 
 The Codex marketplace manifest lives at `.agents/plugins/marketplace.json`.
-The plugin declares its skills and MCP server in
-`plugins/argus/.codex-plugin/plugin.json`.
+The plugin uses the portable Agent Plugins layout: `plugins/argus/plugin.json`
+for package identity and OpenAI interface metadata, `plugins/argus/mcp.json`
+for the bundled MCP server, and `plugins/argus/skills/` for skills. The legacy
+`.codex-plugin/plugin.json` + `.mcp.json` pair remains packaged as a compatibility
+overlay for hosts that have not adopted the portable layout.
 
 **Custom agents.** Install the reviewer/challenger personas as Codex custom
 agents (TOML) in your personal `~/.codex/agents/`, then verify:
@@ -577,9 +593,11 @@ architecture:
 .claude-plugin/marketplace.json     # marketplace manifest
 .agents/plugins/marketplace.json    # Codex marketplace manifest
 plugins/argus/
+  plugin.json                        # portable Agent Plugins manifest
+  mcp.json                           # portable MCP declaration
   .claude-plugin/plugin.json         # Claude Code plugin
-  .codex-plugin/plugin.json          # Codex plugin
-  .mcp.json                          # MCP server registration
+  .codex-plugin/plugin.json          # Codex compatibility overlay
+  .mcp.json                          # compatibility MCP registration
   agents/                            # reviewer + challenger subagents
   commands/review.md                 # /argus:review coordinator
   skills/                            # methodology + heuristics + gates
@@ -603,7 +621,10 @@ command.
 
 ## Status
 
-### Released — v0.3.0-alpha.11
+### Released — v0.3.0-alpha.12
+
+- **Host-native packaging:** portable Codex manifests plus compatibility
+  overlays; Claude specialists enforce read-only tools and preload lens skills.
 
 - **Concurrency:** the coordinator releases each finished reviewer subagent
   before the Challenge stage, so the host's subagent cap can't block Challenger

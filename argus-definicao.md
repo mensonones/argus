@@ -520,8 +520,11 @@ argus-security + react-native-skill
 ```text
 .claude-plugin/marketplace.json      # manifesto do marketplace
 plugins/argus/
+  plugin.json                         # manifesto portátil Agent Plugins
+  mcp.json                            # MCP portátil (stdio)
   .claude-plugin/plugin.json          # plugin Claude Code
-  .codex-plugin/plugin.json           # plugin Codex
+  .codex-plugin/plugin.json           # camada de compatibilidade Codex
+  .mcp.json                           # MCP de compatibilidade
   .mcp.json                           # registro do servidor MCP
   agents/  commands/  skills/  templates/
   scripts/argus-mcp.cjs               # launcher do MCP
@@ -540,6 +543,14 @@ opencode.json
 
 Os artefatos Codex, OpenCode e DSH são **gerados** a partir do plugin canônico do
 Claude Code (`npm run gen-hosts`), evitando divergência entre hosts.
+
+Os agentes do Claude Code pré-carregam a skill da própria lente e bloqueiam
+`Write`/`Edit` no frontmatter, além da proibição textual de alterar o código
+revisado. No Codex, o pacote canônico segue o formato portátil Agent Plugins;
+os manifests `.codex-plugin/plugin.json` e `.mcp.json` permanecem apenas para
+compatibilidade com hosts anteriores. Os custom agents TOML continuam sendo
+instalados separadamente em `~/.codex/agents/`, conforme o mecanismo oficial de
+subagentes pessoais do Codex.
 
 O DSH não tem marketplace nem agentes/comandos em Markdown: um perfil é uma pilha
 ordenada de camadas de patch, e um **bundle** é um pacote npm cujo
@@ -708,7 +719,14 @@ integração com git real travam a igualdade byte-a-byte. Validação: 69 testes
 handshake com 15 tools MCP; schema v4 mantido. Reinstalar hosts e iniciar nova
 sessão. (Validado em sessão real no Codex: 51/51 patches byte-exatos vs git.)
 
-**v0.3.0-alpha.11 (atual):** o coordenador libera cada reviewer assim que sua
+**v0.3.0-alpha.12 (atual):** agentes Claude Code bloqueiam `Write`/`Edit` na
+configuração e pré-carregam a skill da lente. O Codex passa a incluir os
+manifests portáteis Agent Plugins (`plugin.json` + `mcp.json`), mantendo os
+overlays de compatibilidade. A validação instala o pacote e testa ambos os
+caminhos MCP. Validação: 70 testes, validação Claude estrita e 15 tools MCP;
+schema v4 mantido. Reinstalar todos os hosts e iniciar nova sessão.
+
+**v0.3.0-alpha.11:** o coordenador libera cada reviewer assim que sua
 conclusão (`completed`/`failed`) é registrada, em vez de manter as lentes abertas
 até a fase de Challenge. Observado num run real no Codex: manter os reviewers
 concluídos abertos esgotava o limite de subagentes do host e falhava o primeiro

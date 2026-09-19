@@ -190,10 +190,25 @@ test("display personas preserve technical agent handles across generated hosts",
     const opencode = fs.readFileSync(path.join(root, ".opencode/agents", `${persona.agent}.md`), "utf8");
     assert.ok(canonical.includes(`name: ${persona.agent}\n`));
     assert.ok(canonical.includes(`**${persona.name}**`));
+    assert.match(canonical, /disallowedTools: Write, Edit/);
+    assert.match(canonical, /skills:\n  - (?:[a-z-]+-review|challenger-validation)/);
     assert.ok(codex.includes(`name = "${persona.agent}"`));
     assert.ok(codex.includes(`description = "${persona.name} — `));
     assert.ok(opencode.includes(`description: ${persona.name} — `));
   }
+});
+
+test("portable Codex manifests stay aligned with the compatibility package", () => {
+  const root = fileURLToPath(new URL("../../..", import.meta.url));
+  const plugin = JSON.parse(fs.readFileSync(path.join(root, "plugins/argus/plugin.json"), "utf8"));
+  const mcp = JSON.parse(fs.readFileSync(path.join(root, "plugins/argus/mcp.json"), "utf8"));
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, "plugins/argus/package.json"), "utf8"));
+  assert.equal(plugin.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
+  assert.equal(plugin.version, pkg.version);
+  assert.ok(plugin.extensions?.["com.openai"]?.interface);
+  assert.equal(mcp.$schema, "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json");
+  assert.equal(mcp.mcpServers?.argus?.type, "stdio");
+  assert.match(mcp.mcpServers.argus.args.join(" "), /PLUGIN_ROOT/);
 });
 
 test("baseline query is compact, paginated, filtered and retrieves exact evidence", async () => {

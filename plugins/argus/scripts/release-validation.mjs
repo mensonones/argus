@@ -19,6 +19,8 @@ try {
   const names = new Set(packageInfo.files.map((file) => file.path));
   for (const required of [
     "package.json",
+    "plugin.json",
+    "mcp.json",
     ".mcp.json",
     ".claude-plugin/plugin.json",
     ".codex-plugin/plugin.json",
@@ -44,6 +46,17 @@ try {
     stdio: "pipe",
   });
   const installed = path.join(tempRoot, "node_modules", "@argus", "runtime");
+  const runtimePackage = JSON.parse(fs.readFileSync(path.join(installed, "package.json"), "utf8"));
+  const portablePlugin = JSON.parse(fs.readFileSync(path.join(installed, "plugin.json"), "utf8"));
+  if (portablePlugin.$schema !== "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json" ||
+      portablePlugin.version !== runtimePackage.version || !portablePlugin.extensions?.["com.openai"]?.interface) {
+    throw new Error("Packaged portable plugin manifest is invalid or out of sync.");
+  }
+  const portableMcp = JSON.parse(fs.readFileSync(path.join(installed, "mcp.json"), "utf8"));
+  if (portableMcp.$schema !== "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json" ||
+      portableMcp.mcpServers?.argus?.type !== "stdio") {
+    throw new Error("Packaged portable MCP manifest is invalid.");
+  }
   const manifest = JSON.parse(fs.readFileSync(path.join(installed, ".mcp.json"), "utf8"));
   const definition = manifest.mcpServers?.argus;
   if (!definition || !Array.isArray(definition.args)) {
@@ -78,6 +91,26 @@ try {
     "argus_import_baseline", "argus_suppress_finding", "argus_reconcile", "argus_baseline_findings", "argus_report",
   ]) {
     if (!namesFromMcp.has(required)) throw new Error(`Packaged MCP is missing ${required}`);
+  }
+  const portableDefinition = portableMcp.mcpServers.argus;
+  const portableChild = spawnSync(
+    portableDefinition.command === "node" ? process.execPath : portableDefinition.command,
+    portableDefinition.args,
+    {
+      cwd: installed,
+      env: { ...process.env, PLUGIN_ROOT: installed },
+      input,
+      encoding: "utf8",
+      timeout: 8_000,
+    },
+  );
+  if (portableChild.status !== 0) {
+    throw new Error(portableChild.stderr || `Portable MCP exited with ${portableChild.status}`);
+  }
+  const portableResponses = portableChild.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
+  const portableTools = portableResponses.find((message) => message.id === 2)?.result?.tools ?? [];
+  if (portableTools.length !== tools.length) {
+    throw new Error("Portable and compatibility MCP manifests expose different tool counts.");
   }
   console.log(`Release validation passed: ${packageInfo.filename}, ${tools.length} MCP tools.`);
 } finally {

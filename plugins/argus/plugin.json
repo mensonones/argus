@@ -1,0 +1,38 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "argus",
+  "version": "0.3.0-alpha.12",
+  "description": "Agentic multi-perspective code review with adversarial validation.",
+  "author": {
+    "name": "mensonones",
+    "url": "https://github.com/mensonones"
+  },
+  "homepage": "https://github.com/mensonones/argus",
+  "repository": "https://github.com/mensonones/argus",
+  "license": "MIT",
+  "keywords": [
+    "code-review",
+    "multi-agent",
+    "security",
+    "correctness"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Argus",
+        "shortDescription": "Multi-perspective review with adversarial validation",
+        "longDescription": "Review code changes through specialist correctness, security, performance, architecture, and test lenses, then challenge every candidate before reporting it.",
+        "developerName": "mensonones",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Code review",
+          "Local MCP"
+        ],
+        "websiteURL": "https://github.com/mensonones/argus",
+        "defaultPrompt": [
+          "Run an Argus review of the current code change."
+        ]
+      }
+    }
+  }
+}

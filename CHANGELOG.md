@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.12 — 2026-09-19
+
+- Claude Code specialist agents now enforce review-only operation with `disallowedTools: Write, Edit` and preload their lens skill through the documented `skills` frontmatter field.
+- Added the portable Agent Plugins manifests (`plugin.json` + `mcp.json`) recommended by current OpenAI documentation while retaining `.codex-plugin/plugin.json` + `.mcp.json` as compatibility overlays. Release validation installs the packed artifact and handshakes both MCP declarations.
+- Host generation keeps the portable manifest version aligned with the runtime package. Automated coverage is now 70 tests; SQLite schema v4 and the 15 MCP tools are unchanged.
+
+Validated with 70 automated tests, strict Claude Code plugin validation and
+packaged MCP handshakes through both portable and compatibility manifests (15 tools).
+Reinstall all host definitions and start a fresh session.
+
 ## 0.3.0-alpha.11 — 2026-09-18
 
 - The coordinator releases each reviewer subagent as soon as its `completed`/`failed` status is recorded, instead of keeping all lenses open into the Challenge stage. Observed in a real Codex run: leaving finished reviewers open exhausted the host's concurrent-subagent cap and failed the first Challenger dispatch (the coordinator recovered by closing them). Findings persist in the shared round, so closing a finished reviewer loses nothing. Instruction-only; SQLite schema v4 and the 15 MCP tools are unchanged.

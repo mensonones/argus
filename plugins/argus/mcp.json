@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "argus": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "-e",
+        "const p=require('node:path');require(p.join(process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT||process.cwd(),'scripts','argus-mcp.cjs'))"
+      ]
+    }
+  }
+}
