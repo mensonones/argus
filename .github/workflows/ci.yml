@@ -3,7 +3,23 @@ name: CI
 on:
   push:
     branches: [main]
+    # Repository-level docs only. Do not ignore every *.md: the agents,
+    # skills and commands under plugins/ are Markdown but are tested.
+    paths-ignore:
+      - README.md
+      - CHANGELOG.md
+      - ROADMAP.md
+      - LICENSE
+      - argus-definicao.md
+      - eval/**/*.md
   pull_request:
+    paths-ignore:
+      - README.md
+      - CHANGELOG.md
+      - ROADMAP.md
+      - LICENSE
+      - argus-definicao.md
+      - eval/**/*.md
 
 permissions:
   contents: read
