@@ -355,7 +355,14 @@ export function reconcileFindings(cwd, input) {
         const history = baselineHistory(mem, roundId);
         attachBaselineLinks(result.findings, groups, history);
         mem.setMeta(`reconciliation:${roundId}`, JSON.stringify({ signature: findingsSignature(all), groups, coverageVersion: 1 }));
+        const unlinkedHistory = unlinkedHistoryHints(result.findings, groups, history);
         return { groups: result.findings.length, duplicatesMerged: result.removed,
+            ...(unlinkedHistory.length ? {
+                unlinkedHistory,
+                unlinkedHistoryNote: "These groups are NEW but the same file has recorded history that no group links. " +
+                    "If a listed finding is the same defect, reconcile again with baseline_match (or incorporated_baselines); " +
+                    "if not, nothing is needed. The runtime does not decide semantic equivalence.",
+            } : {}),
             appliedGroups: result.findings.map(f => ({
                 canonicalId: f.id,
                 memberIds: f.consolidation?.memberIds ?? [f.id],
@@ -366,6 +373,35 @@ export function reconcileFindings(cwd, input) {
                 incorporatedBaselines: f.baselineIncorporations ?? [],
             })) };
     }, true);
+}
+/**
+ * Groups that resolved to `new` while history exists for the same file and no group
+ * links or incorporates it. A reminder only: equivalence stays a coordinator decision.
+ */
+function unlinkedHistoryHints(findings, groups, history) {
+    const sources = [
+        ["previous", history.previous],
+        ["historical", history.historical],
+        ["imported", history.imported],
+    ];
+    const claimed = new Set();
+    for (const group of groups) {
+        if (group.baseline_match)
+            claimed.add(group.baseline_match.finding_id);
+        for (const link of group.incorporated_baselines ?? [])
+            claimed.add(link.finding_id);
+    }
+    const hints = [];
+    for (const finding of findings) {
+        if (finding.baselineMatch || baselineStatus(finding, history) !== "new")
+            continue;
+        const candidates = sources.flatMap(([source, list]) => list
+            .filter((past) => past.file === finding.file && !claimed.has(past.id))
+            .map((past) => ({ id: past.id, title: past.title, source })));
+        if (candidates.length)
+            hints.push({ canonicalId: finding.id, file: finding.file, candidates });
+    }
+    return hints;
 }
 function baselineHistory(mem, roundId) {
     return {

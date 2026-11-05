@@ -250,6 +250,20 @@ test("Claude Code-only command content does not leak into generated hosts", () =
   assert.ok(!opencode.includes("allowed-tools"));
   assert.ok(!opencode.includes("CLAUDE_SESSION_ID"));
   assert.ok(!opencode.includes("claude-code-only"));
+  // Reference contracts are read through ${CLAUDE_PLUGIN_ROOT} on Claude Code only; no host copy may print it.
+  const challenger = fs.readFileSync(path.join(root, "plugins/argus/agents/argus-challenger.md"), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(challenger.includes("${CLAUDE_PLUGIN_ROOT}/skills/full-review/references/evidence-package.md"));
+  assert.ok(canonical.includes("${CLAUDE_PLUGIN_ROOT}/skills/full-review/references/challenger-corrections.md"));
+  assert.ok(!/`skills\/full-review\/references\//.test(canonical), "a repo-relative reference path cannot be read from the reviewed repository");
+  for (const dir of [".codex/agents", ".opencode/agents"]) {
+    for (const file of fs.readdirSync(path.join(root, dir))) {
+      const generated = fs.readFileSync(path.join(root, dir, file), "utf8");
+      assert.ok(!generated.includes("CLAUDE_PLUGIN_ROOT") && !generated.includes("claude-code-only"), `${dir}/${file} leaks Claude Code-only text`);
+    }
+  }
+  // The Challenger waits for its dispatch id instead of recording a coordinator verdict.
+  assert.match(challenger, /AWAITING dispatch_id/);
+  assert.match(canonical, /dispatch_id: <its id>/);
 });
 
 test("portable Codex manifests stay aligned with the compatibility package", () => {
@@ -436,6 +450,31 @@ test("distinct validated causes on identical lines and titles never auto-match t
   const result = report({ cwd, write: false, promoteGlobal: false }).result;
   assert.equal(result.findings[0].baselineStatus, "new");
   assert.equal(result.unmatchedPreviousCount, 1);
+});
+
+test("reconcile reminds the coordinator of unlinked history in the same file without deciding equivalence", async () => {
+  const cwd = repo(); await initReview({ cwd });
+  const first = recordFinding(cwd, finding({ title: "original-wording", rootCause: ownerCause })).id;
+  recordChallenge(cwd, first, "CONFIRMED", "Verified", undefined, undefined, ownerCause);
+  reconcileSingles(cwd); report({ cwd, write: false, promoteGlobal: false });
+  await initReview({ cwd });
+  const different = { ...ownerCause, invariant: "reworded-invariant" };
+  const next = recordFinding(cwd, finding({ title: "completely-different-wording", rootCause: different })).id;
+  recordChallenge(cwd, next, "CONFIRMED", "Same defect seen again", undefined, undefined, different);
+  const group = { canonical_id: next, members: [{ finding_id: next, category: "security" }],
+    rootCause: different, reasoning: "Single current defect", claims_reviewed: true };
+
+  const forgotten = reconcileFindings(cwd, [group]);
+  assert.equal(forgotten.appliedGroups[0].baselineStatus, "new");
+  assert.equal(forgotten.unlinkedHistory.length, 1);
+  assert.equal(forgotten.unlinkedHistory[0].canonicalId, next);
+  assert.ok(forgotten.unlinkedHistory[0].candidates.some((c) => c.id === first && c.source === "previous"));
+  assert.match(forgotten.unlinkedHistoryNote, /does not decide semantic equivalence/);
+
+  const linked = reconcileFindings(cwd, [{ ...group,
+    baseline_match: { finding_id: first, reasoning: "Same operation and violated contract; only wording changed." } }]);
+  assert.equal(linked.appliedGroups[0].baselineStatus, "persistent");
+  assert.equal(linked.unlinkedHistory, undefined);
 });
 
 test("legacy reconciled rounds recover canonical groups without a stored snapshot", async () => {

@@ -7,6 +7,7 @@
 //   model_reasoning_effort, sandbox_mode (optional).
 import fs from "node:fs";
 import path from "node:path";
+import { stripClaudeCodeOnly } from "./claude-only.mjs";
 
 export function parseFrontmatter(text) {
   const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -35,7 +36,7 @@ export function loadAgents(pluginDir) {
       const name = data.name ?? path.basename(file, ".md");
       const persona = Object.values(personaCatalog).find((p) => p.agent === name);
       if (!persona) throw new Error(`No display persona for agent ${name}`);
-      return { name, description: `${persona.name} — ${data.description ?? ""}`, body };
+      return { name, description: `${persona.name} — ${data.description ?? ""}`, body: stripClaudeCodeOnly(body) };
     });
 }
 

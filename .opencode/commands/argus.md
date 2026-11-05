@@ -121,10 +121,10 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    openai/codex#15250), inject the reviewer's persona instructions into a generic
    worker and disclose it as such — a persona name in the prompt is not a
    host-loaded role.
-   Read `skills/full-review/references/evidence-package.md` and provide its
+   Read the `evidence-package.md` reference of the `full-review` skill and provide its
    contract to each specialist and the Challenger. Record `evidencePackage`
    when the snapshot and observations can be established; never invent them.
-   Read `skills/full-review/references/challenger-corrections.md` as well.
+   Read the `challenger-corrections.md` reference of the `full-review` skill as well.
    Provide that contract to the Challenger: validate canonical `rootCause`
    triples and correct unsupported claims using complete `correction` content
    and replacement evidence packets, not just explanatory reasoning.
@@ -138,9 +138,14 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    REJECTED). For high/critical candidates, require a reproduction or negative
    control when practical. This step is what makes Argus trustworthy — do not
    skip it. Never suppress a finding automatically; suppression requires an
-   explicit maintainer decision and an audit reason. Record each verdict's
-   `execution`: `mode=delegated` with the child's own dispatched `agentId` (never
-   the coordinator's thread id), or `mode=coordinator` for a disclosed fallback.
+   explicit maintainer decision and an audit reason. Each verdict's `execution` is
+   `mode=delegated` with the child's own dispatched `agentId` (never the
+   coordinator's thread id), or `mode=coordinator` for a disclosed fallback.
+   The host returns a child's ID only when you launch it, so send each Challenger
+   `dispatch_id: <its id>` with `SendMessage` right after launching it, and resume
+   any that ended its turn with `AWAITING dispatch_id`. The Challenger records its
+   own verdict once it has the ID; do not accept `mode=coordinator` from a child
+   you dispatched.
    After recording, verify no delegated verdict carries the coordinator's own id;
    fix any wrong `execution` while the round is still `active`, since a reported
    round refuses later corrections.

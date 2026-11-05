@@ -162,6 +162,11 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    If dispatch is unavailable, prohibited or fails, disclose the specific reason
    and load those instructions before sequential coordinator validation. Do not
    claim an independent Challenger was run in this fallback.
+   The host returns a child's ID only at launch: send each Challenger
+   `dispatch_id: <its id>` right after launching it (SendMessage or the host's
+   equivalent) and resume any that ended with `AWAITING dispatch_id`. The child
+   records its own verdict once it has the ID; do not accept `mode=coordinator`
+   from a child you dispatched.
    Record `execution` on each verdict: `mode=delegated`, actual host `agentId`
    and `detail` describing loaded instructions/delegation, or `mode=coordinator`
    with `detail` explaining the fallback. Never invent an ID. This metadata is

@@ -22,6 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildCodexAgentToml } from "./lib/codex-agents.mjs";
+import { stripClaudeCodeOnly } from "./lib/claude-only.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pluginDir = path.resolve(here, "..");
@@ -43,19 +44,6 @@ function read(p) {
   return fs.readFileSync(p, "utf8");
 }
 
-/**
- * The canonical command targets Claude Code. Remove what only that host
- * understands before copying it elsewhere: the `allowed-tools` frontmatter key
- * (plugin-namespaced MCP tool names) and any block fenced with
- * `<!-- claude-code-only -->` … `<!-- /claude-code-only -->` (for example the
- * `${CLAUDE_SESSION_ID}` substitution, which other hosts would print literally).
- */
-function stripClaudeCodeOnly(text) {
-  return text
-    .replace(/\r\n/g, "\n")
-    .replace(/^allowed-tools:.*\n/m, "")
-    .replace(/^<!-- claude-code-only -->\n[\s\S]*?^<!-- \/claude-code-only -->\n?/gm, "");
-}
 function write(p, content) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, content, "utf8");
@@ -71,7 +59,8 @@ const agentNames = [];
 const personaCatalog = JSON.parse(read(path.join(pluginDir, "src", "personas.json")));
 
 for (const file of agentFiles) {
-  const { data, body } = parseFrontmatter(read(path.join(agentsDir, file)));
+  const { data, body: rawBody } = parseFrontmatter(read(path.join(agentsDir, file)));
+  const body = stripClaudeCodeOnly(rawBody);
   const name = data.name ?? path.basename(file, ".md");
   const persona = Object.values(personaCatalog).find(p => p.agent === name);
   if (!persona) throw new Error(`No display persona for agent ${name}`);
@@ -284,7 +273,8 @@ write(
 // The bundle patch: one delegation tool per canonical agent.
 const dshRows = [];
 for (const file of agentFiles) {
-  const { data, body } = parseFrontmatter(read(path.join(agentsDir, file)));
+  const { data, body: rawBody } = parseFrontmatter(read(path.join(agentsDir, file)));
+  const body = stripClaudeCodeOnly(rawBody);
   const name = data.name ?? path.basename(file, ".md");
   dshRows.push({
     id: `argus-subagent-${name.replace(/^argus-/, "")}`,

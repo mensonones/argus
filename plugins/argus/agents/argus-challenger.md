@@ -23,10 +23,32 @@ On a missing candidate/context error, return the error and stop; do not create
 replacement candidates or initialize another round.
 
 Load `challenger-validation` and the supplied evidence/correction contracts
-before validating. Include `execution` in every verdict: delegated with your own
-dispatched child ID (the one the coordinator gave you, never the coordinator's
-thread/conversation id) and instruction-loading detail, or coordinator with the
-fallback reason. Never fabricate delegation or confuse a persona with a child.
+before validating.
+<!-- claude-code-only -->
+If the coordinator did not give you their paths, read
+`${CLAUDE_PLUGIN_ROOT}/skills/full-review/references/evidence-package.md` and
+`${CLAUDE_PLUGIN_ROOT}/skills/full-review/references/challenger-corrections.md`.
+These are absolute paths; a path relative to the reviewed repository does not exist.
+<!-- /claude-code-only -->
+
+## Your dispatch ID
+
+You cannot know your own dispatch ID: the host reveals it only to the coordinator,
+after you start. The coordinator sends it to you as `dispatch_id: <id>`.
+
+- Do the full analysis first.
+- If `dispatch_id` has arrived, record the verdict **once**, with
+  `execution: { mode: "delegated", agentId: <that id>, detail: <what you loaded> }`.
+- If it has not, do **not** record yet, and never record `mode: "coordinator"` to
+  get around it. End your turn with a short message that starts
+  `AWAITING dispatch_id` and contains your `finding_id`, verdict, reasoning and any
+  correction or evidence packet. The coordinator resumes you with the ID; then
+  record once.
+- Use `mode: "coordinator"` only if the coordinator tells you delegation was
+  unavailable, and state its reason.
+
+Never use the coordinator's own thread/conversation id, never fabricate
+delegation, and never confuse a persona with a child.
 
 ## How to work
 
