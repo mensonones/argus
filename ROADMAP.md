@@ -1,6 +1,7 @@
 # Argus — roadmap e critérios de conclusão
 
-Status de referência: **0.3.0-alpha.5**, em 2026-09-17.
+Status de referência: **0.3.0-alpha.12** (publicada em 2026-09-19), com o estado
+dos critérios verificado contra o repositório em 2026-11-05.
 Este documento é o plano de entregas futuras; o [changelog](CHANGELOG.md)
 registra o que efetivamente foi publicado. Não há datas prometidas.
 
@@ -26,8 +27,9 @@ registra o que efetivamente foi publicado. Não há datas prometidas.
 | Marco | Estado | Resultado esperado |
 | --- | --- | --- |
 | 0.3.0-alpha.5 | Publicado | Contexto MCP explícito e attachment sem nova rodada |
-| Próximas alphas 0.3 | Em validação / planejadas | Fluxo delegado real, suplementos e avaliação ampliada |
-| 0.3.0-rc.1 | Condicional | Congelamento após os critérios abaixo |
+| 0.3.0-alpha.6 a alpha.12 | Publicado | Gates de proveniência e cobertura canônica, integridade da rodada, escopo automático, patches byte a byte, liberação de revisores concluídos e empacotamento portável |
+| Próximas alphas 0.3 | Planejadas | Validação em sessão real, matriz de hosts e execução do corpus (ver estado dos critérios) |
+| 0.3.0-rc.1 | Condicional, não iniciado | Congelamento após os critérios abaixo |
 | 0.3.0 | Planejado | Núcleo e primeiro conjunto de stack skills estabilizados |
 | 0.4.0 | Planejado | Integração GitHub/CI com engine explicitamente definida |
 | 0.5.0 | Planejado | Memória contextual de repositório, rastreável e governável |
@@ -74,6 +76,28 @@ registra o que efetivamente foi publicado. Não há datas prometidas.
    escrita no alvo errado, quebra de instalação ou relatório enganoso sem
    resolução. Issues não bloqueantes têm impacto, workaround e decisão registrados.
    Documentação distingue entregue, validado e ainda experimental.
+
+### Estado dos critérios para RC (verificado em 2026-11-05)
+
+Nenhum critério está cumprido. A lista abaixo separa o que existe de evidência
+registrada do que ainda é só preparação ou implementação.
+
+| # | Critério | Estado | Evidência encontrada |
+| --- | --- | --- | --- |
+| 1 | Rodada compartilhada em sessão real | Pendente | Não há observação do React lab (nem no changelog nem em `eval/observations/`). O review real no Codex ([observação](eval/observations/2026-09-17-codex-real-profile-review.md), alpha.6, projeto React Native) mostrou delegação real, mas falhou o gate de proveniência; não conta como passagem. A alpha.11 cita uma execução real no Codex que esgotou o limite de subagentes, sem observação documentada |
+| 2 | Suplementos React e node:test | Parcial | Roteamento, controles de asserção assíncrona e instalação têm testes automatizados; há um lab sintético do Tests Reviewer no Codex (alpha.1, [observação](eval/observations/2026-09-17-codex-tests-lab.md)). Qualidade do React em uso real segue sem validação; não há casos de estado, cleanup e resposta stale registrados |
+| 3 | Matriz de hosts | Pendente | Só evidências avulsas: Codex (lab de Tests e review real), DSH (lab de 2026-09-12, anterior ao 0.3) e smoke sintético no OpenCode Desktop. Claude Code não tem observação registrada. Nenhuma matriz com versões, modo efetivo do Challenger e repetição de baseline por host |
+| 4 | Avaliação ampliada | Preparada, não executada | Corpus público montado: 7 casos (4 defeitos e 3 controles) em `usehooks-ts` e `validator.js`, com roteiro em [`eval/corpus/RUN.md`](eval/corpus/RUN.md) e `eval:collect`/`eval:score-corpus`. Há 0 arquivos `run-*.json`: faltam as execuções (duas por caso), a adjudicação humana e o piloto `single`/`specialists`/`full` |
+| 5 | Triagem e release | Pendente | Sem registro de triagem de defeitos conhecidos. A limitação do Codex (openai/codex#15250) está documentada com workaround, e o README tem a seção de limites de validação |
+
+Itens da adjudicação do review real no Codex que já têm correção publicada, ainda
+sem repetição em sessão real: proveniência do Challenger verificada antes do
+relatório (alpha.6 e alpha.7), cobertura canônica de claims na consolidação
+(alpha.7) e escopo por diff integrado ou commits selecionados com atribuição
+(alpha.9). Falta repetir a revisão sobre a mesma base e o mesmo HEAD fixados.
+
+Infraestrutura de apoio, fora dos critérios: a suíte roda em Linux, Windows e
+macOS no GitHub Actions (Node 24) e as dependências estão sem alertas abertos.
 
 ### Critérios para estável
 
@@ -156,9 +180,12 @@ Observação real adicional: [adjudicação do profile review no Codex](eval/obs
 Delegação foi observada, mas atribuição do Challenger, consolidação e cobertura
 canônica têm falhas; essa rodada não conclui os gates de proveniência/RC.
 
-**Agora:** repetir o React lab na alpha.5 em sessão nova, verificando persistência
-direta de candidatos/veredictos. Depois registrar a observação sanitizada e repetir
-o baseline, sem editar o código entre rodadas. Só então ampliar a matriz/corpus.
+**Agora:** repetir o React lab na alpha.12 em sessão nova, verificando persistência
+direta de candidatos/veredictos e a proveniência do Challenger antes do relatório.
+Depois registrar a observação sanitizada e repetir o baseline, sem editar o código
+entre rodadas. Em paralelo, o corpus já montado pode ser executado
+(`eval/corpus/RUN.md`), com host e modelo fixados em todas as rodadas. Só então
+ampliar a matriz de hosts.
 
 Cada marco concluído deve ter commit/tag, artefatos de validação ou observações,
 adjudicação quando aplicável e pendências conhecidas. Mudança de escopo/critério

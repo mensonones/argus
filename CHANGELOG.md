@@ -4,7 +4,7 @@
 
 - Security: resolved all open Dependabot alerts. `npm audit fix` updated the MCP SDK (1.32.2), `body-parser`, `proxy-addr`, `hono`, `@hono/node-server`, `fast-uri`, `ip-address` and `qs`; `zod` moved from 3.x to ^4.6.7. Validated with a live MCP client against the built server (15 tools) and the packed-install release validation.
 - Tooling: the test suite now passes on Linux, Windows and macOS (isolated `USERPROFILE`, CRLF- and path-separator-safe assertions, symlink test skips without privileges). Added a GitHub Actions matrix, `.nvmrc` (Node 24) and `.gitattributes` keeping `dist/` and agent definitions in LF.
-- Docs: restructured the README (quick start and install first; the per-version "New in" and "Released" blocks are replaced by this changelog).
+- Docs: restructured the README (quick start and install first; the per-version "New in" and "Released" blocks are replaced by this changelog). The roadmap now reflects alpha.12 and records the verified state of each RC criterion.
 
 ## 0.3.0-alpha.12 — 2026-09-19
 
