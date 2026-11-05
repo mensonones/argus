@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.13 — 2026-11-05
+
+**Upgrade notes:** the DSH skill `/security-review` is now `/argus-security-review`. Reinstall all host definitions (`npm run install:codex`, `install:opencode-desktop`, `install:dsh`, or update the Claude Code plugin) and start a fresh session.
+
 - Fixed (Claude Code): the security agent never received its skill. Claude Code ships a built-in skill named `security-review`, so the preload by that name did not deliver the Argus one and, in a repository without an `origin`, the built-in skill's `git diff origin/HEAD...` aborted the agent at startup. The Argus skill is now `argus-security-review` (all host mirrors, docs and the OpenCode doctor updated). Skills with unique names were verified to preload correctly.
 - Fixed (Claude Code): the coordinator told agents to read `skills/full-review/references/...`, a path that does not exist inside the reviewed repository, so Challengers could not read the evidence and correction contracts. The command and the Challenger now use `${CLAUDE_PLUGIN_ROOT}` absolute paths; the generator strips these Claude-only parts from the Codex, OpenCode and DSH copies.
 - Changed: Challenger dispatch-ID handoff is now a protocol instead of improvisation. A Challenger cannot know its own ID; it analyses, ends its turn with `AWAITING dispatch_id` if the coordinator has not sent it, and records once with `mode=delegated`. It no longer records a provisional `mode=coordinator` verdict.
@@ -15,6 +19,8 @@
 - Tooling: the test suite now passes on Linux, Windows and macOS (isolated `USERPROFILE`, CRLF- and path-separator-safe assertions, symlink test skips without privileges). Added a GitHub Actions matrix, `.nvmrc` (Node 24) and `.gitattributes` keeping `dist/` and agent definitions in LF.
 - Docs: restructured the README (quick start and install first; the per-version "New in" and "Released" blocks are replaced by this changelog). The roadmap now reflects alpha.12 and records the verified state of each RC criterion.
 - Evaluation: added the React lab (`eval/labs/react-lab`, with an executable ground-truth check) and a two-session observation on Claude Code: three defects found and persisted, three controls clean, with the known limitations recorded in the roadmap.
+
+Validated with 73 automated tests (run locally on Windows; the CI matrix covers Linux, Windows and macOS), strict `claude plugin validate`, the packed-install MCP handshake (15 tools) and four fresh Claude Code sessions on the React lab (three defects found and persisted, three controls clean). Not verified: the `argus_reconcile` `unlinkedHistory` reminder in a real session (unit-tested only), that the security agent now receives the `argus-security-review` body (the agent starts and records its run, but no diagnostic confirmed the content), and installation through the desktop UI. SQLite schema v4 and the 15 MCP tools are unchanged.
 
 ## 0.3.0-alpha.12 — 2026-09-19
 

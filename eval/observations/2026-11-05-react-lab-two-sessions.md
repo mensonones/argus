@@ -1,4 +1,4 @@
-# React lab — two fresh sessions, one host
+# React lab — four fresh sessions, one host
 
 This is an unscored workflow observation on a synthetic lab, not blinded model
 evaluation and not evidence of general review quality. Do not give this note to
@@ -88,9 +88,49 @@ defects came back `persistent`, each linked to the round 1 identity
   is not the shared-round React lab for three other hosts, not a baseline-repeat
   matrix and not a corpus run.
 
+## Follow-up: rounds 3 and 4 after the Claude Code adjustments
+
+Rounds 1 and 2 above ran against the original alpha.12. After the adjustments in
+the next release (see the changelog), two more fresh sessions ran the same prompt
+against the same lab code: round 3 (`33335426`, installed plugin at `9d9329f`) and
+round 4 (`e0d46774`, installed plugin at `9fe320d`). Same host and model.
+
+| | Round 3 | Round 4 |
+| --- | --- | --- |
+| Findings | the same 3 defects, all `persistent`, no control raised | same |
+| Severities (cart / search / window) | high / medium / medium | high / medium / medium |
+| `coordinator_id` | the host session id, substituted into the command (matches the session directory id) | host session id, substituted |
+| Specialists that recorded their own run | 3 of 4; the security lens ran as a generic worker after `argus:argus-security` failed to start twice | 4 of 4 |
+| Security agent | failed at startup: `git diff origin/HEAD...` (not an Argus command) in a repo without an origin | started normally |
+| Challenger dispatch ID | first attempt lacked it; two recorded `coordinator` and re-recorded `delegated` | received `dispatch_id` after launch; none recorded before it or as `coordinator` |
+| Reference files | one Challenger could not read them | all four read them through absolute paths |
+| First `argus_reconcile` | accepted, but a group came out `new` because the coordinator omitted the baseline link; redone before reporting | rejected (`source_claim` quoting), then accepted |
+
+Between the rounds a diagnostic subagent run in the maintainer's own session showed that
+`argus:argus-correctness` received its skill body while `argus:argus-security`
+received none (a listing entry only), which led to renaming the Argus skill: Claude
+Code ships a built-in skill called `security-review`, so the bare name never
+delivered the Argus one. That diagnostic cannot say which agent definition that
+session had loaded.
+
+### What round 4 does not show
+
+- That the security agent now receives the `argus-security-review` body: the agent
+  started and recorded its run, but no diagnostic confirmed its content.
+- The `unlinkedHistory` reminder in `argus_reconcile`: the coordinator linked the
+  baseline correctly, so it never fired; it is covered by a unit test only.
+- Stability of severity beyond these rounds: round 2 had `useUserSearch` high and
+  `useWindowWidth` low, rounds 1, 3 and 4 did not.
+- The `source_claim must quote current validated member content` rejection happened in
+  rounds 2 and 4; it is a recurring friction, not resolved.
+- Anything on another host, or a corpus run.
+
 ## Disposition against the roadmap
 
-Criterion 1 (shared round in a real session, repeated) is met for this lab on
-Claude Code with the caveats above. The coordinator identity, the lenses that do
-not attach to the round and the severity variation are recorded as known
-limitations; none is claimed fixed.
+Criterion 1 (shared round in a real session, repeated) is met for this lab on Claude
+Code, with caveats. Of the limitations recorded above, the following were addressed
+and re-observed in rounds 3 and 4: the host-supplied coordinator id, lenses recording
+their own run, the Challenger dispatch-id handoff and the unreadable reference
+files. Still open: the coordinator id is agent-reported rather than host-certified,
+severity variation, static-only evidence, the reconcile quoting friction and the
+single-host, single-model sample.

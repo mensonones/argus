@@ -719,7 +719,22 @@ integração com git real travam a igualdade byte-a-byte. Validação: 69 testes
 handshake com 15 tools MCP; schema v4 mantido. Reinstalar hosts e iniciar nova
 sessão. (Validado em sessão real no Codex: 51/51 patches byte-exatos vs git.)
 
-**v0.3.0-alpha.12 (atual):** agentes Claude Code bloqueiam `Write`/`Edit` na
+**v0.3.0-alpha.13 (atual):** correções de coordenação e do Claude Code. O comando
+`/argus:review` tinha o frontmatter inválido e o Claude Code descartava seus
+metadados; a skill de segurança foi renomeada para `argus-security-review`
+(o nome `security-review` colide com uma skill embutida do Claude Code e o agente
+nunca a recebia); os Challengers leem os contratos por caminho absoluto
+(`${CLAUDE_PLUGIN_ROOT}`); o ID de dispatch do Challenger segue um protocolo
+(`dispatch_id`, `AWAITING dispatch_id`); cada especialista registra a própria
+execução; `argus_init` informa `runtimeVersion` e `argus_reconcile` avisa sobre
+histórico não vinculado no mesmo arquivo (`unlinkedHistory`). Os agentes passam a
+negar também `NotebookEdit` e `Agent`; `Bash` continua disponível, então é uma
+proteção e não um sandbox (a nota da alpha.12 sobre "bloquear escrita" era
+mais forte do que isso). Dependências sem alertas abertos (`zod` 4). Validação:
+73 testes, `claude plugin validate`, pacote instalado com 15 tools e quatro sessões
+reais no React lab. Reinstalar todos os hosts e iniciar nova sessão.
+
+**v0.3.0-alpha.12:** agentes Claude Code bloqueiam `Write`/`Edit` na
 configuração e pré-carregam a skill da lente. O Codex passa a incluir os
 manifests portáteis Agent Plugins (`plugin.json` + `mcp.json`), mantendo os
 overlays de compatibilidade. A validação instala o pacote e testa ambos os

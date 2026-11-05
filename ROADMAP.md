@@ -1,6 +1,6 @@
 # Argus — roadmap e critérios de conclusão
 
-Status de referência: **0.3.0-alpha.12** (publicada em 2026-09-19), com o estado
+Status de referência: **0.3.0-alpha.13** (preparada em 2026-11-05; a alpha.12 foi publicada em 2026-09-19), com o estado
 dos critérios verificado contra o repositório em 2026-11-05.
 Este documento é o plano de entregas futuras; o [changelog](CHANGELOG.md)
 registra o que efetivamente foi publicado. Não há datas prometidas.
@@ -28,6 +28,7 @@ registra o que efetivamente foi publicado. Não há datas prometidas.
 | --- | --- | --- |
 | 0.3.0-alpha.5 | Publicado | Contexto MCP explícito e attachment sem nova rodada |
 | 0.3.0-alpha.6 a alpha.12 | Publicado | Gates de proveniência e cobertura canônica, integridade da rodada, escopo automático, patches byte a byte, liberação de revisores concluídos e empacotamento portável |
+| 0.3.0-alpha.13 | Preparada (tag e push pendentes) | Correções de coordenação e do Claude Code validadas em sessões reais do React lab, dependências sem alertas e suíte nos três sistemas |
 | Próximas alphas 0.3 | Planejadas | Validação em sessão real, matriz de hosts e execução do corpus (ver estado dos critérios) |
 | 0.3.0-rc.1 | Condicional, não iniciado | Congelamento após os critérios abaixo |
 | 0.3.0 | Planejado | Núcleo e primeiro conjunto de stack skills estabilizados |
@@ -84,19 +85,26 @@ registrada do que ainda é só preparação ou implementação.
 
 | # | Critério | Estado | Evidência encontrada |
 | --- | --- | --- | --- |
-| 1 | Rodada compartilhada em sessão real | Cumprido com ressalvas (Claude Code, 1 lab sintético) | React lab repetido em duas sessões novas, mesma alpha.12 e mesmo código ([observação](eval/observations/2026-11-05-react-lab-two-sessions.md)): Challengers e especialistas delegados a filhos reais, os 3 defeitos voltaram `persistent` na rodada 2 e nenhum controle foi acusado. Ressalvas: o ID do coordenador não é fornecido pelo host (usado ID de sessão e um placeholder), as lentes de segurança e arquitetura não anexaram à rodada, a severidade variou entre as rodadas e a evidência é estática. O review real no Codex ([observação](eval/observations/2026-09-17-codex-real-profile-review.md), alpha.6) segue sem passar o gate de proveniência |
+| 1 | Rodada compartilhada em sessão real | Cumprido com ressalvas (Claude Code, 1 lab sintético) | React lab repetido em duas sessões novas, mesma alpha.12 e mesmo código ([observação](eval/observations/2026-11-05-react-lab-two-sessions.md)): Challengers e especialistas delegados a filhos reais, os 3 defeitos voltaram `persistent` na rodada 2 e nenhum controle foi acusado. Ressalvas das rodadas 1 e 2 (ID do coordenador inventado, lentes que não registravam a execução, arquivos de referência ilegíveis, ID de dispatch do Challenger improvisado) foram tratadas na alpha.13 e reobservadas nas rodadas 3 e 4; seguem a severidade variável, a evidência estática e a amostra de um host e um modelo. O review real no Codex ([observação](eval/observations/2026-09-17-codex-real-profile-review.md), alpha.6) segue sem passar o gate de proveniência |
 | 2 | Suplementos React e node:test | Parcial | React: 3 famílias (estado, cleanup, resposta stale), cada uma com controle correto e evidência reproduzível por execução (`eval/labs/react-lab`); o `argus:react-review` foi carregado pelos Challengers na rodada 1. Falta o lado node:test (só o lab sintético do Tests Reviewer no Codex, alpha.1, [observação](eval/observations/2026-09-17-codex-tests-lab.md)) e a validação em outro host e com diffs reais |
 | 3 | Matriz de hosts | Pendente | Só evidências avulsas: Codex (lab de Tests e review real), DSH (lab de 2026-09-12, anterior ao 0.3) e smoke sintético no OpenCode Desktop. Claude Code não tem observação registrada. Nenhuma matriz com versões, modo efetivo do Challenger e repetição de baseline por host |
 | 4 | Avaliação ampliada | Preparada, não executada | Corpus público montado: 7 casos (4 defeitos e 3 controles) em `usehooks-ts` e `validator.js`, com roteiro em [`eval/corpus/RUN.md`](eval/corpus/RUN.md) e `eval:collect`/`eval:score-corpus`. Há 0 arquivos `run-*.json`: faltam as execuções (duas por caso), a adjudicação humana e o piloto `single`/`specialists`/`full` |
 | 5 | Triagem e release | Pendente | Sem registro de triagem de defeitos conhecidos. A limitação do Codex (openai/codex#15250) está documentada com workaround, e o README tem a seção de limites de validação |
 
-Limitações registradas pelas rodadas do React lab, ainda sem correção:
-`argus_report` exige `coordinator_id`, mas o Claude Code não entrega um ID real ao
-agente (o gate só compara IDs informados pelo coordenador); as lentes de
-segurança e arquitetura não chamam as tools MCP quando não têm candidatos, e o
-coordenador marca a execução delas; o ID do filho só existe depois do dispatch,
-então o handoff ao Challenger depende de instrução; a severidade varia entre
-rodadas sobre o mesmo código; `argus_init` não informa a versão do plugin.
+Limitações registradas pelas rodadas 1 e 2 do React lab e o que mudou depois
+(rodadas 3 e 4, [observação](eval/observations/2026-11-05-react-lab-two-sessions.md)):
+
+- **Tratadas e reobservadas no Claude Code (alpha.13):** o `coordinator_id` agora vem
+  do host (`${CLAUDE_SESSION_ID}`), os revisores registram a própria execução, o
+  handoff do ID do Challenger virou protocolo, os arquivos de referência são lidos
+  por caminho absoluto e `argus_init` informa `runtimeVersion`. O agente de segurança
+  não recebia a skill por colisão de nome com uma skill embutida; a skill foi renomeada.
+- **Ainda abertas:** o `coordinator_id` continua informado pelo agente, sem
+  certificação do host (e a substituição só foi observada no Claude Code); a severidade
+  varia entre rodadas sobre o mesmo código (rodada 2); a evidência é só estática; a
+  primeira chamada de `argus_reconcile` é rejeitada com frequência por causa da
+  citação de `source_claim`; o conteúdo da skill de segurança dentro do agente não
+  foi confirmado por diagnóstico; o aviso `unlinkedHistory` só tem teste de unidade.
 
 Itens da adjudicação do review real no Codex que já têm correção publicada, ainda
 sem repetição em sessão real: proveniência do Challenger verificada antes do

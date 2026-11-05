@@ -13,7 +13,7 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.12** — [Install](#install) · [Status and roadmap](#status-and-roadmap) · [Changelog](CHANGELOG.md)
+Current version: **0.3.0-alpha.13** — [Install](#install) · [Status and roadmap](#status-and-roadmap) · [Changelog](CHANGELOG.md)
 
 **Contents:** [Quick start](#quick-start) · [Install](#install) · [How it works](#how-it-works) ·
 [Reconciliation and baseline](#reconciliation-and-baseline) · [Evidence and evaluation](#evidence-and-evaluation) ·
@@ -600,7 +600,7 @@ npm run gen-hosts       # regenerate the Codex/OpenCode/DSH mirrors
 
 ## Status and roadmap
 
-**Current release: 0.3.0-alpha.12.** Four specialist lenses plus an opt-in Tests
+**Current release: 0.3.0-alpha.13.** Four specialist lenses plus an opt-in Tests
 reviewer, an adversarial Challenger with evidence packets and auditable
 corrections, explicit reconciliation, versioned SQLite memory (schema v4) with
 canonical history and audited suppressions, and integrations for Claude Code,
