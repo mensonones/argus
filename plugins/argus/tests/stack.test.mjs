@@ -43,7 +43,13 @@ test('stack skips malformed, oversized, ignored and external manifests', async t
   write(root, 'node_modules/fake/package.json', { dependencies: { react: '1' } });
   write(outside, 'package.json', { dependencies: { next: '1' } });
   fs.mkdirSync(path.join(root, 'external'));
-  fs.symlinkSync(path.join(outside, 'package.json'), path.join(root, 'external/package.json'));
+  try {
+    fs.symlinkSync(path.join(outside, 'package.json'), path.join(root, 'external/package.json'));
+  } catch (error) {
+    // Creating symlinks on Windows needs Developer Mode or elevation.
+    if (error.code === 'EPERM' || error.code === 'EACCES') return t.skip('symlinks are not permitted on this host');
+    throw error;
+  }
   fs.mkdirSync(path.join(root, 'big'));
   fs.writeFileSync(path.join(root, 'big/package.json'), ' '.repeat(1024 * 1024 + 1));
   const detected = await detectStack(root, ['external/a.js', 'big/a.js', 'node_modules/fake/a.js', '../outside/a.js']);

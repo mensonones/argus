@@ -1,1 +1,4 @@
 plugins/argus/dist/** text eol=lf
+plugins/argus/agents/** text eol=lf
+.codex/** text eol=lf
+.opencode/** text eol=lf

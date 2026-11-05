@@ -185,9 +185,11 @@ test("display personas preserve technical agent handles across generated hosts",
   const root = fileURLToPath(new URL("../../..", import.meta.url));
   for (const persona of Object.values(PERSONAS)) {
     if (!persona.agent) continue;
-    const canonical = fs.readFileSync(path.join(root, "plugins/argus/agents", `${persona.agent}.md`), "utf8");
-    const codex = fs.readFileSync(path.join(root, ".codex/agents", `${persona.agent}.toml`), "utf8");
-    const opencode = fs.readFileSync(path.join(root, ".opencode/agents", `${persona.agent}.md`), "utf8");
+    // Normalise CRLF so a Windows checkout with core.autocrlf behaves like Linux/macOS.
+    const read = (...parts) => fs.readFileSync(path.join(root, ...parts), "utf8").replace(/\r\n/g, "\n");
+    const canonical = read("plugins/argus/agents", `${persona.agent}.md`);
+    const codex = read(".codex/agents", `${persona.agent}.toml`);
+    const opencode = read(".opencode/agents", `${persona.agent}.md`);
     assert.ok(canonical.includes(`name: ${persona.agent}\n`));
     assert.ok(canonical.includes(`**${persona.name}**`));
     assert.match(canonical, /disallowedTools: Write, Edit/);
@@ -919,12 +921,18 @@ test("MCP init accepts an explicit target repository path", () => {
   const response = child.stdout.split("\n").filter(Boolean)
     .map((line) => JSON.parse(line)).find((item) => item.id === 2);
   assert.equal(response.result.isError, undefined);
-  assert.match(response.result.content[0].text, new RegExp(cwd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  // The runtime reports repository roots with forward slashes on every platform.
+  const expectedRoot = cwd.replace(/\\/g, "/");
+  assert.ok(response.result.content[0].text.includes(expectedRoot));
 });
 
 test("global memory stores and retrieves confirmed findings", () => {
+  // os.homedir() reads HOME on POSIX but USERPROFILE on Windows; isolate both.
   const previousHome = process.env.HOME;
-  process.env.HOME = tempDir();
+  const previousProfile = process.env.USERPROFILE;
+  const isolatedHome = tempDir();
+  process.env.HOME = isolatedHome;
+  process.env.USERPROFILE = isolatedHome;
   try {
     const memory = GlobalMemory.open();
     memory.addFinding("sample-target", finding());
@@ -938,6 +946,8 @@ test("global memory stores and retrieves confirmed findings", () => {
   } finally {
     if (previousHome === undefined) delete process.env.HOME;
     else process.env.HOME = previousHome;
+    if (previousProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = previousProfile;
   }
 });
 
@@ -1101,7 +1111,8 @@ test("OpenCode Desktop installer preserves JSONC settings and is idempotent", ()
   assert.match(installed, /"model": "provider\/model"/);
   assert.match(installed, /"argus"/);
   assert.match(installed, /argus-mcp\.js/);
-  assert.equal((installed.match(/instructions\/argus\.md/g) ?? []).length, 1);
+  // Path separators follow the host OS (JSON-escaped backslashes on Windows).
+  assert.equal((installed.match(/instructions(?:\/|\\\\|\\)argus\.md/g) ?? []).length, 1);
   assert.ok(fs.existsSync(path.join(configDir, "commands", "argus.md")));
   assert.ok(fs.existsSync(path.join(configDir, "skills", "full-review", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(configDir, "agents", "argus-tests.md")));
