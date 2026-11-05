@@ -84,9 +84,11 @@ in the *next* session — restart Claude Code if `/mcp` doesn't list `argus` yet
 
 **Verify:** `/mcp` shows `argus` connected; `/argus` suggests `/argus:review`.
 
-Claude specialist agents preload the matching review skill and deny `Write` and
-`Edit` at the agent configuration layer. They inspect and report; they do not
-modify the reviewed files.
+Claude specialist agents preload the matching review skill and deny `Write`,
+`Edit`, `NotebookEdit` and `Agent` (no nested subagents) at the agent configuration
+layer. They inspect and report. `Bash` stays available because they need `git` and
+search, so this is a guardrail, not a sandbox: it does not stop a shell command
+from writing a file. Each specialist also records its own completed or failed run.
 
 **Start** — open Claude Code *inside the git repo you want reviewed* and run:
 

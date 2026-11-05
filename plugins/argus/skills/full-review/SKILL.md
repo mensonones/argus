@@ -124,8 +124,9 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    (`argus-correctness`, `argus-security`, `argus-performance`,
    `argus-architecture`, `argus-tests`), each over concrete files, each recording findings via
    `argus_record_finding`. Run independent ones in parallel. Never assign
-   "review the repo" — one lens, specific files. Record `completed` or `failed`
-   when each reviewer returns. If the host cannot launch subagents, apply the
+   "review the repo" — one lens, specific files. Each specialist records its own
+   `completed` or `failed`; if one returns without doing so, record it yourself
+   with a `detail` starting `coordinator-recorded:`. If the host cannot launch subagents, apply the
    matching review skills sequentially in the coordinator instead.
 
    Release each reviewer's subagent as soon as its `completed`/`failed` status is

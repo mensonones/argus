@@ -6,6 +6,7 @@ import path from "node:path";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import YAML from "yaml";
 
 import { loadConfig, enabledReviewers } from "../dist/config.js";
 import { ARGUS_VERSION } from "../dist/version.js";
@@ -151,6 +152,7 @@ test("tests reviewer is opt-in and its challenged finding survives the full pipe
   fs.writeFileSync(path.join(cwd, "contract.test.js"), "import assert from 'node:assert/strict';\nconst actual = 99;\nassert.equal(actual, actual);\n");
   const initialized = await initReview({ cwd });
   assert.ok(initialized.enabledReviewers.includes("tests"));
+  assert.equal(initialized.runtimeVersion, ARGUS_VERSION);
   assert.equal(initialized.personas.tests.name, "Temis");
   assert.equal(initialized.personas.challenger.agent, "argus-challenger");
   assert.ok(initialized.reviewableFiles.includes("contract.test.js"));
@@ -192,12 +194,54 @@ test("display personas preserve technical agent handles across generated hosts",
     const opencode = read(".opencode/agents", `${persona.agent}.md`);
     assert.ok(canonical.includes(`name: ${persona.agent}\n`));
     assert.ok(canonical.includes(`**${persona.name}**`));
-    assert.match(canonical, /disallowedTools: Write, Edit/);
+    // Reviewers inspect and report: no file-writing tools and no nested subagents.
+    // Bash stays available on purpose (git, grep); it is not a read-only guarantee.
+    assert.match(canonical, /^disallowedTools: Write, Edit, NotebookEdit, Agent$/m);
+    if (persona.agent !== "argus-challenger") {
+      assert.match(canonical, /## Closing your run[\s\S]*argus_record_reviewer_run/);
+    }
     assert.match(canonical, /skills:\n  - (?:[a-z-]+-review|challenger-validation)/);
     assert.ok(codex.includes(`name = "${persona.agent}"`));
     assert.ok(codex.includes(`description = "${persona.name} — `));
     assert.ok(opencode.includes(`description: ${persona.name} — `));
   }
+});
+
+test("every agent, skill and command has frontmatter that parses as YAML", () => {
+  // Claude Code drops ALL frontmatter fields silently when the block fails to parse.
+  const pluginRoot = fileURLToPath(new URL("..", import.meta.url));
+  const files = [
+    ...fs.readdirSync(path.join(pluginRoot, "agents")).map((f) => path.join("agents", f)),
+    ...fs.readdirSync(path.join(pluginRoot, "commands")).map((f) => path.join("commands", f)),
+    ...fs.readdirSync(path.join(pluginRoot, "skills")).map((d) => path.join("skills", d, "SKILL.md")),
+  ];
+  assert.ok(files.length >= 16);
+  for (const file of files) {
+    const text = fs.readFileSync(path.join(pluginRoot, file), "utf8").replace(/\r\n/g, "\n");
+    const match = text.match(/^---\n([\s\S]*?)\n---\n/);
+    assert.ok(match, `${file} has no frontmatter block`);
+    let data;
+    try {
+      data = YAML.parse(match[1]);
+    } catch (error) {
+      assert.fail(`${file} frontmatter does not parse: ${error.message}`);
+    }
+    assert.equal(typeof data, "object", file);
+    assert.ok(typeof data.description === "string" && data.description.length > 0, `${file} lost its description`);
+  }
+});
+
+test("Claude Code-only command content does not leak into generated hosts", () => {
+  const root = fileURLToPath(new URL("../../..", import.meta.url));
+  const canonical = fs.readFileSync(path.join(root, "plugins/argus/commands/review.md"), "utf8").replace(/\r\n/g, "\n");
+  const opencode = fs.readFileSync(path.join(root, ".opencode/commands/argus.md"), "utf8").replace(/\r\n/g, "\n");
+  assert.match(canonical, /^allowed-tools: mcp__plugin_argus_argus__argus_init /m);
+  assert.ok(canonical.includes("${CLAUDE_SESSION_ID}"));
+  // The pre-approved tools are the review flow only; destructive ones keep their prompt.
+  assert.ok(!/argus_abandon_round|argus_suppress_finding|argus_import_baseline|argus_update_global_memory/.test(canonical.match(/^allowed-tools:.*$/m)[0]));
+  assert.ok(!opencode.includes("allowed-tools"));
+  assert.ok(!opencode.includes("CLAUDE_SESSION_ID"));
+  assert.ok(!opencode.includes("claude-code-only"));
 });
 
 test("portable Codex manifests stay aligned with the compatibility package", () => {

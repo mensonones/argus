@@ -12,6 +12,7 @@ import {
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
 import { PERSONAS } from "./personas.js";
+import { ARGUS_VERSION } from "./version.js";
 import { suggestStackSkills, type StackSkillSuggestion } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
@@ -86,6 +87,8 @@ export interface InitResult {
   ignoredFiles: string[];
   /** Reviewers enabled by argus.yaml, in priority order. */
   enabledReviewers: string[];
+  /** Argus runtime version serving this round (also exposed by the plugin manifest). */
+  runtimeVersion: string;
   /** Display personas, not additional enabled reviewer IDs. */
   personas: typeof PERSONAS;
   /** Architecture rules declared in argus.yaml (for argus-architecture). */
@@ -155,6 +158,7 @@ export async function initReview(opts: InitOptions): Promise<InitResult> {
       reviewableFiles,
       ignoredFiles,
       enabledReviewers: reviewers,
+      runtimeVersion: ARGUS_VERSION,
       personas: PERSONAS,
       architectureRules: config.architecture.rules,
       reportDefaults: {

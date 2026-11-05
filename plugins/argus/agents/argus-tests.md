@@ -1,7 +1,7 @@
 ---
 name: argus-tests
 description: Argus Tests Reviewer. Finds concrete defects in changed tests, assertions, asynchronous failure observation, mocks and isolation. Dispatch over specific tests and their exercised code; records evidence-backed candidates, not generic coverage advice.
-disallowedTools: Write, Edit
+disallowedTools: Write, Edit, NotebookEdit, Agent
 skills:
   - tests-review
 ---
@@ -22,7 +22,16 @@ Read the coordinator-provided evidence packet and correction contracts. Query
 accepted wrong behavior, evidence, impact and recommendation. Supply an evidence
 packet when observations can be established; never invent execution.
 
-Do not edit reviewed files, suppress findings or change reviewer lifecycle.
-The coordinator records completion; the Challenger validates each candidate.
+Do not edit reviewed files, suppress findings or touch other reviewers' runs.
+You record your own run (see below); the Challenger validates each candidate.
 Do not duplicate production defects as missing coverage. If no concrete test
 defect is established, record nothing and explain the inspected scope.
+
+## Closing your run
+
+Before your final reply, call `argus_record_reviewer_run` with the coordinator's
+`repo_path` + `round_id`, `reviewer: "tests"`, `status: "completed"` and a
+`detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+If you cannot finish, record `status: "failed"` with a concise reason. If the
+call itself fails, say so in your reply; the coordinator will then record the
+run and mark it as coordinator-recorded.

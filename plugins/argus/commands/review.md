@@ -1,6 +1,7 @@
 ---
 description: Run an Argus multi-perspective code review of the current change, with adversarial validation.
-argument-hint: [--base <ref>] [--commit <sha>] [--mode <mode>] [paths...] | free-text scope
+argument-hint: "[--base <ref>] [--commit <sha>] [--mode <mode>] [paths...] | free-text scope"
+allowed-tools: mcp__plugin_argus_argus__argus_init mcp__plugin_argus_argus__argus_record_reviewer_run mcp__plugin_argus_argus__argus_record_finding mcp__plugin_argus_argus__argus_record_challenge mcp__plugin_argus_argus__argus_list_findings mcp__plugin_argus_argus__argus_query_similar mcp__plugin_argus_argus__argus_reconcile mcp__plugin_argus_argus__argus_report mcp__plugin_argus_argus__argus_baseline_findings mcp__plugin_argus_argus__argus_memory_search mcp__plugin_argus_argus__argus_list_suppressions
 ---
 
 Run the **Argus** review workflow for the current repository change.
@@ -33,6 +34,12 @@ can differ and are not controlled by Argus. Names never enable disabled lenses.
 - **Pre-report identity.** Send actual host-returned dispatch IDs to children;
   never substitute environment IDs/placeholders. Supply report `provenance` with
   `coordinator_id` and `dispatched_challenger_ids`; fix mismatches while active.
+<!-- claude-code-only -->
+  Claude Code coordinator session ID: `${CLAUDE_SESSION_ID}`. Use it as
+  `coordinator_id`. If this line still contains the literal `${`, or is empty, the
+  host did not substitute it: use `coordinator_id: "unavailable"` and say so in
+  your summary. Never infer an ID from a file path or invent one.
+<!-- /claude-code-only -->
 - **Scope/claims.** Honor init `scope`: integrated diffs do not exclude merge
   resolutions. Declare pre-existing issues. Merged groups require causal analysis
   and claim coverage following full-review's correction contract; same flow
@@ -99,8 +106,11 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    the stack is unused when detection was incomplete.
 
 3. **Review (delegate).** Before each lens, record `started` with
-   `argus_record_reviewer_run`; after it finishes, record `completed` (or
-   `failed` with a concise reason). Dispatch each selected specialist as a **subagent**
+   `argus_record_reviewer_run`. Each specialist records its own `completed` (or
+   `failed`) at the end of its run, even with no findings. If a specialist
+   returns without having done so, record it yourself with a `detail` that starts
+   `coordinator-recorded:` so the report does not present it as self-reported.
+   Dispatch each selected specialist as a **subagent**
    (Task tool), one bounded assignment each. Give every subagent: the review
    overview, the specific files to focus on, and the instruction to investigate
    the real code (Read/Grep/git) and record each finding with

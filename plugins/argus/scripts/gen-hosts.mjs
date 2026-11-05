@@ -42,6 +42,20 @@ function parseFrontmatter(text) {
 function read(p) {
   return fs.readFileSync(p, "utf8");
 }
+
+/**
+ * The canonical command targets Claude Code. Remove what only that host
+ * understands before copying it elsewhere: the `allowed-tools` frontmatter key
+ * (plugin-namespaced MCP tool names) and any block fenced with
+ * `<!-- claude-code-only -->` … `<!-- /claude-code-only -->` (for example the
+ * `${CLAUDE_SESSION_ID}` substitution, which other hosts would print literally).
+ */
+function stripClaudeCodeOnly(text) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/^allowed-tools:.*\n/m, "")
+    .replace(/^<!-- claude-code-only -->\n[\s\S]*?^<!-- \/claude-code-only -->\n?/gm, "");
+}
 function write(p, content) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, content, "utf8");
@@ -126,7 +140,7 @@ for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
 // --- Command ----------------------------------------------------------------
 const cmdSrc = path.join(pluginDir, "commands", "review.md");
 if (fs.existsSync(cmdSrc)) {
-  write(path.join(repoRoot, ".opencode", "commands", "argus.md"), read(cmdSrc));
+  write(path.join(repoRoot, ".opencode", "commands", "argus.md"), stripClaudeCodeOnly(read(cmdSrc)));
 }
 
 // --- OpenCode instructions + config ----------------------------------------

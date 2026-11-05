@@ -1,6 +1,6 @@
 ---
 description: Run an Argus multi-perspective code review of the current change, with adversarial validation.
-argument-hint: [--base <ref>] [--commit <sha>] [--mode <mode>] [paths...] | free-text scope
+argument-hint: "[--base <ref>] [--commit <sha>] [--mode <mode>] [paths...] | free-text scope"
 ---
 
 Run the **Argus** review workflow for the current repository change.
@@ -99,8 +99,11 @@ Run this cycle: **Init → Select → Review → Challenge → Consolidate → R
    the stack is unused when detection was incomplete.
 
 3. **Review (delegate).** Before each lens, record `started` with
-   `argus_record_reviewer_run`; after it finishes, record `completed` (or
-   `failed` with a concise reason). Dispatch each selected specialist as a **subagent**
+   `argus_record_reviewer_run`. Each specialist records its own `completed` (or
+   `failed`) at the end of its run, even with no findings. If a specialist
+   returns without having done so, record it yourself with a `detail` that starts
+   `coordinator-recorded:` so the report does not present it as self-reported.
+   Dispatch each selected specialist as a **subagent**
    (Task tool), one bounded assignment each. Give every subagent: the review
    overview, the specific files to focus on, and the instruction to investigate
    the real code (Read/Grep/git) and record each finding with

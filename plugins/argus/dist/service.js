@@ -6,6 +6,7 @@ import { findingFingerprint, GlobalMemory, Memory, } from "./db.js";
 import { buildDiff, isGitRepo } from "./git.js";
 import { buildContext } from "./context/builder.js";
 import { PERSONAS } from "./personas.js";
+import { ARGUS_VERSION } from "./version.js";
 import { suggestStackSkills } from "./context/stack-skills.js";
 import { rank, sameRootCause } from "./dedup.js";
 import { renderMarkdown } from "./report/markdown.js";
@@ -92,6 +93,7 @@ export async function initReview(opts) {
             reviewableFiles,
             ignoredFiles,
             enabledReviewers: reviewers,
+            runtimeVersion: ARGUS_VERSION,
             personas: PERSONAS,
             architectureRules: config.architecture.rules,
             reportDefaults: {

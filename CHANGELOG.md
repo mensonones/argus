@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fixed (Claude Code): `commands/review.md` frontmatter did not parse as YAML (unquoted `argument-hint`), so Claude Code silently dropped its description and metadata. Now quoted; `claude plugin validate` passes and a test parses the frontmatter of every agent, skill and command with a strict YAML parser. The security agent description had the same strict-YAML problem and was reworded.
+- Changed (Claude Code): reviewer agents now also deny `NotebookEdit` and `Agent` (no nested subagents). `Bash` is intentionally still available, so this is a guardrail and not a read-only sandbox; earlier notes calling it review-only overstated it.
+- Changed: each specialist records its own `completed`/`failed` run through `argus_record_reviewer_run`, even with no findings; the coordinator records it only as a fallback, marked `coordinator-recorded`.
+- Changed (Claude Code): `/argus:review` pre-approves the review-flow MCP tools (`allowed-tools`), keeping prompts for abandon, suppress, import and global-memory tools, and gives the coordinator `${CLAUDE_SESSION_ID}` for `coordinator_id`, with an explicit `unavailable` fallback instead of an invented ID. Substitution inside a plugin command is documented for skills but was not verified here. The generator strips these Claude-only parts from the OpenCode copy.
+- Added: `argus_init` returns `runtimeVersion`.
 - Security: resolved all open Dependabot alerts. `npm audit fix` updated the MCP SDK (1.32.2), `body-parser`, `proxy-addr`, `hono`, `@hono/node-server`, `fast-uri`, `ip-address` and `qs`; `zod` moved from 3.x to ^4.6.7. Validated with a live MCP client against the built server (15 tools) and the packed-install release validation.
 - Tooling: the test suite now passes on Linux, Windows and macOS (isolated `USERPROFILE`, CRLF- and path-separator-safe assertions, symlink test skips without privileges). Added a GitHub Actions matrix, `.nvmrc` (Node 24) and `.gitattributes` keeping `dist/` and agent definitions in LF.
 - Docs: restructured the README (quick start and install first; the per-version "New in" and "Released" blocks are replaced by this changelog). The roadmap now reflects alpha.12 and records the verified state of each RC criterion.

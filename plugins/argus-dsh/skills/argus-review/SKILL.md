@@ -1,5 +1,5 @@
 ---
-name: argus-review
+name: full-review
 description: Orchestrates a complete multi-perspective Argus code review of a change — correctness, security, performance, and architecture — each specialist recording evidence-backed findings, then an adversarial challenger validating every one before a deduplicated, ranked report. Use when the user asks for a "code review", "argus review", "revisão de código", "review this PR/diff/change", or a full audit of changed code.
 ---
 
@@ -132,8 +132,9 @@ coverage, not semantic completeness or equivalence; assess those yourself.
    (`argus_correctness`, `argus_security`, `argus_performance`,
    `argus_architecture`, `argus_tests`), each over concrete files, each recording findings via
    `mcp__argus__argus_record_finding`. Run independent ones in parallel. Never assign
-   "review the repo" — one lens, specific files. Record `completed` or `failed`
-   when each reviewer returns. If these reviewer tools are unavailable, apply the
+   "review the repo" — one lens, specific files. Each specialist records its own
+   `completed` or `failed`; if one returns without doing so, record it yourself
+   with a `detail` starting `coordinator-recorded:`. If these reviewer tools are unavailable, apply the
    matching review skills sequentially in the coordinator instead.
 
    Release each reviewer's subagent as soon as its `completed`/`failed` status is

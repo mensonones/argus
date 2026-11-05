@@ -68,6 +68,15 @@
           Your findings are candidates a Challenger will try to refute. If the structure is
           fine, record nothing and say so.
 
+          ## Closing your run
+
+          Before your final reply, call `mcp__argus__argus_record_reviewer_run` with the coordinator's
+          `repo_path` + `round_id`, `reviewer: "architecture"`, `status: "completed"` and a
+          `detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+          If you cannot finish, record `status: "failed"` with a concise reason. If the
+          call itself fails, say so in your reply; the coordinator will then record the
+          run and mark it as coordinator-recorded.
+
     - id: argus-subagent-challenger
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -204,6 +213,15 @@
           unverified. Your findings are candidates — a Challenger will try to refute each,
           so make them defensible. If you find nothing solid, record nothing and say so.
 
+          ## Closing your run
+
+          Before your final reply, call `mcp__argus__argus_record_reviewer_run` with the coordinator's
+          `repo_path` + `round_id`, `reviewer: "correctness"`, `status: "completed"` and a
+          `detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+          If you cannot finish, record `status: "failed"` with a concise reason. If the
+          call itself fails, say so in your reply; the coordinator will then record the
+          run and mark it as coordinator-recorded.
+
     - id: argus-subagent-performance
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -261,6 +279,15 @@
 
           Your findings are candidates a Challenger will try to refute. If nothing is
           meaningfully slow, record nothing and say so.
+
+          ## Closing your run
+
+          Before your final reply, call `mcp__argus__argus_record_reviewer_run` with the coordinator's
+          `repo_path` + `round_id`, `reviewer: "performance"`, `status: "completed"` and a
+          `detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+          If you cannot finish, record `status: "failed"` with a concise reason. If the
+          call itself fails, say so in your reply; the coordinator will then record the
+          run and mark it as coordinator-recorded.
 
     - id: argus-subagent-security
       name: '@deepseek-ai/dsh-tool-subagent'
@@ -323,6 +350,15 @@
           nothing. Your findings are candidates a Challenger will try to refute — make each
           one survive scrutiny.
 
+          ## Closing your run
+
+          Before your final reply, call `mcp__argus__argus_record_reviewer_run` with the coordinator's
+          `repo_path` + `round_id`, `reviewer: "security"`, `status: "completed"` and a
+          `detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+          If you cannot finish, record `status: "failed"` with a concise reason. If the
+          call itself fails, say so in your reply; the coordinator will then record the
+          run and mark it as coordinator-recorded.
+
     - id: argus-subagent-tests
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -347,7 +383,16 @@
           accepted wrong behavior, evidence, impact and recommendation. Supply an evidence
           packet when observations can be established; never invent execution.
 
-          Do not edit reviewed files, suppress findings or change reviewer lifecycle.
-          The coordinator records completion; the Challenger validates each candidate.
+          Do not edit reviewed files, suppress findings or touch other reviewers' runs.
+          You record your own run (see below); the Challenger validates each candidate.
           Do not duplicate production defects as missing coverage. If no concrete test
           defect is established, record nothing and explain the inspected scope.
+
+          ## Closing your run
+
+          Before your final reply, call `mcp__argus__argus_record_reviewer_run` with the coordinator's
+          `repo_path` + `round_id`, `reviewer: "tests"`, `status: "completed"` and a
+          `detail` such as `self-recorded; N candidate(s)` — also when you found nothing.
+          If you cannot finish, record `status: "failed"` with a concise reason. If the
+          call itself fails, say so in your reply; the coordinator will then record the
+          run and mark it as coordinator-recorded.
