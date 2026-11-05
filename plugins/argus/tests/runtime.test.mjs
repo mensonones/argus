@@ -200,7 +200,12 @@ test("display personas preserve technical agent handles across generated hosts",
     if (persona.agent !== "argus-challenger") {
       assert.match(canonical, /## Closing your run[\s\S]*argus_record_reviewer_run/);
     }
-    assert.match(canonical, /skills:\n  - (?:[a-z-]+-review|challenger-validation)/);
+    assert.match(canonical, /skills:\n  - (?:argus:)?(?:[a-z-]+-review|challenger-validation)/);
+    // Claude Code ships a built-in skill named `security-review`; a bare name would
+    // preload that one (it runs `git diff origin/HEAD...` and fails without an origin).
+    if (persona.agent === "argus-security") {
+      assert.match(canonical, /skills:\n  - argus:security-review\n/);
+    }
     assert.ok(codex.includes(`name = "${persona.agent}"`));
     assert.ok(codex.includes(`description = "${persona.name} — `));
     assert.ok(opencode.includes(`description: ${persona.name} — `));
