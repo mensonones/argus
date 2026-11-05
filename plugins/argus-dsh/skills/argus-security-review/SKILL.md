@@ -1,5 +1,5 @@
 ---
-name: argus_security-review
+name: argus-security-review
 description: Heuristics and a checklist for the Argus Security Reviewer — taint tracing, and detection patterns for auth/authz, injection, IDOR/BOLA, SSRF, path traversal, deserialization, secrets, crypto misuse, and unsafe IO. Load when reviewing changed code for security, or when acting as argus_security.
 ---
 

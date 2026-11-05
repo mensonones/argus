@@ -239,6 +239,22 @@ test("every agent, skill and command has frontmatter that parses as YAML", () =>
   }
 });
 
+test("generated DSH skills keep their canonical kebab-case names", () => {
+  // The DSH rewrite turns agent ids into tool names (argus-security -> argus_security);
+  // it must not touch a skill called argus-security-review. Runs on every platform.
+  const root = fileURLToPath(new URL("../../..", import.meta.url));
+  const dshSkills = path.join(root, "plugins/argus-dsh/skills");
+  const canonical = fs.readdirSync(path.join(root, "plugins/argus/skills")).sort();
+  const generated = fs.readdirSync(dshSkills).sort();
+  assert.deepEqual(generated.filter((n) => n !== "argus-review"), canonical.filter((n) => n !== "full-review"));
+  for (const dir of generated) {
+    const text = fs.readFileSync(path.join(dshSkills, dir, "SKILL.md"), "utf8").replace(/\r\n/g, "\n");
+    const name = YAML.parse(text.match(/^---\n([\s\S]*?)\n---/)[1]).name;
+    assert.equal(name, dir, `${dir}/SKILL.md declares name ${name}`);
+    assert.match(name, /^[a-z0-9]+(-[a-z0-9]+)*$/);
+  }
+});
+
 test("Claude Code-only command content does not leak into generated hosts", () => {
   const root = fileURLToPath(new URL("../../..", import.meta.url));
   const canonical = fs.readFileSync(path.join(root, "plugins/argus/commands/review.md"), "utf8").replace(/\r\n/g, "\n");
@@ -1223,7 +1239,8 @@ test("OpenCode Desktop installer preserves JSONC settings and is idempotent", ()
     [doctor, "--config-dir", configDir],
     { encoding: "utf8" },
   );
-  assert.equal(diagnosis.status, 0, diagnosis.stderr);
+  assert.equal(diagnosis.status, 0, `${diagnosis.stdout}
+${diagnosis.stderr}`);
   const result = JSON.parse(diagnosis.stdout);
   assert.equal(result.ok, true);
   assert.equal(result.checks.find((check) => check.name === "mcp:handshake")?.ok, true);

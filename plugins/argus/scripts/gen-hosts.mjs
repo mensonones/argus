@@ -210,7 +210,8 @@ function toDsh(text) {
     out = out.replace(new RegExp(`\\b${tool}\\b`, "g"), `${DSH_MCP_PREFIX}${tool}`);
   }
   // Specialist names become the DSH tool names (`argus-correctness` → `argus_correctness`).
-  out = out.replace(/\bargus-(correctness|security|performance|architecture|tests|challenger)\b/g,
+  // A trailing hyphen means a skill such as `argus-security-review`, not the agent.
+  out = out.replace(/\bargus-(correctness|security|performance|architecture|tests|challenger)\b(?!-)/g,
     (_m, lens) => `argus_${lens}`);
   // DSH exposes the specialists as tools, not as named subagents.
   return out
