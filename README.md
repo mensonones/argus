@@ -49,6 +49,11 @@ runtime (the MCP server + `argus` CLI) runs from a compiled `dist/`.
 **Prerequisite (all hosts): Node 22 or newer.** Development and CI use Node 24
 (see [`.nvmrc`](.nvmrc)).
 
+**No host CLI is required to run a review.** The plugin only needs Node. The `claude`,
+`codex` and `dsh` commands shown below are one way to install; every host also has an
+in-app path where it offers one. Hosts are supported by what they run, whether the
+terminal, the desktop app or an IDE.
+
 `plugins/argus/dist/` is committed, so installing from GitHub needs no build. Build
 only after changing the TypeScript under `plugins/argus/src/`:
 
@@ -64,6 +69,10 @@ start a fresh session so the updated instructions load. The
 [Changelog](CHANGELOG.md) says when a release is instruction-only.
 
 ### Claude Code
+
+Works in the terminal CLI, the Claude desktop app (Code tab) and IDE extensions. Reviews
+were validated in the desktop app; installing through the desktop UI itself has not
+been exercised, so the steps below are the documented CLI and in-session paths.
 
 **Install** with the `claude` CLI (from any terminal):
 
