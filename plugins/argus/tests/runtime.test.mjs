@@ -922,7 +922,8 @@ test("MCP init accepts an explicit target repository path", () => {
     .map((line) => JSON.parse(line)).find((item) => item.id === 2);
   assert.equal(response.result.isError, undefined);
   // The runtime reports repository roots with forward slashes on every platform.
-  const expectedRoot = cwd.replace(/\\/g, "/");
+  // It also resolves the real path (8.3 short names like RUNNER~1, macOS /var -> /private/var).
+  const expectedRoot = fs.realpathSync.native(cwd).replace(/\\/g, "/");
   assert.ok(response.result.content[0].text.includes(expectedRoot));
 });
 
