@@ -13,349 +13,55 @@ comments.
 The name comes from **Argus Panoptes**, the many-eyed giant of Greek myth who
 was always watching.
 
-Current version: **0.3.0-alpha.12** — [Project status](#status) · [Changelog](CHANGELOG.md).
+Current version: **0.3.0-alpha.12** — [Install](#install) · [Status and roadmap](#status-and-roadmap) · [Changelog](CHANGELOG.md)
 
-### New in v0.3.0-alpha.12
+**Contents:** [Quick start](#quick-start) · [Install](#install) · [How it works](#how-it-works) ·
+[Reconciliation and baseline](#reconciliation-and-baseline) · [Evidence and evaluation](#evidence-and-evaluation) ·
+[Runtime](#the-runtime-mcp-tools--cli) · [Configuration](#configuration-argusyaml) ·
+[Design principles](#design-principles) · [Repository layout](#repository-layout) ·
+[Development](#development) · [Status and roadmap](#status-and-roadmap)
 
-Claude Code reviewers now deny `Write`/`Edit` at the agent configuration layer
-and preload their lens skills. Codex now ships the portable Agent Plugins
-`plugin.json` + `mcp.json` layout while retaining its compatibility manifests.
-Release validation installs the package and handshakes both MCP declarations.
-Validated with 70 tests and 15 MCP tools; schema v4 is unchanged. Reinstall all
-host definitions and start a fresh session.
+## Quick start
 
-### New in v0.3.0-alpha.11
+Argus is not a standalone bot and needs no API key of its own: your assistant
+is the engine. With Claude Code and Node 22+ (24 recommended):
 
-The coordinator releases each reviewer subagent as soon as its `completed`/
-`failed` status is recorded, instead of holding all lenses open into the
-Challenge stage — which, in a real Codex run, exhausted the host's
-concurrent-subagent cap and failed the first Challenger dispatch. Findings
-persist in the shared round, so closing a finished reviewer loses nothing.
-Instruction-only; reinstall host definitions and start a fresh session.
-
-### New in v0.3.0-alpha.10
-
-Per-file patches are stored verbatim — byte-for-byte equal to git's output,
-including trailing blank context lines. A prior `trimEnd()` in `splitPatches`
-dropped trailing blank context, so reported patches were not exact copies of
-git; a unit test and a real-git integration test now lock byte-for-byte
-equality. Reinstall host definitions and start a fresh session.
-
-### New in v0.3.0-alpha.9
-
-Automatic scope reviews eligible local changes first; when none exist, it reviews
-the branch's non-merge commits. Explicit modes override this choice. Commit
-reviews retain each SHA/parent patch, require finding attribution, and instruct
-reviewers to verify historical defects against pinned HEAD. Local reviews retain
-staged and unstaged patches separately. Stored patch sets are shared with children
-and scope selection is disclosed in reports. Validated with 67 tests and a packaged
-MCP handshake (15 tools); schema v4 is unchanged. Reinstall all host definitions
-and start a fresh session.
-
-### New in v0.3.0-alpha.8
-
-`argus_init` no longer silently replaces an active round; the new
-`argus_abandon_round` tool ends one explicitly with an audited reason (15 MCP
-tools now). Every specialist reviewer carries the shared round contract. Codex
-custom agents use the documented schema (`developer_instructions`,
-`model_reasoning_effort`) with `install:codex`/`doctor:codex`; where a
-tool-backed host cannot select a custom agent by name
-([openai/codex#15250](https://github.com/openai/codex/issues/15250)) the
-coordinator injects instructions into a generic worker and discloses it as such.
-Reinstall host definitions (`npm run install:codex`) and start a fresh session.
-
-### New in v0.3.0-alpha.7
-
-The runtime now blocks report closure when delegated verdict IDs do not match
-explicit dispatch provenance. Reports expose pinned Git scope, and new merged
-groups require causal analysis and canonical claim coverage. These are structural
-checks, not certified execution or semantic completeness. Validated with 57 tests
-and a packaged MCP handshake (14 tools); schema v4 is unchanged. Reinstall all
-host definitions and start a fresh session.
-
-### New in v0.3.0-alpha.6
-
-The coordinator must settle delegated Challenger provenance before reporting:
-every `mode=delegated` verdict has to carry the child's real dispatched
-`agentId` (never the coordinator's thread id), and any wrong `execution` is
-corrected while the round is still active — a reported round refuses later
-fixes. Instruction-only change; reinstall host definitions and start a fresh
-session.
-
-### New in v0.3.0-alpha.5
-
-Subagents share the coordinator's repository and round explicitly with
-`repo_path` + `round_id`. Attach without creating another round; wrong or stale
-context fails rather than silently changing targets. See [Sharing a round with
-subagents](#sharing-a-round-with-subagents). Reinstall and start a fresh session.
-
-### New in v0.3.0-alpha.4
-
-Challenger instructions require real delegation when available and explicit
-coordinator fallback otherwise. Verdicts record execution provenance, disclosed
-in readable reports; older verdicts are unspecified. These records do not
-certify independence. Reinstall host definitions and start a fresh session.
-
-### New in v0.3.0-alpha.3
-
-Named specialist personas now appear in delegations and readable reports;
-technical agent IDs remain stable. See [Personas](#personas). Reinstall your host
-definitions and start a new session to load the updated instructions.
-
-### New in v0.2.6
-
-- Compact baseline queries: `argus baseline-list --file src/accounts.js --limit 20`.
-  Follow `nextOffset` using `--offset`; retrieve evidence with `--finding-id <id>`.
-- Reconciliation confirms the historical links actually applied to each group.
-- Report generation blocks reviewers still `started`; record completion or failure first.
-
-### New in v0.3.0-alpha.1
-
-Tests Reviewer is available for all four hosts, opt-in:
-
-```yaml
-reviewers:
-  tests: true
+```bash
+git clone https://github.com/mensonones/argus && cd argus
+claude plugin marketplace add "$(pwd)"
+claude plugin install argus@argus-marketplace
 ```
 
-The coordinator selects `argus-tests` for changed tests/setup or concrete
-reliability concerns. It checks assertions, async failure observation, mocks and
-isolation; missing coverage alone is not a finding. Candidates still require
-Challenger validation and reconciliation. Reinstall your host definitions and
-restart in a new session to load it. Version alpha.2 adds JS/TS stack detection
-and the first two stack supplements described below.
-
-## Evidence and evaluation
-
-Since v0.3.0-alpha.2, `argus_init.stack` exposes declared framework, test-runner and
-package-manager hints from the root and affected JS/TS package manifests. Each
-signal names its source file and field; these are not verified runtime usage.
-Inspection is limited to 64 affected directories and 1 MiB per manifest, with
-warnings/truncation disclosed. Sibling packages and dependency trees are not
-scanned. Broader ecosystem detection remains planned.
-
-The first stack supplements are `react-review` (state/effects)
-and `node-test-review` (Node runner assertion observation and isolation).
-`argus_init.stackSkills` suggests them for the nearest inspected package and
-enabled lenses only. Confirm actual code/runner usage before loading; a manifest
-declaration is not enough. They preserve the specialist category and Challenger
-workflow, and do not enable reviewers. Reinstall host definitions and start a
-new session after upgrading. Live React review quality remains unvalidated.
-
-The [Codex Tests Reviewer lab observation](eval/observations/2026-09-17-codex-tests-lab.md)
-validates one synthetic workflow, not general review quality.
-
-Findings and Challenger verdicts optionally carry an `evidencePackage` v1:
-revision, working-tree state, validation method, execution path, preconditions,
-expected/observed behavior, limitations and optional negative control. Executed
-methods require a command and recorded output/artifact. These are agent-reported
-observations, not execution certificates. Legacy findings remain supported.
-The ranking no longer rewards evidence text volume or reviewer agreement.
-
-Challenger-validated `rootCause` triples describe symbol, mechanism and violated
-invariant. Current-round consolidation requires explicit reconciliation, based
-on causal evidence rather than invariant labels or line proximity. Legacy
-title/location heuristics remain only for historical matching.
-
-The Challenger can submit a `correction` with revised claim-bearing content,
-a reason and a replacement evidence packet. Original content stays in the
-SQLite/JSON audit history; reports show corrected claims and correction reasons.
-Correcting an exaggeration is different from rejecting a real defect or
-suppressing a finding. These corrections ship in version 0.2.1.
-
-`npm run eval:prepare` emits label-free pilot tasks for your existing assistant.
-`npm run eval:score -- /absolute/path/run.json` scores human-adjudicated runs.
-See [Argus Eval](eval/README.md) for configurations, format and limitations.
-The eight-case synthetic pilot tests the evaluation workflow; it does **not**
-establish production review quality. No model API or API key is introduced.
-
-## How it works
-
-### Review scope (v0.3.0-alpha.9)
-
-Default `mode: auto` selects staged/unstaged/untracked reviewable changes if
-present within the requested paths and `argus.yaml` ignores. Otherwise it reviews
-the branch's non-merge commits absent from the pinned base tip. Argus artifacts
-and documentation-only local changes do not trigger a local code review.
-
-Explicit mode wins: “only commits, no merges” means `branch-commits`, ignoring
-local edits. Each selected SHA is compared to its own parent; merge-only
-resolution edits are excluded. Init and attachment return `patchSets` with
-SHA/parent boundaries. Local patches preserve staged and unstaged separately,
-including opposing edits. Empty selection means there is no change to review.
-
-CLI: `argus init --mode branch-commits --base main`; MCP:
-`argus_init({repo_path: "/absolute/repo", mode: "branch-commits", base: "main"})`.
-Other modes: `working-tree`, `integrated-branch-diff`, or a single `commit`.
-`--committed-only` selects branch commits unless integrated mode is explicit.
-
-Branch findings require `source_commits` from selected patches touching the
-file. Reviewers inspect those trees; the Challenger checks continued relevance
-at pinned HEAD. A later-reverted historical defect is not a current actionable
-finding. Reports record the selected SHAs and scope independently of baseline
-history (`new`/`persistent`). Patch attribution does not certify causal truth.
-
-### Pre-report safeguards (v0.3.0-alpha.7)
-
-Delegated verdicts require report `provenance` with the real `coordinator_id`
-and `dispatched_challenger_ids` returned by the host. Missing/mismatched IDs
-block closure. Send returned child IDs explicitly; CODEX_SESSION_ID may identify
-the parent. This compares coordinator-supplied records, not certified host execution.
-CLI: `argus report --provenance '{"coordinator_id":"parent-id","dispatched_challenger_ids":["child-id"]}'`.
-
-Init/attachment/reports expose `scope`: pinned base/head revisions, paths,
-working-tree inclusion and merge policy. Explicit integrated mode is an endpoint diff;
-enumerating non-merge commits does not exclude merge-resolution changes.
-Single-commit mode rejects merge/root commits without a supported comparison.
-Issues already present at the pinned base must be disclosed as pre-existing;
-baseline NEW is not proof of introduction by this change. Legacy scope is unspecified.
-
-New merged reconciliation groups require `causal_analysis` and `claim_coverage`
-linking current member claims to exact canonical description/evidence/impact
-excerpts (and packet observations when present). This prevents grouping prose
-from standing in for canonical content. Excerpt presence does not prove semantic
-equivalence or complete claim preservation; those still require adjudication.
-Historical groups remain readable without retroactive certification.
-
-### Sharing a round with subagents
-
-Only the coordinator creates a review with `argus_init`. Pass its returned
-`repoRoot` and `roundId` to all specialists and the Challenger as `repo_path`
-and `round_id` on every MCP call. A fresh MCP instance can operate with this
-explicit pair, or attach via `argus_init` using only the pair (no diff options).
-Attach does not create a round. Wrong, abandoned or superseded rounds fail
-rather than silently changing targets. A completed round is readable but does
-not accept new findings/verdicts. Children must share access to the same `.argus`
-database; this does not bridge filesystem isolation or bypass host permissions.
-Stop on context errors; do not reconstruct candidates to conceal failed writes.
-
-### Personas
-
-Argus coordinates the named personas below. These display names appear in
-delegation instructions and readable reports; runtime IDs remain unchanged.
-
-| Persona | Role | Technical agent ID |
-| --- | --- | --- |
-| Atena | Correctness | `argus-correctness` |
-| Cerbero | Security | `argus-security` |
-| Hermes | Performance | `argus-performance` |
-| Dedalo | Architecture | `argus-architecture` |
-| Temis | Tests | `argus-tests` |
-| Momo | Challenger | `argus-challenger` |
-
-`argus_init.personas` exposes the display catalog, independently of enabled
-lenses. JSON/SQLite keep technical reviewer IDs. A host can still assign an
-instance a different name, such as Cicero; Argus does not control that label.
-A persona name alone is not evidence that its agent instructions were loaded.
-Since v0.3.0-alpha.4, instructions require actual Challenger delegation when available and
-disclosure of any coordinator fallback. Verdict execution metadata records a
-host child ID or fallback reason; readable reports disclose unspecified legacy
-execution. These are agent-reported records, not host-certified independence.
-CLI: `argus challenge <id> CONFIRMED --reason "..." --execution
-'{"mode":"coordinator","detail":"Host delegation unavailable; validation instructions loaded"}'`.
-These personas ship in v0.3.0-alpha.3; reinstall host definitions and start a
-new session after upgrading.
-
-Argus is **not** a standalone bot with its own API key. It is a plugin for AI
-coding assistants (**Claude Code**, **Codex**, **OpenCode**, **DeepSeek
-Harness**). Your assistant is the engine — it runs the reviewers as subagents and
-does the reasoning. Argus provides:
-
-- **Specialist reviewer subagents** — one bounded lens each.
-- **A Challenger subagent** — the adversarial validation stage.
-- **Skills** — the methodology, heuristics, and validation gates each reviewer
-  loads.
-- **A coordinator command** (`/argus:review`) — drives the whole cycle.
-- **A deterministic MCP runtime** (+ `argus` CLI) — owns the git diff, the shared
-  finding memory, deduplication, ranking, and the report. State lives in
-  `.argus/` (SQLite), so reviewers coordinate and Argus remembers past rounds.
+Then open Claude Code *inside the git repo you want reviewed* and run:
 
 ```
 /argus:review
-   │
-   ▼
-argus_init            detect repo · committed + working-tree diff · open a round
-   │
-   ▼
-select reviewers      (skip docs/assets/ignored files; configuration may be reviewed)
-   │
-   ├── argus-correctness ─┐   each a subagent using the host's Read/Grep/git
-   ├── argus-security     │   + argus_record_finding to store evidence-backed
-   ├── argus-performance  │   candidate findings in shared memory
-   └── argus-architecture ┘
-   │
-   ▼
-argus-challenger       validate claims · correct overstatements · identify root causes
-   │
-   ▼
-argus_reconcile        required canonical/member IDs · reviewed categories · claim reconciliation
-   │
-   ▼
-argus_report           explicit groups · rank (severity × confidence × challenge × validation) · render
 ```
 
-## Reconciliation and baseline
-
-Version 0.2.5: reconciliation accepts `incorporated_baselines` entries with
-historical `finding_id`, `reasoning` and nonempty `covered_claims`. Use them when
-a verified consequence formerly reported separately is preserved in current
-canonical content, not when it was fixed or discarded. Reports expose
-`incorporatedBaselineCount` and `incorporatedBaselineFindings`, with destination
-IDs, without marking that history not-redetected. Coverage must be verified
-each round; the runtime checks references/conflicts, not semantic completeness.
-
-Version 0.2.4 guidance clarifies disputed finding splits: compare causal
-preconditions, contracts and observable consequences, using targeted controls
-when practical. Challenger votes, invariant names and examples are not evidence
-of independence. One root cause may have several consequences in one finding.
-`NEW` means newly identified against history, not newly introduced in code.
-The [DSH lab note](eval/observations/2026-09-12-dsh-lab.md) remains unscored and
-records the subsequent maintainer-approved grouping; it does not establish a
-fourth ground-truth defect or a scored model evaluation.
-
-Version 0.2.3 baseline improvements preserve canonical groups across rounds.
-`argus_baseline_findings` / `argus baseline-list` exposes previous, historical and
-imported findings. Reconciliation can include `baseline_match` with a historical
-`finding_id` and semantic-equivalence `reasoning` to preserve `baselineIdentity`
-despite changed wording/category. The runtime checks existing IDs, same file and
-one identity per current defect; semantic truth remains the coordinator's job.
-Distinct validated root causes do not automatically match by title or line.
-Reported history includes filtered/suppressed canonical findings, not raw duplicates.
-
-Version 0.2.2 requires explicit reconciliation before reporting.
-Each group supplies `canonical_id`, `members` (`finding_id`, reviewed `category`),
-`rootCause`, `reasoning` and `claims_reviewed: true`. Every surviving ID must occur
-once; use `[]` when none survive. The coordinator reviews semantics and corrects
-canonical claims first; the runtime checks coverage, retains provenance and
-blocks stale plans after any finding/verdict/correction change. It does not
-certify semantic equivalence or union duplicate prose. Missing/invalid finding
-categories now fail. When upgrading from 0.2.1, rebuild/reinstall your host
-integration and restart the host before retesting.
-
-Historical findings absent from a later review are labeled **not redetected**,
-not resolved: absence or a changed fingerprint is not proof of a fix. JSON exposes
-`unmatchedPreviousCount` and `unmatchedPreviousFindings`; legacy `resolvedCount`
-and `resolvedFindings` remain zero/empty until fix verification is supported.
+Other hosts (Codex, OpenCode Desktop, DeepSeek Harness) are covered in
+[Install](#install).
 
 ## Install
 
 This repo is a plugin **marketplace**. Whatever the host, the deterministic
-runtime (the MCP server + `argus` CLI) must be built first.
+runtime (the MCP server + `argus` CLI) runs from a compiled `dist/`.
 
-**Prerequisite (all hosts): Node 22+.** Build the runtime once — it ships a
-compiled `dist/` that the MCP server and CLI run from:
+**Prerequisite (all hosts): Node 22 or newer.** Development and CI use Node 24
+(see [`.nvmrc`](.nvmrc)).
+
+`plugins/argus/dist/` is committed, so installing from GitHub needs no build. Build
+only after changing the TypeScript under `plugins/argus/src/`:
 
 ```bash
 npm run build   # installs deps + builds plugins/argus
 ```
 
-`plugins/argus/dist/` is committed, so if you install from GitHub the build is
-only needed after you change the TypeScript under `plugins/argus/src/`.
-
 > Every host reviews the repo the assistant is open in, and writes memory to
 > `<repo>/.argus/`. Add `.argus/` to that repo's `.gitignore`.
 
----
+**Upgrading:** after pulling a new version, reinstall your host definitions and
+start a fresh session so the updated instructions load. The
+[Changelog](CHANGELOG.md) says when a release is instruction-only.
 
 ### Claude Code
 
@@ -364,7 +70,7 @@ only needed after you change the TypeScript under `plugins/argus/src/`.
 ```bash
 # from a local checkout:
 claude plugin marketplace add /absolute/path/to/argus
-# …or from GitHub once published:
+# …or from GitHub:
 claude plugin marketplace add mensonones/argus
 
 claude plugin install argus@argus-marketplace
@@ -389,8 +95,6 @@ modify the reviewed files.
 /argus:review --base main
 /argus:review src/payment/ security only
 ```
-
----
 
 ### Codex
 
@@ -440,8 +144,6 @@ Codex (`@argus-correctness`, `@argus-security`, …) or ask Codex to *"run an Ar
 review of the current change"*. Findings are recorded through the `argus_*` MCP
 tools; the report comes from `argus_report`.
 
----
-
 ### OpenCode Desktop (experimental)
 
 The supported target is **OpenCode Desktop**. The terminal CLI is not required
@@ -481,8 +183,6 @@ cross-lens duplication and unremoved overstatements, motivating the current
 root-cause/correction work. This is a smoke test, not broad host certification
 or proof of production-quality precision/recall; support remains experimental.
 
----
-
 ### DeepSeek Harness (DSH)
 
 DSH has no marketplace and no Markdown agents or commands: a profile is an
@@ -521,6 +221,244 @@ sequentially, exactly as documented for hosts without named subagents.
 Installer flags: `--profile <name>`, `--dsh-home <dir>`, `--dsh-bin <path>`,
 `--dry-run`, `--skip-bundle`.
 
+## How it works
+
+Argus coordinates a review; your assistant does the reasoning. It provides:
+
+- **Specialist reviewer subagents** — one bounded lens each.
+- **A Challenger subagent** — the adversarial validation stage.
+- **Skills** — the methodology, heuristics, and validation gates each reviewer
+  loads.
+- **A coordinator command** (`/argus:review`) — drives the whole cycle.
+- **A deterministic MCP runtime** (+ `argus` CLI) — owns the git diff, the shared
+  finding memory, deduplication, ranking, and the report. State lives in
+  `.argus/` (SQLite), so reviewers coordinate and Argus remembers past rounds.
+
+```
+/argus:review
+   │
+   ▼
+argus_init            detect repo · committed + working-tree diff · open a round
+   │
+   ▼
+select reviewers      (skip docs/assets/ignored files; configuration may be reviewed)
+   │
+   ├── argus-correctness ─┐   each a subagent using the host's Read/Grep/git
+   ├── argus-security     │   + argus_record_finding to store evidence-backed
+   ├── argus-performance  │   candidate findings in shared memory
+   └── argus-architecture ┘
+   │
+   ▼
+argus-challenger       validate claims · correct overstatements · identify root causes
+   │
+   ▼
+argus_reconcile        required canonical/member IDs · reviewed categories · claim reconciliation
+   │
+   ▼
+argus_report           explicit groups · rank (severity × confidence × challenge × validation) · render
+```
+
+### Personas
+
+The named personas below appear in delegation instructions and readable
+reports; runtime IDs remain unchanged.
+
+| Persona | Role | Technical agent ID |
+| --- | --- | --- |
+| Atena | Correctness | `argus-correctness` |
+| Cerbero | Security | `argus-security` |
+| Hermes | Performance | `argus-performance` |
+| Dedalo | Architecture | `argus-architecture` |
+| Temis | Tests (opt-in) | `argus-tests` |
+| Momo | Challenger | `argus-challenger` |
+
+`argus_init.personas` exposes the display catalog, independently of enabled
+lenses. JSON/SQLite keep technical reviewer IDs. A host can still assign an
+instance a different name, such as Cicero; Argus does not control that label.
+A persona name alone is not evidence that its agent instructions were loaded.
+
+The Tests reviewer is opt-in (`reviewers: { tests: true }` in
+[`argus.yaml`](#configuration-argusyaml)). The coordinator selects it for
+changed tests/setup or concrete reliability concerns. It checks assertions,
+async failure observation, mocks and isolation; missing coverage alone is not a
+finding. Its candidates still require Challenger validation and reconciliation.
+
+### Challenger provenance
+
+Instructions require real Challenger delegation when the host supports it, and
+explicit disclosure of any coordinator fallback. Verdict execution metadata
+records a host child ID or fallback reason; readable reports disclose
+unspecified legacy execution. These are agent-reported records, not
+host-certified independence.
+
+```bash
+argus challenge <id> CONFIRMED --reason "..." --execution \
+  '{"mode":"coordinator","detail":"Host delegation unavailable; validation instructions loaded"}'
+```
+
+### Review scope
+
+Default `mode: auto` selects staged/unstaged/untracked reviewable changes if
+present within the requested paths and `argus.yaml` ignores. Otherwise it reviews
+the branch's non-merge commits absent from the pinned base tip. Argus artifacts
+and documentation-only local changes do not trigger a local code review.
+
+Explicit mode wins: “only commits, no merges” means `branch-commits`, ignoring
+local edits. Each selected SHA is compared to its own parent; merge-only
+resolution edits are excluded. Init and attachment return `patchSets` with
+SHA/parent boundaries. Local patches preserve staged and unstaged separately,
+including opposing edits. Empty selection means there is no change to review.
+
+CLI: `argus init --mode branch-commits --base main`; MCP:
+`argus_init({repo_path: "/absolute/repo", mode: "branch-commits", base: "main"})`.
+Other modes: `working-tree`, `integrated-branch-diff`, or a single `commit`.
+`--committed-only` selects branch commits unless integrated mode is explicit.
+
+Branch findings require `source_commits` from selected patches touching the
+file. Reviewers inspect those trees; the Challenger checks continued relevance
+at pinned HEAD. A later-reverted historical defect is not a current actionable
+finding. Reports record the selected SHAs and scope independently of baseline
+history (`new`/`persistent`). Patch attribution does not certify causal truth.
+
+### Pre-report safeguards
+
+Delegated verdicts require report `provenance` with the real `coordinator_id`
+and `dispatched_challenger_ids` returned by the host. Missing/mismatched IDs
+block closure. Send returned child IDs explicitly; `CODEX_SESSION_ID` may identify
+the parent. This compares coordinator-supplied records, not certified host execution.
+
+```bash
+argus report --provenance '{"coordinator_id":"parent-id","dispatched_challenger_ids":["child-id"]}'
+```
+
+Init/attachment/reports expose `scope`: pinned base/head revisions, paths,
+working-tree inclusion and merge policy. Explicit integrated mode is an endpoint diff;
+enumerating non-merge commits does not exclude merge-resolution changes.
+Single-commit mode rejects merge/root commits without a supported comparison.
+Issues already present at the pinned base must be disclosed as pre-existing;
+baseline NEW is not proof of introduction by this change. Legacy scope is unspecified.
+
+New merged reconciliation groups require `causal_analysis` and `claim_coverage`
+linking current member claims to exact canonical description/evidence/impact
+excerpts (and packet observations when present). This prevents grouping prose
+from standing in for canonical content. Excerpt presence does not prove semantic
+equivalence or complete claim preservation; those still require adjudication.
+Historical groups remain readable without retroactive certification.
+
+Report generation also blocks reviewers still in `started` state; record their
+completion or failure first.
+
+### Sharing a round with subagents
+
+Only the coordinator creates a review with `argus_init`. Pass its returned
+`repoRoot` and `roundId` to all specialists and the Challenger as `repo_path`
+and `round_id` on every MCP call. A fresh MCP instance can operate with this
+explicit pair, or attach via `argus_init` using only the pair (no diff options).
+Attach does not create a round. Wrong, abandoned or superseded rounds fail
+rather than silently changing targets. A completed round is readable but does
+not accept new findings/verdicts. Children must share access to the same `.argus`
+database; this does not bridge filesystem isolation or bypass host permissions.
+Stop on context errors; do not reconstruct candidates to conceal failed writes.
+
+`argus_init` refuses to replace an active round. The only way to unblock a new
+one is `argus_abandon_round`, which ends the active round explicitly with an
+audited reason.
+
+## Reconciliation and baseline
+
+**Required reconciliation.** Reconciliation is mandatory before reporting. Each
+group supplies `canonical_id`, `members` (`finding_id`, reviewed `category`),
+`rootCause`, `reasoning` and `claims_reviewed: true`. Every surviving ID must occur
+once; use `[]` when none survive. The coordinator reviews semantics and corrects
+canonical claims first; the runtime checks coverage, retains provenance and
+blocks stale plans after any finding/verdict/correction change. It does not
+certify semantic equivalence or union duplicate prose. Missing or invalid finding
+categories fail.
+
+**Baseline identity.** `argus_baseline_findings` / `argus baseline-list` exposes
+previous, historical and imported findings, and preserves canonical groups across
+rounds. Reconciliation can include `baseline_match` with a historical `finding_id`
+and semantic-equivalence `reasoning` to preserve `baselineIdentity` despite changed
+wording/category. The runtime checks existing IDs, same file and one identity per
+current defect; semantic truth remains the coordinator's job. Distinct validated
+root causes do not automatically match by title or line. Reported history includes
+filtered/suppressed canonical findings, not raw duplicates.
+
+Query it compactly: `argus baseline-list --file src/accounts.js --limit 20`.
+Follow `nextOffset` using `--offset`; retrieve evidence with `--finding-id <id>`.
+
+**Disputed splits.** Compare causal preconditions, contracts and observable
+consequences, using targeted controls when practical. Challenger votes,
+invariant names and examples are not evidence of independence. One root cause
+may have several consequences in one finding. `NEW` means newly identified
+against history, not newly introduced in code. The
+[DSH lab note](eval/observations/2026-09-12-dsh-lab.md) remains unscored and
+records the subsequent maintainer-approved grouping; it does not establish a
+fourth ground-truth defect or a scored model evaluation.
+
+**Incorporated history.** Reconciliation accepts `incorporated_baselines` entries
+with historical `finding_id`, `reasoning` and nonempty `covered_claims`. Use them
+when a verified consequence formerly reported separately is preserved in current
+canonical content, not when it was fixed or discarded. Reports expose
+`incorporatedBaselineCount` and `incorporatedBaselineFindings`, with destination
+IDs, without marking that history not-redetected. Coverage must be verified
+each round; the runtime checks references/conflicts, not semantic completeness.
+Reconciliation also confirms the historical links actually applied to each group.
+
+**Not redetected, not resolved.** Historical findings absent from a later review
+are labeled **not redetected**: absence or a changed fingerprint is not proof of
+a fix. JSON exposes `unmatchedPreviousCount` and `unmatchedPreviousFindings`;
+legacy `resolvedCount` and `resolvedFindings` remain zero/empty until fix
+verification is supported.
+
+## Evidence and evaluation
+
+### Stack detection
+
+`argus_init.stack` exposes declared framework, test-runner and package-manager
+hints from the root and affected JS/TS package manifests. Each signal names its
+source file and field; these are not verified runtime usage. Inspection is
+limited to 64 affected directories and 1 MiB per manifest, with
+warnings/truncation disclosed. Sibling packages and dependency trees are not
+scanned. Broader ecosystem detection remains planned.
+
+The first stack supplements are `react-review` (state/effects)
+and `node-test-review` (Node runner assertion observation and isolation).
+`argus_init.stackSkills` suggests them for the nearest inspected package and
+enabled lenses only. Confirm actual code/runner usage before loading; a manifest
+declaration is not enough. They preserve the specialist category and Challenger
+workflow, and do not enable reviewers. Live React review quality remains
+unvalidated. The [Codex Tests Reviewer lab observation](eval/observations/2026-09-17-codex-tests-lab.md)
+validates one synthetic workflow, not general review quality.
+
+### Evidence packets and root causes
+
+Findings and Challenger verdicts optionally carry an `evidencePackage` v1:
+revision, working-tree state, validation method, execution path, preconditions,
+expected/observed behavior, limitations and optional negative control. Executed
+methods require a command and recorded output/artifact. These are agent-reported
+observations, not execution certificates. Legacy findings remain supported.
+The ranking does not reward evidence text volume or reviewer agreement.
+
+Challenger-validated `rootCause` triples describe symbol, mechanism and violated
+invariant. Current-round consolidation requires explicit reconciliation, based
+on causal evidence rather than invariant labels or line proximity. Legacy
+title/location heuristics remain only for historical matching.
+
+The Challenger can submit a `correction` with revised claim-bearing content,
+a reason and a replacement evidence packet. Original content stays in the
+SQLite/JSON audit history; reports show corrected claims and correction reasons.
+Correcting an exaggeration is different from rejecting a real defect or
+suppressing a finding.
+
+### Evaluation
+
+`npm run eval:prepare` emits label-free pilot tasks for your existing assistant.
+`npm run eval:score -- /absolute/path/run.json` scores human-adjudicated runs.
+See [Argus Eval](eval/README.md) for configurations, format and limitations.
+The eight-case synthetic pilot tests the evaluation workflow; it does **not**
+establish production review quality. No model API or API key is introduced.
+
 ## The runtime (MCP tools / CLI)
 
 The deterministic pipeline is exposed both as MCP tools (preferred) and a CLI
@@ -529,6 +467,7 @@ fallback:
 | MCP tool | CLI | Purpose |
 |---|---|---|
 | `argus_init` | `argus init` | detect repo, committed + working-tree diff, context, open a round |
+| `argus_abandon_round` | — | end the active round explicitly, with an audited reason |
 | `argus_record_finding` | `argus record-finding --json` | store a candidate finding |
 | `argus_record_reviewer_run` | `argus reviewer-run <id> <status>` | record reviewer coverage |
 | `argus_record_challenge` | `argus challenge <id> <verdict>` | store verdict, validated root cause and optional correction |
@@ -543,14 +482,14 @@ fallback:
 | `argus_baseline_findings` | `argus baseline-list` | inspect canonical historical findings for identity matching |
 
 Memory: per-target `<repo>/.argus/memory.sqlite`, plus confirmed findings promoted
-to cross-target `~/.argus/global.sqlite`. Uses Node's built-in `node:sqlite` (Node 22+). Add
-`.argus/` to your `.gitignore`.
+to cross-target `~/.argus/global.sqlite`. Uses Node's built-in `node:sqlite`
+(Node 22+).
 
 SQLite runs in WAL mode with bounded busy retries, and schema migrations are
 applied idempotently. Reports compare against the previous reported round and
 any imported JSON baseline, classify findings as `new`, `persistent`, or
-`regression`, and list previous findings not redetected (not verified fixes). Suppressions
-require a reason, can expire, and are retained for audit.
+`regression`, and list previous findings not redetected (not verified fixes).
+Suppressions require a reason, can expire, and are retained for audit.
 
 ## Configuration (`argus.yaml`)
 
@@ -592,6 +531,8 @@ architecture:
 ```
 .claude-plugin/marketplace.json     # marketplace manifest
 .agents/plugins/marketplace.json    # Codex marketplace manifest
+.github/workflows/ci.yml            # CI: Linux, Windows and macOS
+.nvmrc                              # Node version for development and CI
 plugins/argus/
   plugin.json                        # portable Agent Plugins manifest
   mcp.json                           # portable MCP declaration
@@ -607,11 +548,14 @@ plugins/argus/
   scripts/install-dsh.mjs            # DSH installer
   scripts/doctor-dsh.mjs             # DSH diagnostics
   src/                               # TypeScript runtime (MCP + CLI + SQLite)
+  dist/                              # compiled runtime (committed on purpose)
+  tests/                             # node:test suite
 plugins/argus-dsh/                   # DSH profile bundle (@argus/dsh-plugin)
   cordis.patch.yml                   # generated specialist subagent tools
   skills/                            # generated DSH-shaped skills
 .codex/agents/                       # generated Codex mirror
 .opencode/                           # generated OpenCode mirror
+eval/                                # Argus Eval corpus and scoring
 opencode.json
 ```
 
@@ -619,57 +563,38 @@ The Codex, OpenCode, and DSH artifacts are **generated** from the canonical
 Claude Code plugin — run `npm run gen-hosts` after editing an agent, skill, or
 command.
 
-## Status
+## Development
 
-### Released — v0.3.0-alpha.12
+Use Node 24 (the version in [`.nvmrc`](.nvmrc); `nvm use` / `fnm use` pick it up).
+The runtime supports Node 22 and newer.
 
-- **Host-native packaging:** portable Codex manifests plus compatibility
-  overlays; Claude specialists enforce read-only tools and preload lens skills.
+```bash
+npm run build           # install deps and compile plugins/argus
+npm test                # build, then run the node:test suite
+npm run typecheck       # tsc --noEmit
+npm run release:validate  # tests + pack, install the package and handshake MCP
+npm run gen-hosts       # regenerate the Codex/OpenCode/DSH mirrors
+```
 
-- **Concurrency:** the coordinator releases each finished reviewer subagent
-  before the Challenge stage, so the host's subagent cap can't block Challenger
-  dispatch (findings persist in the shared round regardless).
+- **`dist/` is committed on purpose** so the plugin runs from a GitHub install
+  with no build step. After changing `src/`, rebuild and commit `dist/` in the
+  same change; CI fails if the committed `dist/` differs from a fresh build.
+- **Line endings:** `.gitattributes` keeps `dist/` and the agent definitions in
+  LF, so rebuilding on Windows does not show spurious diffs.
+- **Platforms:** CI runs the suite on Linux, Windows and macOS. A test that
+  needs symlinks skips itself on hosts that do not permit them (for example
+  Windows without Developer Mode).
+- **Dependencies:** CI also runs `npm audit --audit-level=high` and fails on a
+  new high or critical advisory.
 
-- **Patch fidelity:** per-file patches are stored verbatim, byte-for-byte equal
-  to git (trailing blank context preserved), locked by unit + real-git tests.
+## Status and roadmap
 
-- **Scope:** eligible local changes, otherwise non-merge branch commits; explicit
-  overrides, stored per-parent patches and source SHA attribution in reports.
-
-- **Round integrity:** `argus_init` refuses to replace an active round; explicit
-  audited `argus_abandon_round` is the only unblock. Every reviewer carries the
-  shared round contract.
-
-- **Codex done right:** custom agents use the documented schema with
-  `install:codex`/`doctor:codex`; tool-backed delegation injects instructions
-  into a generic worker and discloses it honestly (openai/codex#15250).
-
-- **Provenance gate:** delegated Challenger verdicts must carry the child's real
-  dispatched `agentId` (never the coordinator's), verified and corrected before
-  reporting while the round is still active.
-
-- **Shared round:** explicit MCP repository/round context and non-creating child
-  attachment, tested across three separate MCP processes.
-
-- **Challenger execution:** disclosed delegated/coordinator/unspecified modes,
-  with agent-reported provenance rather than runtime-certified independence.
-
-- **Personas:** named specialists and Challenger, with stable technical IDs.
-
-- **Review:** four specialist lenses, adversarial Challenger, evidence packets
-  and auditable claim corrections.
-- **Tests:** a fifth, opt-in specialist for concrete test-reliability defects.
-- **Stack:** declared JS/TS hints with package provenance and scoped optional
-  React/node:test supplements; actual usage must be confirmed in code.
-- **Runtime:** CLI + MCP, git diff and context, explicit reconciliation,
-  ranking and Markdown/JSON/terminal reports.
-- **Memory:** versioned SQLite (schema v4), canonical history, stable baseline
-  identities and audited suppressions.
-- **Historical coverage:** incorporated findings carry explicit links, reasons
-  and covered consequences, distinct from absence or a verified fix. Original
-  historical findings remain unchanged.
-- **Integrations:** Claude Code, Codex, OpenCode Desktop and DSH; setup and
-  diagnostics are documented in [Install](#install).
+**Current release: 0.3.0-alpha.12.** Four specialist lenses plus an opt-in Tests
+reviewer, an adversarial Challenger with evidence packets and auditable
+corrections, explicit reconciliation, versioned SQLite memory (schema v4) with
+canonical history and audited suppressions, and integrations for Claude Code,
+Codex, OpenCode Desktop and DSH. Release-by-release details live in the
+[Changelog](CHANGELOG.md).
 
 ### Planned
 
@@ -690,9 +615,6 @@ The [Argus Eval pilot](eval/README.md) and synthetic lab runs validate specific
 workflows, not general production review quality. Agent-reported evidence is
 not an execution certificate; semantic grouping still requires judgment.
 
-Release-by-release details live in the [Changelog](CHANGELOG.md). After upgrading,
-reinstall host definitions and restart the host to load the new instructions.
-
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
