@@ -107,7 +107,7 @@ function doctor() {
     checkFile(checks, `agent:${agent}`, path.join(root, "agents", `argus-${agent}.md`));
   }
   for (const skill of [
-    "full-review", "correctness-review", "security-review", "performance-review",
+    "full-review", "correctness-review", "argus-security-review", "performance-review",
     "architecture-review", "tests-review", "react-review", "node-test-review", "challenger-validation",
   ]) {
     checkFile(checks, `skill:${skill}`, path.join(root, "skills", skill, "SKILL.md"));

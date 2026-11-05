@@ -249,6 +249,6 @@ coverage, not semantic completeness or equivalence; assess those yourself.
 
 ## Related skills
 
-Load `correctness-review`, `security-review`, `performance-review`,
+Load `correctness-review`, `argus-security-review`, `performance-review`,
 `architecture-review`, `tests-review` for each lens's heuristics, and `challenger-validation`
 for the refutation gates.

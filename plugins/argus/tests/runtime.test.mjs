@@ -200,11 +200,14 @@ test("display personas preserve technical agent handles across generated hosts",
     if (persona.agent !== "argus-challenger") {
       assert.match(canonical, /## Closing your run[\s\S]*argus_record_reviewer_run/);
     }
-    assert.match(canonical, /skills:\n  - (?:argus:)?(?:[a-z-]+-review|challenger-validation)/);
-    // Claude Code ships a built-in skill named `security-review`; a bare name would
-    // preload that one (it runs `git diff origin/HEAD...` and fails without an origin).
+    assert.match(canonical, /skills:\n  - (?:[a-z-]+-review|challenger-validation)/);
+    // Claude Code ships a built-in skill named `security-review`. A preloaded skill with
+    // that name never reached the agent (and its `git diff origin/HEAD...` aborted it in
+    // a repo without an origin), so the Argus skill needs a name that cannot collide.
     if (persona.agent === "argus-security") {
-      assert.match(canonical, /skills:\n  - argus:security-review\n/);
+      assert.match(canonical, /skills:\n  - argus-security-review\n/);
+      assert.ok(fs.existsSync(path.join(root, "plugins/argus/skills/argus-security-review/SKILL.md")));
+      assert.ok(!fs.existsSync(path.join(root, "plugins/argus/skills/security-review")));
     }
     assert.ok(codex.includes(`name = "${persona.agent}"`));
     assert.ok(codex.includes(`description = "${persona.name} — `));

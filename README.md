@@ -212,7 +212,7 @@ Restart DSH so the patch applies, open a Git project, and run `/argus-review` â€
 ask for an *"Argus review"*. Every DSH skill is slash-invocable, so the entry
 point is `/argus-review` (the kebab-case form of Claude Code's `/argus:review`)
 and each lens is reachable directly as `/correctness-review`,
-`/security-review`, `/performance-review`, `/architecture-review`, and
+`/argus-security-review`, `/performance-review`, `/architecture-review`, and
 `/challenger-validation`. The specialists become model-facing tools
 (`argus_correctness`, `argus_security`, `argus_performance`,
 `argus_architecture`) with `argus_challenger` for adversarial validation; each

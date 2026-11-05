@@ -1,5 +1,5 @@
 ---
-name: full-review
+name: argus-review
 description: Orchestrates a complete multi-perspective Argus code review of a change — correctness, security, performance, and architecture — each specialist recording evidence-backed findings, then an adversarial challenger validating every one before a deduplicated, ranked report. Use when the user asks for a "code review", "argus review", "revisão de código", "review this PR/diff/change", or a full audit of changed code.
 ---
 
@@ -257,6 +257,6 @@ coverage, not semantic completeness or equivalence; assess those yourself.
 
 ## Related skills
 
-Load `correctness-review`, `security-review`, `performance-review`,
+Load `correctness-review`, `argus_security-review`, `performance-review`,
 `architecture-review`, `tests-review` for each lens's heuristics, and `challenger-validation`
 for the refutation gates.

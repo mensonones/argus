@@ -65,7 +65,7 @@ Restart the DSH surface so the patch applies, open a Git repository, and run
 kebab-case, so this is the host-local form of Claude Code's `/argus:review`: the
 coordinator skill's DSH copy is named `argus-review` while the canonical skill
 stays `full-review` for the other hosts. The lens skills keep their canonical
-names and are slash-invocable too (`/correctness-review`, `/security-review`,
+names and are slash-invocable too (`/correctness-review`, `/argus-security-review`,
 `/performance-review`, `/architecture-review`, `/challenger-validation`).
 
 The coordinator calls `mcp__argus__argus_init` with the workspace root, dispatches

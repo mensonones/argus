@@ -158,7 +158,7 @@ Estágio adversarial. Recebe um candidate e tenta refutá-lo, registrando o vere
 
 ### 5.4 Skills (`skills/*/SKILL.md`)
 Conhecimento carregável: `full-review` (meta-skill que orquestra tudo),
-`correctness-review`, `security-review`, `performance-review`,
+`correctness-review`, `argus-security-review`, `performance-review`,
 `architecture-review`, `challenger-validation` (os gates).
 
 ### 5.5 Runtime MCP + CLI (`src/`)
@@ -495,7 +495,7 @@ Skills fornecem conhecimento especializado que os reviewers carregam:
 skills/
   full-review/            (meta: orquestra o ciclo completo)
   correctness-review/
-  security-review/
+  argus-security-review/
   performance-review/
   architecture-review/
   challenger-validation/  (os gates)
@@ -568,7 +568,7 @@ código de plugin cordis e roda contra o agente sem criar mensagem de modelo), e
 nome de skill precisa ser kebab-case — então `/argus:review` não existe: a cópia
 DSH do skill `full-review` chama-se **`argus-review`**, e a entrada do coordenador
 é `/argus-review`. As cinco skills de lente também são invocáveis
-(`/correctness-review`, `/security-review`, `/performance-review`,
+(`/correctness-review`, `/argus-security-review`, `/performance-review`,
 `/architecture-review`, `/challenger-validation`). O instalador remove diretórios
 de skill que ele mesmo gravou e que saíram do bundle, para o menu `/` não guardar
 entrada órfã. Tudo isso é aplicado por `npm run install:dsh` e verificado por
