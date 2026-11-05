@@ -84,11 +84,19 @@ registrada do que ainda é só preparação ou implementação.
 
 | # | Critério | Estado | Evidência encontrada |
 | --- | --- | --- | --- |
-| 1 | Rodada compartilhada em sessão real | Pendente | Não há observação do React lab (nem no changelog nem em `eval/observations/`). O review real no Codex ([observação](eval/observations/2026-09-17-codex-real-profile-review.md), alpha.6, projeto React Native) mostrou delegação real, mas falhou o gate de proveniência; não conta como passagem. A alpha.11 cita uma execução real no Codex que esgotou o limite de subagentes, sem observação documentada |
-| 2 | Suplementos React e node:test | Parcial | Roteamento, controles de asserção assíncrona e instalação têm testes automatizados; há um lab sintético do Tests Reviewer no Codex (alpha.1, [observação](eval/observations/2026-09-17-codex-tests-lab.md)). Qualidade do React em uso real segue sem validação; não há casos de estado, cleanup e resposta stale registrados |
+| 1 | Rodada compartilhada em sessão real | Cumprido com ressalvas (Claude Code, 1 lab sintético) | React lab repetido em duas sessões novas, mesma alpha.12 e mesmo código ([observação](eval/observations/2026-11-05-react-lab-two-sessions.md)): Challengers e especialistas delegados a filhos reais, os 3 defeitos voltaram `persistent` na rodada 2 e nenhum controle foi acusado. Ressalvas: o ID do coordenador não é fornecido pelo host (usado ID de sessão e um placeholder), as lentes de segurança e arquitetura não anexaram à rodada, a severidade variou entre as rodadas e a evidência é estática. O review real no Codex ([observação](eval/observations/2026-09-17-codex-real-profile-review.md), alpha.6) segue sem passar o gate de proveniência |
+| 2 | Suplementos React e node:test | Parcial | React: 3 famílias (estado, cleanup, resposta stale), cada uma com controle correto e evidência reproduzível por execução (`eval/labs/react-lab`); o `argus:react-review` foi carregado pelos Challengers na rodada 1. Falta o lado node:test (só o lab sintético do Tests Reviewer no Codex, alpha.1, [observação](eval/observations/2026-09-17-codex-tests-lab.md)) e a validação em outro host e com diffs reais |
 | 3 | Matriz de hosts | Pendente | Só evidências avulsas: Codex (lab de Tests e review real), DSH (lab de 2026-09-12, anterior ao 0.3) e smoke sintético no OpenCode Desktop. Claude Code não tem observação registrada. Nenhuma matriz com versões, modo efetivo do Challenger e repetição de baseline por host |
 | 4 | Avaliação ampliada | Preparada, não executada | Corpus público montado: 7 casos (4 defeitos e 3 controles) em `usehooks-ts` e `validator.js`, com roteiro em [`eval/corpus/RUN.md`](eval/corpus/RUN.md) e `eval:collect`/`eval:score-corpus`. Há 0 arquivos `run-*.json`: faltam as execuções (duas por caso), a adjudicação humana e o piloto `single`/`specialists`/`full` |
 | 5 | Triagem e release | Pendente | Sem registro de triagem de defeitos conhecidos. A limitação do Codex (openai/codex#15250) está documentada com workaround, e o README tem a seção de limites de validação |
+
+Limitações registradas pelas rodadas do React lab, ainda sem correção:
+`argus_report` exige `coordinator_id`, mas o Claude Code não entrega um ID real ao
+agente (o gate só compara IDs informados pelo coordenador); as lentes de
+segurança e arquitetura não chamam as tools MCP quando não têm candidatos, e o
+coordenador marca a execução delas; o ID do filho só existe depois do dispatch,
+então o handoff ao Challenger depende de instrução; a severidade varia entre
+rodadas sobre o mesmo código; `argus_init` não informa a versão do plugin.
 
 Itens da adjudicação do review real no Codex que já têm correção publicada, ainda
 sem repetição em sessão real: proveniência do Challenger verificada antes do
@@ -180,12 +188,11 @@ Observação real adicional: [adjudicação do profile review no Codex](eval/obs
 Delegação foi observada, mas atribuição do Challenger, consolidação e cobertura
 canônica têm falhas; essa rodada não conclui os gates de proveniência/RC.
 
-**Agora:** repetir o React lab na alpha.12 em sessão nova, verificando persistência
-direta de candidatos/veredictos e a proveniência do Challenger antes do relatório.
-Depois registrar a observação sanitizada e repetir o baseline, sem editar o código
-entre rodadas. Em paralelo, o corpus já montado pode ser executado
-(`eval/corpus/RUN.md`), com host e modelo fixados em todas as rodadas. Só então
-ampliar a matriz de hosts.
+**Agora:** o React lab foi repetido no Claude Code (critério 1). Próximos passos:
+repetir o mesmo lab no Codex, no OpenCode Desktop e no DSH, para a matriz de hosts
+(critério 3), e executar o corpus já montado (`eval/corpus/RUN.md`, critério 4) com
+host e modelo fixados em todas as rodadas. Decidir antes o que fazer com as
+limitações registradas acima, em especial a origem do `coordinator_id`.
 
 Cada marco concluído deve ter commit/tag, artefatos de validação ou observações,
 adjudicação quando aplicável e pendências conhecidas. Mudança de escopo/critério
