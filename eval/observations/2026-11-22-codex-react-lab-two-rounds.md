@@ -89,5 +89,6 @@ report states the ids match the coordinator-supplied ones, "not host-certified".
 1. Determine whether the role instructions reach a Codex subagent when spawned by
    `agent_type` (for example a diagnostic child asked to quote its persona), and decide
    whether the README limitation on named dispatch needs a build-specific qualification.
-2. Adjudicate whether the three `useCart` findings are one defect or three, using the
-   causal-independence procedure; decide whether reconciliation should have merged them.
+2. ~~Adjudicate whether the three `useCart` findings are one defect or three.~~ Done:
+   [adjudication](2026-11-22-d1-adjudication.md). The split follows the counterfactual
+   rule and is not a false positive; it is one defect by the lab's ground truth.
