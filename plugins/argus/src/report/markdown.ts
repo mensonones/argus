@@ -2,6 +2,7 @@ import type { Finding, Severity } from "../types.js";
 import type { ReviewResult } from "./result.js";
 import { personaLabel, PERSONAS } from "../personas.js";
 import { challengeExecutionLabel } from "./challenge.js";
+import { sameFixPeers } from "./same-fix.js";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   info: "INFO",
@@ -17,7 +18,7 @@ function location(f: Finding): string {
   return end && end !== start ? `${f.file}:${start}-${end}` : `${f.file}:${start}`;
 }
 
-function renderFinding(f: Finding, index: number): string {
+function renderFinding(f: Finding, index: number, sameFix?: { peers: number[]; code: string }): string {
   const lines: string[] = [];
   lines.push(
     `### ${index}. ${SEVERITY_LABEL[f.severity]} · ${f.category} — ${f.title}`,
@@ -87,6 +88,10 @@ function renderFinding(f: Finding, index: number): string {
     lines.push(f.recommendation);
     lines.push("");
   }
+  if (sameFix) {
+    lines.push(`**Same recommended change as:** ${sameFix.peers.map(p => `#${p + 1}`).join(", ")} — the recommendations quote the same code (\`${sameFix.code}\`), so one edit may address them together. Each consequence still needs its own check; identities are unchanged.`);
+    lines.push("");
+  }
   const detected = f.detectedBy && f.detectedBy.length > 1
     ? f.detectedBy.map(personaLabel).join(", ")
     : personaLabel(f.reviewer);
@@ -132,8 +137,9 @@ export function renderMarkdown(result: ReviewResult): string {
   } else {
     out.push("---");
     out.push("");
+    const peers = sameFixPeers(result.findings);
     result.findings.forEach((f, i) => {
-      out.push(renderFinding(f, i + 1));
+      out.push(renderFinding(f, i + 1, peers.get(i)));
       out.push("");
       out.push("---");
       out.push("");

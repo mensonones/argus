@@ -4,6 +4,7 @@
 
 - Changed: `argus_reconcile` rejections now name the finding and the field that failed (`source_claim`, `description_excerpt`, `evidence_excerpt`, `impact_excerpt`, `observation_excerpt`) and say the text must be a verbatim substring, so the coordinator can fix the quote in one retry. Validation rules are unchanged.
 - Fixed (DSH): the host generator no longer rewrites the `argus-security-review` skill name when it rewrites agent ids (`859d056`, included in the `v0.3.0-alpha.13` tag but missing from that entry).
+- Added: reports note when findings in one file quote the same code in their recommendations ("Same recommended change as: #2, #3"; `sameRecommendedChange` in the JSON report). It is a textual presentation hint: identities, severities and reconciliation are unchanged, and recommendations that describe the same fix only in prose are not matched. Motivated by the `useCart` split observed on Codex (`eval/observations/2026-11-22-d1-adjudication.md`).
 - Decided: `coordinator_id` stays a declared identity, not host-certified; see the roadmap. Known defects are triaged in `eval/TRIAGE.md`.
 
 ## 0.3.0-alpha.13 — 2026-11-05

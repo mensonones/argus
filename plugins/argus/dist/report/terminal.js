@@ -1,6 +1,7 @@
 import { color } from "../logger.js";
 import { personaLabel, PERSONAS } from "../personas.js";
 import { challengeExecutionLabel } from "./challenge.js";
+import { sameFixPeers } from "./same-fix.js";
 function severityTag(sev) {
     const label = sev.toUpperCase().padEnd(8);
     switch (sev) {
@@ -54,7 +55,8 @@ export function renderTerminal(result) {
         out.push("");
         out.push(color.yellow(result.skippedReason));
     }
-    for (const f of result.findings) {
+    const sameFix = sameFixPeers(result.findings);
+    for (const [position, f] of result.findings.entries()) {
         out.push("");
         out.push(color.gray("─".repeat(64)));
         out.push("");
@@ -107,6 +109,10 @@ export function renderTerminal(result) {
             out.push(block("Incorporated historical finding (not fixed)", `${link.findingId} (identity ${link.baselineIdentity}): ${link.reasoning}\nCovered: ${link.coveredClaims.join("; ")}`));
         if (f.recommendation) {
             out.push(block("Recommendation", f.recommendation));
+        }
+        const same = sameFix.get(position);
+        if (same) {
+            out.push(block("Same recommended change as", `${same.peers.map((p) => `"${result.findings[p].title}"`).join("; ")}\nSame code quoted (${same.code}); one edit may address them together. Each consequence still needs its own check.`));
         }
         const detected = f.detectedBy && f.detectedBy.length > 1
             ? f.detectedBy.map(personaLabel).join(", ")

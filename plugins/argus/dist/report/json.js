@@ -1,3 +1,4 @@
+import { sameFixGroups } from "./same-fix.js";
 export function renderJson(result) {
     return JSON.stringify({
         base: result.baseRef,
@@ -14,6 +15,11 @@ export function renderJson(result) {
             findings: result.findings.length,
         },
         findings: result.findings,
+        sameRecommendedChange: sameFixGroups(result.findings).map((group) => ({
+            file: group.file,
+            code: group.code,
+            findingIds: group.indices.map((index) => result.findings[index].id),
+        })),
         reviewerStats: result.reviewerStats,
         resolvedFindings: result.resolvedFindings,
         unmatchedPreviousCount: result.unmatchedPreviousCount,
