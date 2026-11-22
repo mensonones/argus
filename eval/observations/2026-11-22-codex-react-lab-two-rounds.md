@@ -11,9 +11,11 @@ input. Ground truth: [`eval/labs/react-lab`](../labs/react-lab/README.md). Run s
   marketplace had pointed at an older checkout (alpha.12, seven commits behind); it was
   fast-forwarded and the custom agents reinstalled (`doctor:codex` all green) before
   the run.
-- Host: Codex desktop app. App version **not recorded**. Model: `~/.codex/config.toml`
-  sets `gpt-6.2-sol` with reasoning effort `high`; the sessions did not report the
-  model, so this is the configured value, not a confirmed one.
+- Host: Codex Desktop, `cli_version` `0.171.0-alpha.13` (Codex's own version, unrelated
+  to Argus's), source `vscode`. Model `gpt-6.2-sol` with reasoning effort `high` in
+  every turn of both rounds, read from `turn_context` in the session rollouts under
+  `~/.codex/sessions/2026/11/22/` (parents `01a2046f…` for round 1, `01a20476…` for
+  round 2).
 - Target: `argus-react-lab-codex`, a fresh clone with no `.argus/`, branch
   `feature/hooks-tweaks` at `ce58eda`, local `main` at `ac664f3`, clean tree in both
   rounds. Source files were not edited between rounds.
@@ -56,12 +58,23 @@ report states the ids match the coordinator-supplied ones, "not host-certified".
   independence call that has not been adjudicated; on Claude Code D1 was one finding.
   The lab's ground truth counts three defects, so "five persistent" is consistent
   with it but is not the same grouping as on Claude Code.
-- **Delegation mode is agent-reported.** The Challenger details differ in wording
-  ("Host-loaded", "Host-dispatched", "Delegated Momo role"). Codex is documented as
-  unable to select a custom agent by name in a tool-backed session
-  (openai/codex#15250), where the coordinator must disclose a generic worker with
-  injected instructions. The `spawn_agent` parameters were **not captured**, so whether
-  a named agent or a generic worker ran is unverified.
+- **What the host rollouts show about delegation.** The parent sessions called
+  `spawn_agent` 9 times in round 1 (4 lenses, 5 Challengers) and 10 in round 2 (4 lenses,
+  6 Challengers), each with `agent_type` set to the Argus role (`argus-correctness`,
+  `argus-security`, `argus-performance`, `argus-architecture`, `argus-challenger`) and a
+  `task_name`. Each child rollout is a real subagent thread (`thread_source: subagent`,
+  `depth: 1`, forked from the parent) whose `agent_role` is that role and whose
+  `agent_path` (`/root/momo_resize`, ...) equals the dispatch id the report lists. So
+  the host did create role-tagged children matching the reported ids, and the report's
+  "delegated" is not a fabrication. The `message` argument is encrypted in the rollout.
+  This differs from the generic-worker workaround the README describes for
+  openai/codex#15250, so that limitation may not apply to this Codex build in this
+  mode; that is one build and not a general finding.
+- **Not established:** whether the role's `developer_instructions` were applied to the
+  child. The rollout stores no developer message with the Momo persona; the persona text
+  appears in the `spawn_agent` role listing and in files the child read. The Challenger
+  details in the reports vary in wording ("Host-loaded", "Host-dispatched", "Delegated
+  Momo role") and remain agent-reported.
 - **Scope differed between rounds on identical code** (integrated diff with working
   tree versus selected commits without). Persistence still matched, but the default
   scope is not stable across sessions.
@@ -73,8 +86,8 @@ report states the ids match the coordinator-supplied ones, "not host-certified".
 
 ## Open follow-ups
 
-1. Capture the `spawn_agent` parameters of the Challengers from the Codex transcript
-   to settle named agent versus generic worker.
+1. Determine whether the role instructions reach a Codex subagent when spawned by
+   `agent_type` (for example a diagnostic child asked to quote its persona), and decide
+   whether the README limitation on named dispatch needs a build-specific qualification.
 2. Adjudicate whether the three `useCart` findings are one defect or three, using the
    causal-independence procedure; decide whether reconciliation should have merged them.
-3. Record the Codex app version and the model the session actually used.
