@@ -32,6 +32,7 @@ registra o que efetivamente foi publicado. Não há datas prometidas.
 | Próximas alphas 0.3 | Planejadas | Validação em sessão real, matriz de hosts e execução do corpus (ver estado dos critérios) |
 | 0.3.0-rc.1 | Condicional, não iniciado | Congelamento após os critérios abaixo |
 | 0.3.0 | Planejado | Núcleo e primeiro conjunto de stack skills estabilizados |
+| Pós-0.3.0 (alpha 0.3.x ou 0.4 antecipada) | Proposta | Reprodução executável de achados, opt-in (ver "Proposta: reprodução executável"). Não bloqueia o RC da 0.3 |
 | 0.4.0 | Planejado | Integração GitHub/CI com engine explicitamente definida |
 | 0.5.0 | Planejado | Memória contextual de repositório, rastreável e governável |
 | 1.0.0 | Planejado | Contratos estáveis e confiabilidade avaliada em uso real |
@@ -125,6 +126,94 @@ afirmações de qualidade ficam limitadas ao corpus adjudicado.
 
 Fora de escopo: Action de review autônomo, publicação automática em PR e memória
 contextual expandida. Os quatro hosts não precisam produzir textos idênticos.
+
+## Proposta: reprodução executável de achados
+
+Estado: **proposta**, registrada em 2026-11-22 a partir de uma comparação com
+revisores comerciais e de código aberto. Não faz parte dos critérios de RC da 0.3 e,
+por ser feature relevante, entra na fase alpha depois da 0.3.0. Nada aqui está
+implementado.
+
+### Problema
+
+Toda evidência observada até hoje é estática (`static-analysis`, reportada pelo
+revisor; limitação T4 em [`eval/TRIAGE.md`](eval/TRIAGE.md)). Um Challenger que
+CONFIRMA lendo o código reduz falsos positivos, mas o usuário ainda precisa acreditar
+na leitura. Ruído e desconfiança são a queixa mais comum sobre revisores automáticos;
+poucos entregam o achado com uma prova que o usuário possa rodar.
+
+### O que já existe
+
+- `evidencePackage` v1 aceita `method: test | reproduction`, com `command` e
+  `artifact` obrigatórios, e `negativeControl` opcional (`src/evidence.ts`).
+- O ranking já pesa mais a evidência executada (1,2) e com controle negativo (1,3)
+  do que a estática (1,1), de forma conservadora (`src/dedup.ts`).
+- O Challenger já é instruído a não tratar CONFIRMED estático como reprodução.
+- O React lab tem verificação executável do gabarito (`eval/labs/react-lab`, `npm run verify`).
+
+### O que falta
+
+1. **Nada faz a execução acontecer.** É uma instrução em prosa; nenhum fluxo,
+   orçamento ou autorização a conduz.
+2. **O comando e o artefato são declarados pelo agente.** O relatório rotula tudo como
+   "reviewer-reported"; não há como distinguir uma execução real de uma alegação.
+3. **Os agentes não escrevem no repositório** (`disallowedTools: Write, Edit`), e não
+   devem: a árvore revisada não pode mudar. Falta um lugar seguro para o teste de reprodução.
+4. **Executar código do repositório é risco.** O conteúdo revisado é dado não confiável
+   e não pode autorizar execução nem relaxar política.
+
+### Desenho proposto
+
+- **Opt-in e por rodada.** `review.verify: off | suggest | run` no `argus.yaml`,
+  padrão `off`. `suggest` só descreve o teste; `run` executa, com autorização
+  explícita do usuário para aquela rodada (executar e revisar são autorizações distintas).
+- **Execução capturada pelo runtime, não pelo agente.** Nova ferramenta MCP (nome
+  provisório `argus_run_repro`) roda o comando numa cópia isolada da revisão
+  (worktree em `.argus/repro/<round>/<finding>/`), com timeout, sem segredos no
+  ambiente, e grava código de saída, hash e trecho da saída. O artefato passa a ser
+  capturado, não alegado. O agente só fornece o teste e o comando.
+- **Evidência com origem.** Bloco opcional `execution` (`capturedBy: runtime | agent`,
+  `exitCode`, `outputHash`, `durationMs`, `revision`) em um `evidencePackage`
+  compatível; pacotes v1 continuam válidos, com teste de migração.
+- **Controle negativo como padrão do "provado".** Um achado só recebe o selo de
+  provado se a reprodução falha na revisão revisada e passa no controle (revisão base
+  ou cenário corrigido). Reprodução sem controle fica um degrau abaixo.
+- **Relatório honesto.** Rótulos distintos: `static`, `executed (agent-reported)` e
+  `executed (runtime-captured, negative control passed)`. A comparação nunca é
+  apresentada como certificação do host.
+- **Não conseguir reproduzir não refuta.** Falha em escrever ou rodar o teste mantém o
+  achado como está (estático, CONFIRMED ou PLAUSIBLE) e registra a limitação. Uma
+  reprodução que não dispara o defeito é evidência contra, mas o Challenger precisa
+  verificar se o teste é correto antes de rebaixar.
+- **Primeiro recorte:** JS/TS (`node:test`, Vitest, Jest), onde já há lab e
+  detecção de stack. Outras linguagens só com casos e controles próprios.
+
+### Decisão obrigatória antes da implementação
+
+ADR sobre **quem executa e com qual isolamento**. O runtime é um servidor MCP sem
+sandbox próprio; o isolamento de verdade depende do host. Opções: (a) o runtime roda
+numa cópia temporária com limites de tempo e ambiente limpo e declara o que não
+garante; (b) o agente executa pelos controles do próprio host. A recomendação é (a),
+pois só ela torna a captura verificável, desde que a documentação diga que não é uma
+sandbox de segurança e que a autorização do usuário é obrigatória.
+
+### Critérios de conclusão
+
+- No React lab, D1 a D3 chegam ao selo de provado (falha na revisão revisada, passa
+  no controle) e C1 a C3 não produzem prova falsa nem achado.
+- Em corpus real, publicar: fração de achados confirmados com reprodução executável,
+  reproduções que falharam por defeito do teste (não do código), "provas" falsas,
+  tempo e tokens extras por rodada. Mesma regra do critério 4: sem alegação de
+  superioridade, só o que o corpus adjudicado sustenta.
+- Execução exige autorização explícita; recusa, timeout e ambiente sem dependências
+  degradam para estático com a limitação registrada, nunca para "sem achados".
+- Testes de segurança: o conteúdo do repositório não consegue ampliar o que é
+  executado, apontar para fora da cópia isolada nem relaxar a política.
+- Testes de migração e compatibilidade do `evidencePackage`; os pacotes v1 seguem
+  aceitos e renderizados como antes.
+
+Fora de escopo: corrigir o código automaticamente, executar scripts do repositório
+sem autorização, rede liberada por padrão e qualquer promessa de sandbox de segurança.
 
 ## 0.4 — GitHub e CI
 
