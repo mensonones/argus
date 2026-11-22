@@ -99,8 +99,9 @@ Limitações registradas pelas rodadas 1 e 2 do React lab e o que mudou depois
   handoff do ID do Challenger virou protocolo, os arquivos de referência são lidos
   por caminho absoluto e `argus_init` informa `runtimeVersion`. O agente de segurança
   não recebia a skill por colisão de nome com uma skill embutida; a skill foi renomeada.
-- **Ainda abertas:** o `coordinator_id` continua informado pelo agente, sem
-  certificação do host (e a substituição só foi observada no Claude Code); a severidade
+- **Decidido (2026-11-22):** o `coordinator_id` é uma identidade **declarada**, não
+  certificada. Ver "Decisão: origem do coordinator_id" abaixo.
+- **Ainda abertas:** a severidade
   varia entre rodadas sobre o mesmo código (rodada 2); a evidência é só estática; a
   primeira chamada de `argus_reconcile` é rejeitada com frequência por causa da
   citação de `source_claim`; o conteúdo da skill de segurança dentro do agente não
@@ -199,8 +200,30 @@ canônica têm falhas; essa rodada não conclui os gates de proveniência/RC.
 **Agora:** o React lab foi repetido no Claude Code (critério 1). Próximos passos:
 repetir o mesmo lab no Codex, no OpenCode Desktop e no DSH, para a matriz de hosts
 (critério 3), e executar o corpus já montado (`eval/corpus/RUN.md`, critério 4) com
-host e modelo fixados em todas as rodadas. Decidir antes o que fazer com as
-limitações registradas acima, em especial a origem do `coordinator_id`.
+host e modelo fixados em todas as rodadas. A origem do `coordinator_id` está
+decidida (abaixo); as demais limitações registradas seguem abertas.
+
+### Decisão: origem do coordinator_id (2026-11-22)
+
+**Contexto.** O runtime é um servidor MCP por stdio; o protocolo não traz canal pelo
+qual o host ateste a identidade da sessão ou dos subagentes. Todo ID que chega ao
+`argus_report` (coordenador e Challengers) passa por um agente. Os hosts também não
+têm mecanismo comum: só o Claude Code substitui `${CLAUDE_SESSION_ID}`.
+
+**Decisão.** `coordinator_id` permanece **identidade declarada**: o host a fornece
+quando puder (Claude Code, por substituição), senão o agente informa `unavailable`
+ou o melhor identificador disponível. Não construir certificação nem tornar o ID
+requisito de aprovação. O que a verificação garante é consistência interna: o ID de
+cada Challenger delegado tem de constar nos IDs de dispatch informados e não pode
+ser igual ao do coordenador.
+
+**Consequências.**
+- Relatórios continuam dizendo "not host-certified"; nenhum texto, README ou critério
+  pode apresentar a proveniência como prova de execução.
+- O critério 1 e a matriz de hosts (3) são avaliados por observação da sessão e dos
+  subagentes reais, não pelo ID. O ID serve de rastro, não de atestado.
+- Reavaliar somente se um host expuser identidade verificável ao servidor MCP; isso
+  seria uma mudança de contrato (1.0), não uma correção de alpha.
 
 Cada marco concluído deve ter commit/tag, artefatos de validação ou observações,
 adjudicação quando aplicável e pendências conhecidas. Mudança de escopo/critério
