@@ -719,7 +719,9 @@ integração com git real travam a igualdade byte-a-byte. Validação: 69 testes
 handshake com 15 tools MCP; schema v4 mantido. Reinstalar hosts e iniciar nova
 sessão. (Validado em sessão real no Codex: 51/51 patches byte-exatos vs git.)
 
-**v0.3.0-alpha.13 (atual):** correções de coordenação e do Claude Code. O comando
+**v0.3.0-alpha.14 (atual):** as rejeições de `argus_reconcile` nomeiam o achado e o campo que falhou; o relatório avisa quando achados do mesmo arquivo citam o mesmo código nas recomendações (`Same recommended change as`, `sameRecommendedChange` no JSON), sem fundir identidades; o gerador do DSH preserva o nome `argus-security-review`. `coordinator_id` segue como identidade declarada, não certificada. Validação: 78 testes (76 passam, 2 pulados no Windows), `claude plugin validate` estrito e pacote instalado com 15 tools; React lab repetido no Codex. Reinstalar hosts e iniciar nova sessão.
+
+**v0.3.0-alpha.13:** correções de coordenação e do Claude Code. O comando
 `/argus:review` tinha o frontmatter inválido e o Claude Code descartava seus
 metadados; a skill de segurança foi renomeada para `argus-security-review`
 (o nome `security-review` colide com uma skill embutida do Claude Code e o agente

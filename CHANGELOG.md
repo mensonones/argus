@@ -2,10 +2,18 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.14 — 2026-11-22
+
+**Upgrade notes:** the DSH generator fix changes generated definitions: run `npm run install:dsh` and start a fresh session. The other changes are runtime: update the Claude Code plugin, rerun `npm run install:codex` and `install:opencode-desktop`, and refresh the Codex plugin cache, then start a fresh session. No schema or MCP tool change.
+
 - Changed: `argus_reconcile` rejections now name the finding and the field that failed (`source_claim`, `description_excerpt`, `evidence_excerpt`, `impact_excerpt`, `observation_excerpt`) and say the text must be a verbatim substring, so the coordinator can fix the quote in one retry. Validation rules are unchanged.
 - Fixed (DSH): the host generator no longer rewrites the `argus-security-review` skill name when it rewrites agent ids (`859d056`, included in the `v0.3.0-alpha.13` tag but missing from that entry).
 - Added: reports note when findings in one file quote the same code in their recommendations ("Same recommended change as: #2, #3"; `sameRecommendedChange` in the JSON report). It is a textual presentation hint: identities, severities and reconciliation are unchanged, and recommendations that describe the same fix only in prose are not matched. Motivated by the `useCart` split observed on Codex (`eval/observations/2026-11-22-d1-adjudication.md`).
 - Decided: `coordinator_id` stays a declared identity, not host-certified; see the roadmap. Known defects are triaged in `eval/TRIAGE.md`.
+- Evaluation: the React lab on Codex Desktop (two fresh sessions, alpha.13: three defects found, no control accused, all findings `persistent` on the second round; `eval/observations/2026-11-22-codex-react-lab-two-rounds.md`), an executed adjudication of the `useCart` split (`eval/observations/2026-11-22-d1-adjudication.md`, `eval/labs/react-lab/d1-counterfactuals.mjs`) and the first known-defect triage (`eval/TRIAGE.md`). The roadmap records the `coordinator_id` decision and a proposal for opt-in executable reproduction of findings.
+- Confirmed: in a fresh Claude Code session on alpha.13, `argus:argus-security` received the `argus-security-review` skill body (diagnostic reply, not an archived transcript).
+
+Validated with 78 tests (76 pass, 2 skipped: no symlink privilege and no POSIX shebang on this Windows host), strict `claude plugin validate` on the plugin and the marketplace, and the packed-install MCP handshake (15 tools) via `release:validate`. The CI matrix covers Linux, Windows and macOS. Not verified: the new report note in a real session, the `argus_reconcile` error messages in a real session, the DSH installer test on this host (skipped), and OpenCode Desktop and DSH reviews. SQLite schema v4 and the 15 MCP tools are unchanged.
 
 ## 0.3.0-alpha.13 — 2026-11-05
 

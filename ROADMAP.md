@@ -1,7 +1,7 @@
 # Argus — roadmap e critérios de conclusão
 
-Status de referência: **0.3.0-alpha.13** (preparada em 2026-11-05; a alpha.12 foi publicada em 2026-09-19), com o estado
-dos critérios verificado contra o repositório em 2026-11-05.
+Status de referência: **0.3.0-alpha.14** (preparada em 2026-11-22; a alpha.13 foi publicada em 2026-11-22), com o estado
+dos critérios verificado contra o repositório em 2026-11-22.
 Este documento é o plano de entregas futuras; o [changelog](CHANGELOG.md)
 registra o que efetivamente foi publicado. Não há datas prometidas.
 
@@ -28,7 +28,8 @@ registra o que efetivamente foi publicado. Não há datas prometidas.
 | --- | --- | --- |
 | 0.3.0-alpha.5 | Publicado | Contexto MCP explícito e attachment sem nova rodada |
 | 0.3.0-alpha.6 a alpha.12 | Publicado | Gates de proveniência e cobertura canônica, integridade da rodada, escopo automático, patches byte a byte, liberação de revisores concluídos e empacotamento portável |
-| 0.3.0-alpha.13 | Preparada (tag e push pendentes) | Correções de coordenação e do Claude Code validadas em sessões reais do React lab, dependências sem alertas e suíte nos três sistemas |
+| 0.3.0-alpha.13 | Publicado | Correções de coordenação e do Claude Code validadas em sessões reais do React lab, dependências sem alertas e suíte nos três sistemas |
+| 0.3.0-alpha.14 | Preparada (tag e push pendentes) | Mensagens de reconciliação que nomeiam achado e campo, nota de correção compartilhada no relatório, fix do DSH, React lab no Codex, triagem de defeitos e decisão sobre o coordinator_id |
 | Próximas alphas 0.3 | Planejadas | Validação em sessão real, matriz de hosts e execução do corpus (ver estado dos critérios) |
 | 0.3.0-rc.1 | Condicional, não iniciado | Congelamento após os critérios abaixo |
 | 0.3.0 | Planejado | Núcleo e primeiro conjunto de stack skills estabilizados |
