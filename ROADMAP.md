@@ -105,8 +105,9 @@ Limitações registradas pelas rodadas 1 e 2 do React lab e o que mudou depois
 - **Ainda abertas:** a severidade
   varia entre rodadas sobre o mesmo código (rodada 2); a evidência é só estática; a
   primeira chamada de `argus_reconcile` é rejeitada com frequência por causa da
-  citação de `source_claim`; o conteúdo da skill de segurança dentro do agente não
-  foi confirmado por diagnóstico; o aviso `unlinkedHistory` só tem teste de unidade.
+  citação de `source_claim` (as mensagens de erro agora nomeiam o achado e o campo);
+  o aviso `unlinkedHistory` só tem teste de unidade. O conteúdo da skill de segurança
+  dentro do agente foi confirmado por diagnóstico em 2026-11-22 (alpha.13, Claude Code).
 
 Itens da adjudicação do review real no Codex que já têm correção publicada, ainda
 sem repetição em sessão real: proveniência do Challenger verificada antes do
