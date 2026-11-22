@@ -36,16 +36,19 @@ export function consolidateReconciled(findings: Finding[], groups: Reconciliatio
       for (const claim of coverage) {
         const source = members.find(member => member.id === claim.finding_id)!;
         if (![source.description, source.impact, ...source.evidence].some(text => text.includes(claim.source_claim))) {
-          throw new Error("source_claim must quote current validated member content.");
+          throw new Error(`source_claim must quote current validated member content: it is not a verbatim substring of the description, impact or evidence of ${claim.finding_id}. Copy the text exactly.`);
         }
-        if (!canonical.description.includes(claim.description_excerpt) ||
-            !canonical.evidence.some(e => e.includes(claim.evidence_excerpt)) ||
-            !canonical.impact.includes(claim.impact_excerpt)) {
-          throw new Error("Retained claims must cite canonical description, evidence and impact, not just reconciliation reasoning.");
+        const missing = [
+          !canonical.description.includes(claim.description_excerpt) && "description_excerpt (canonical description)",
+          !canonical.evidence.some(e => e.includes(claim.evidence_excerpt)) && "evidence_excerpt (canonical evidence)",
+          !canonical.impact.includes(claim.impact_excerpt) && "impact_excerpt (canonical impact)",
+        ].filter(Boolean);
+        if (missing.length) {
+          throw new Error(`Retained claims must cite canonical description, evidence and impact, not just reconciliation reasoning. For ${claim.finding_id}, not a verbatim substring of ${canonical.id}: ${missing.join(", ")}.`);
         }
         if (canonical.evidencePackage && (!claim.observation_excerpt ||
             !canonical.evidencePackage.observed.includes(claim.observation_excerpt))) {
-          throw new Error("Claim coverage must cite the canonical packet's observed consequence.");
+          throw new Error(`Claim coverage must cite the canonical packet's observed consequence: observation_excerpt for ${claim.finding_id} is missing or not a verbatim substring of ${canonical.id}'s observed text.`);
         }
       }
     }

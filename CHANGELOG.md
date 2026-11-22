@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Changed: `argus_reconcile` rejections now name the finding and the field that failed (`source_claim`, `description_excerpt`, `evidence_excerpt`, `impact_excerpt`, `observation_excerpt`) and say the text must be a verbatim substring, so the coordinator can fix the quote in one retry. Validation rules are unchanged.
+- Fixed (DSH): the host generator no longer rewrites the `argus-security-review` skill name when it rewrites agent ids (`859d056`, included in the `v0.3.0-alpha.13` tag but missing from that entry).
+- Decided: `coordinator_id` stays a declared identity, not host-certified; see the roadmap. Known defects are triaged in `eval/TRIAGE.md`.
+
 ## 0.3.0-alpha.13 — 2026-11-05
 
 **Upgrade notes:** the DSH skill `/security-review` is now `/argus-security-review`. Reinstall all host definitions (`npm run install:codex`, `install:opencode-desktop`, `install:dsh`, or update the Claude Code plugin) and start a fresh session.
